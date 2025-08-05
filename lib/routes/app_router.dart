@@ -9,6 +9,7 @@ import 'package:respyr_dietician/features/profile_info/presentation/pages/height
 import 'package:respyr_dietician/features/profile_info/presentation/pages/profile_info_screen.dart';
 import 'package:respyr_dietician/features/profile_info/presentation/pages/profile_welcome_screen.dart';
 import 'package:respyr_dietician/features/profile_info/presentation/pages/weight_screen.dart';
+import 'package:respyr_dietician/features/profile_info/presentation/widgets/dietician_detail_screen.dart';
 import 'package:respyr_dietician/features/profile_info/presentation/widgets/full_screen_image_view.dart';
 import 'package:respyr_dietician/features/profile_info/presentation/widgets/image_cropper_screen.dart';
 import 'package:respyr_dietician/features/result_screen/presentation/pages/result_screen.dart';
@@ -58,6 +59,12 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) {
         final step = state.extra as int? ?? 6;
         return DieticianScreen(stepCompleted: step);
+      },
+    ),
+    GoRoute(
+      path: AppRoutes.dieticianDetailScreen,
+      builder: (context, state) {
+        return DieticianDetailScreen();
       },
     ),
     GoRoute(

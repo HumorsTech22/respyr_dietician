@@ -65,12 +65,19 @@ class _ChangePasswordViewState extends State<_ChangePasswordView> {
                             ? 'Password must meet all criteria'
                             : null,
                     obscure: !_isNewPasswordVisible,
-                    showSuffixIcon: true,
-                    onSuffixTap: () {
-                      setState(() {
-                        _isNewPasswordVisible = !_isNewPasswordVisible;
-                      });
-                    },
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _isNewPasswordVisible
+                            ? Icons.visibility_off
+                            : Icons.visibility,
+                        color: Colors.grey,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _isNewPasswordVisible = !_isNewPasswordVisible;
+                        });
+                      },
+                    ),
                   ),
                   onChanged: cubit.updateNewPassword,
                 ),
@@ -115,12 +122,20 @@ class _ChangePasswordViewState extends State<_ChangePasswordView> {
                             ? 'Passwords do not match'
                             : null,
                     obscure: !_isConfirmPasswordVisible,
-                    showSuffixIcon: true,
-                    onSuffixTap: () {
-                      setState(() {
-                        _isConfirmPasswordVisible = !_isConfirmPasswordVisible;
-                      });
-                    },
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _isConfirmPasswordVisible
+                            ? Icons.visibility_off
+                            : Icons.visibility,
+                        color: Colors.grey,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _isConfirmPasswordVisible =
+                              !_isConfirmPasswordVisible;
+                        });
+                      },
+                    ),
                   ),
                   onChanged: cubit.updateConfirmPassword,
                 ),

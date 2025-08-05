@@ -68,7 +68,7 @@ class Validators {
     final trimmed = input.trim();
 
     if (trimmed.isEmpty) return "Please enter your Dietician ID";
-    if (trimmed.length != 9) return "ID must be exactly 9 characters long";
+    if (trimmed.length < 3) return "ID must be greater than 3 characters long";
 
     return null;
   }

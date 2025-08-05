@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:respyr_dietician/features/profile_info/data/repository/dietician_repository.dart';
 import 'package:respyr_dietician/features/profile_info/domain/usecases/height_unit.dart';
 import 'package:respyr_dietician/features/profile_info/domain/usecases/weight_unit.dart';
 import 'package:respyr_dietician/features/profile_info/domain/usecases/calculate_bmi.dart';
@@ -10,8 +11,9 @@ import 'package:respyr_dietician/core/utils/validators.dart'; // Your separate v
 class ProfileCubit extends Cubit<ProfileState> {
   final CalculateBMI calculateBMI;
   final CalculateBMR calculateBMR;
+  final DieticianRepository dieticianRepository;
 
-  ProfileCubit(this.calculateBMI, this.calculateBMR)
+  ProfileCubit(this.calculateBMI, this.calculateBMR, this.dieticianRepository)
     : super(const ProfileState());
 
   void updateProfileImage(Uint8List imageData) {
@@ -30,7 +32,7 @@ class ProfileCubit extends Cubit<ProfileState> {
   void updateAge(int age) => emit(state.copyWith(age: age));
 
   void updateHeight(double heightCm) => emit(state.copyWith(height: heightCm));
-  void updateDietician(int deiticianId) =>
+  void updateDietician(String deiticianId) =>
       emit(state.copyWith(dieticianId: deiticianId));
 
   void updateHeightFromFeet(int feet, int inches) {
@@ -62,25 +64,38 @@ class ProfileCubit extends Cubit<ProfileState> {
   String? validateHeightInput(String input, HeightUnit unit) =>
       Validators.validateHeight(input, unit);
 
-  void toggleCheckbox(bool value) {
-    emit(state.copyWith(isCheckboxChecked: value));
-  }
-
   Future<void> fetchDieticianName(String id) async {
-    emit(state.copyWith(dieticianName: ""));
+    emit(state.copyWith(isLoading: true));
 
-    await Future.delayed(Duration(seconds: 1));
+    try {
+      final dietician = await dieticianRepository.fetchDietician(id);
 
-    if (id == "123456789") {
-      emit(
-        state.copyWith(
-          dieticianId: int.tryParse(id),
-          dieticianName: "CLINICALRESPYR101",
-        ),
-      );
-    } else {
-      emit(state.copyWith(dieticianId: null, dieticianName: "NotFound"));
+      if (dietician != null) {
+        emit(
+          state.copyWith(
+            dieticianId: dietician.dieticianId,
+            dieticianName: dietician.name,
+            email: dietician.email,
+            location: dietician.location,
+            dieticianImageUrl: dietician.logoUrl,
+            phoneNo: dietician.phoneNo,
+            isLoading: false,
+          ),
+        );
+      } else {
+        emit(state.copyWith(dieticianName: "NotFound", isLoading: false));
+      }
+    } catch (e) {
+      emit(state.copyWith(dieticianName: "Error", isLoading: false));
     }
+
+    // await Future.delayed(Duration(seconds: 1));
+
+    // if (id == "RespyrD01") {
+    //   emit(state.copyWith(dieticianId: id, dieticianName: "CLINICALRESPYR101"));
+    // } else {
+    //   emit(state.copyWith(dieticianId: null, dieticianName: "NotFound"));
+    // }
   }
 
   void clearDieticianName() {

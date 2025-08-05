@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:respyr_dietician/features/profile_info/data/repository/dietician_repository.dart';
 import 'package:respyr_dietician/features/profile_info/domain/usecases/calculate_bmi.dart';
 import 'package:respyr_dietician/core/services/usb_communication_service.dart';
 import 'package:respyr_dietician/features/account_setting_screen/presentation/pages/account_setting_screen.dart';
@@ -18,11 +19,14 @@ import 'package:respyr_dietician/routes/app_router.dart';
 void main() {
   final calculateBMI = CalculateBMI();
   final calculateBMR = CalculateBMR();
+  final dieticianRepository = DieticianRepository();
   runApp(
     MultiBlocProvider(
       providers: [
         BlocProvider<ProfileCubit>(
-          create: (_) => ProfileCubit(calculateBMI, calculateBMR),
+          create:
+              (_) =>
+                  ProfileCubit(calculateBMI, calculateBMR, dieticianRepository),
         ),
       ],
       child: const MyApp(),

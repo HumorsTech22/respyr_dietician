@@ -11,6 +11,7 @@ import 'package:respyr_dietician/features/profile_info/presentation/cubit/profil
 import 'package:respyr_dietician/features/profile_info/presentation/cubit/profile_state.dart';
 import 'package:respyr_dietician/features/profile_info/presentation/widgets/profile_bottom_navigation.dart';
 import 'package:respyr_dietician/features/profile_info/presentation/widgets/profile_progress_bar.dart';
+import 'package:respyr_dietician/features/profile_info/presentation/widgets/region_selector.dart';
 import 'package:respyr_dietician/routes/app_routes.dart';
 
 class ProfileInfoScreen extends StatefulWidget {
@@ -60,6 +61,8 @@ class _ProfileInfoScreenState extends State<ProfileInfoScreen> {
     }
     return true;
   }
+
+  final regions = ['North', 'South', 'East', 'West'];
 
   Future<void> _pickImage(BuildContext context) async {
     final hasPermission = await _checkPermission(ImageSource.gallery);
@@ -295,29 +298,10 @@ class _ProfileInfoScreenState extends State<ProfileInfoScreen> {
                                   ),
                                 ),
                                 const SizedBox(height: 16),
-                                TextFormField(
+                                RegionSelectorField(
                                   controller: locationController,
-                                  keyboardType: TextInputType.text,
-                                  cursorColor: Colors.blue,
-                                  autovalidateMode:
-                                      AutovalidateMode.onUserInteraction,
-                                  textCapitalization: TextCapitalization.words,
-                                  onChanged:
-                                      (value) => context
-                                          .read<ProfileCubit>()
-                                          .updateLocation(value.trim()),
-                                  validator: (value) {
-                                    value = value?.trim();
-                                    if (value == null || value.isEmpty) {
-                                      return 'Location should not be empty';
-                                    }
-                                    return null;
-                                  },
-                                  decoration: buildInputDecoration(
-                                    hintText: "Enter Location",
-                                    prefixIcon:
-                                        "assets/images/common/profile_location_icon.svg",
-                                  ),
+                                  regions: regions,
+                                  selectedRegion: locationController.text,
                                 ),
                               ],
                             ),

@@ -12,12 +12,13 @@ class ProfileState extends Equatable {
   final int? age;
   final double? height;
   final double? weight;
-  final int? dieticianId;
+  final String? dieticianId;
   final HeightUnit heightUnit;
   final WeightUnit weightUnit;
-  final bool isCheckboxChecked;
   final String dieticianName;
   final String dieticianImageUrl;
+  final String phoneNo;
+  final bool? isLoading;
 
   const ProfileState({
     this.profileImage,
@@ -31,9 +32,10 @@ class ProfileState extends Equatable {
     this.dieticianId,
     this.heightUnit = HeightUnit.cm,
     this.weightUnit = WeightUnit.kg,
-    this.isCheckboxChecked = false,
     this.dieticianName = '',
     this.dieticianImageUrl = '',
+    this.phoneNo = '',
+    this.isLoading,
   });
 
   ProfileState copyWith({
@@ -47,10 +49,11 @@ class ProfileState extends Equatable {
     double? weight,
     HeightUnit? heightUnit,
     WeightUnit? weightUnit,
-    int? dieticianId,
-    bool? isCheckboxChecked,
+    String? dieticianId,
     String? dieticianName,
     String? dieticianImageUrl,
+    String? phoneNo,
+    bool? isLoading,
   }) {
     return ProfileState(
       profileImage: profileImage ?? this.profileImage,
@@ -64,9 +67,10 @@ class ProfileState extends Equatable {
       heightUnit: heightUnit ?? this.heightUnit,
       weightUnit: weightUnit ?? this.weightUnit,
       dieticianId: dieticianId ?? this.dieticianId,
-      isCheckboxChecked: isCheckboxChecked ?? this.isCheckboxChecked,
       dieticianName: dieticianName ?? this.dieticianName,
       dieticianImageUrl: dieticianImageUrl ?? this.dieticianImageUrl,
+      phoneNo: phoneNo ?? this.phoneNo,
+      isLoading: isLoading ?? this.isLoading,
     );
   }
 
@@ -83,12 +87,13 @@ class ProfileState extends Equatable {
     heightUnit,
     weightUnit,
     dieticianId,
-    isCheckboxChecked,
     dieticianName,
     dieticianImageUrl,
+    phoneNo,
+    isLoading,
   ];
 
   @override
   String toString() =>
-      'ProfileState(profileImage: $profileImage, name: $name, email: $email, location: $location, gender: $gender, age: $age, height: $height, weight: $weight, heightUnit: $heightUnit, weightUnit: $weightUnit, dieticianId: $dieticianId, isCheckboxChecked: $isCheckboxChecked)';
+      'ProfileState(profileImage: $profileImage, name: $name, email: $email, location: $location, gender: $gender, age: $age, height: $height, weight: $weight, heightUnit: $heightUnit, weightUnit: $weightUnit, dieticianId: $dieticianId)';
 }

@@ -9,7 +9,7 @@ InputDecoration buildInputDecoration({
   bool obscure = true,
   VoidCallback? onSuffixTap,
   String? errorText,
-  bool showSuffixIcon = false,
+  Widget? suffixIcon,
   bool readOnly = false,
 }) {
   final border = OutlineInputBorder(
@@ -44,16 +44,8 @@ InputDecoration buildInputDecoration({
               ),
             )
             : null,
-    suffixIcon:
-        showSuffixIcon
-            ? IconButton(
-              icon: Icon(
-                obscure ? Icons.visibility_off : Icons.visibility,
-                color: Colors.grey,
-              ),
-              onPressed: onSuffixTap,
-            )
-            : null,
+    suffixIcon: suffixIcon,
+
     enabledBorder: readOnly ? noBorder : border,
     focusedBorder: readOnly ? noBorder : border,
     border: readOnly ? noBorder : border,
