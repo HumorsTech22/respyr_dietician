@@ -9,5 +9,8 @@ abstract class AppRoutes {
   static const profileWelcomeScreen = '/profile-welcome-screen';
   static const fullScreenImageView = '/full-screen-image-view';
   static const resultScreen = '/result-screen';
-  static const dieticianDetailScreen = '/dietician-detail-screen';
+  static const dietitianDetailScreen = '/dietitian-detail-screen';
+  static const testResultScreen = '/test-result-screen';
+  static const dietitianResultScreen = '/dietitian-result-screen';
+  static const dummy = '/dummy';
 }

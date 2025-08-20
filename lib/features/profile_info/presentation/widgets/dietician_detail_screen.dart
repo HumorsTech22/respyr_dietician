@@ -4,14 +4,14 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:respyr_dietician/common/widgets/profile_avatar.dart';
-import 'package:respyr_dietician/features/profile_info/presentation/cubit/profile_cubit.dart';
-import 'package:respyr_dietician/features/profile_info/presentation/cubit/profile_state.dart';
-import 'package:respyr_dietician/features/profile_info/presentation/widgets/profile_progress_bar.dart';
-import 'package:respyr_dietician/routes/app_routes.dart';
+import 'package:respyr_dietitian/common/widgets/profile_avatar.dart';
+import 'package:respyr_dietitian/features/profile_info/presentation/cubit/profile_cubit.dart';
+import 'package:respyr_dietitian/features/profile_info/presentation/cubit/profile_state.dart';
+import 'package:respyr_dietitian/features/profile_info/presentation/widgets/profile_progress_bar.dart';
+import 'package:respyr_dietitian/routes/app_routes.dart';
 
-class DieticianDetailScreen extends StatelessWidget {
-  const DieticianDetailScreen({super.key});
+class DietitianDetailScreen extends StatelessWidget {
+  const DietitianDetailScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -44,7 +44,7 @@ class DieticianDetailScreen extends StatelessWidget {
                     children: [
                       SizedBox(height: 120, child: ProfileAvatar()),
                       Text(
-                        state.dieticianName,
+                        state.dietitianName,
                         textAlign: TextAlign.center,
                         style: GoogleFonts.poppins(
                           color: const Color(0xFF252525),

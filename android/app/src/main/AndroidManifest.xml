@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.humorstech.respyr_dietician"
+    package="com.humorstech.respyr_dietitian"
     xmlns:tools="http://schemas.android.com/tools">
 
 
@@ -10,12 +10,13 @@
         android:maxSdkVersion="34"/>
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
         tools:ignore="ScopedStorage"/>
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 
 
     <uses-feature android:name="android.hardware.usb.host" />
 
     <application
-        android:label="respyr_dietician"
+        android:label="respyr_dietitian"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
 

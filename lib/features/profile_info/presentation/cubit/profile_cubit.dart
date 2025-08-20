@@ -1,19 +1,19 @@
 import 'dart:typed_data';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:respyr_dietician/features/profile_info/data/repository/dietician_repository.dart';
-import 'package:respyr_dietician/features/profile_info/domain/usecases/height_unit.dart';
-import 'package:respyr_dietician/features/profile_info/domain/usecases/weight_unit.dart';
-import 'package:respyr_dietician/features/profile_info/domain/usecases/calculate_bmi.dart';
-import 'package:respyr_dietician/features/profile_info/domain/usecases/calculate_bmr.dart';
-import 'package:respyr_dietician/features/profile_info/presentation/cubit/profile_state.dart';
-import 'package:respyr_dietician/core/utils/validators.dart'; // Your separate validators file
+import 'package:respyr_dietitian/features/profile_info/data/repository/dietician_repository.dart';
+import 'package:respyr_dietitian/features/profile_info/domain/usecases/height_unit.dart';
+import 'package:respyr_dietitian/features/profile_info/domain/usecases/weight_unit.dart';
+import 'package:respyr_dietitian/features/profile_info/domain/usecases/calculate_bmi.dart';
+import 'package:respyr_dietitian/features/profile_info/domain/usecases/calculate_bmr.dart';
+import 'package:respyr_dietitian/features/profile_info/presentation/cubit/profile_state.dart';
+import 'package:respyr_dietitian/core/utils/validators.dart'; // Your separate validators file
 
 class ProfileCubit extends Cubit<ProfileState> {
   final CalculateBMI calculateBMI;
   final CalculateBMR calculateBMR;
-  final DieticianRepository dieticianRepository;
+  final DietitianRepository dietitianRepository;
 
-  ProfileCubit(this.calculateBMI, this.calculateBMR, this.dieticianRepository)
+  ProfileCubit(this.calculateBMI, this.calculateBMR, this.dietitianRepository)
     : super(const ProfileState());
 
   void updateProfileImage(Uint8List imageData) {
@@ -32,8 +32,8 @@ class ProfileCubit extends Cubit<ProfileState> {
   void updateAge(int age) => emit(state.copyWith(age: age));
 
   void updateHeight(double heightCm) => emit(state.copyWith(height: heightCm));
-  void updateDietician(String deiticianId) =>
-      emit(state.copyWith(dieticianId: deiticianId));
+  void updatedietitian(String deiticianId) =>
+      emit(state.copyWith(dietitianId: deiticianId));
 
   void updateHeightFromFeet(int feet, int inches) {
     final cm = (feet * 30.48) + (inches * 2.54);
@@ -64,42 +64,42 @@ class ProfileCubit extends Cubit<ProfileState> {
   String? validateHeightInput(String input, HeightUnit unit) =>
       Validators.validateHeight(input, unit);
 
-  Future<void> fetchDieticianName(String id) async {
+  Future<void> fetchdietitianName(String id) async {
     emit(state.copyWith(isLoading: true));
 
     try {
-      final dietician = await dieticianRepository.fetchDietician(id);
+      final dietitian = await dietitianRepository.fetchDietitian(id);
 
-      if (dietician != null) {
+      if (dietitian != null) {
         emit(
           state.copyWith(
-            dieticianId: dietician.dieticianId,
-            dieticianName: dietician.name,
-            email: dietician.email,
-            location: dietician.location,
-            dieticianImageUrl: dietician.logoUrl,
-            phoneNo: dietician.phoneNo,
+            dietitianId: dietitian.dietitianId,
+            dietitianName: dietitian.name,
+            email: dietitian.email,
+            location: dietitian.location,
+            dietitianImageUrl: dietitian.logoUrl,
+            phoneNo: dietitian.phoneNo,
             isLoading: false,
           ),
         );
       } else {
-        emit(state.copyWith(dieticianName: "NotFound", isLoading: false));
+        emit(state.copyWith(dietitianName: "NotFound", isLoading: false));
       }
     } catch (e) {
-      emit(state.copyWith(dieticianName: "Error", isLoading: false));
+      emit(state.copyWith(dietitianName: "Error", isLoading: false));
     }
 
     // await Future.delayed(Duration(seconds: 1));
 
     // if (id == "RespyrD01") {
-    //   emit(state.copyWith(dieticianId: id, dieticianName: "CLINICALRESPYR101"));
+    //   emit(state.copyWith(dietitianId: id, dietitianName: "CLINICALRESPYR101"));
     // } else {
-    //   emit(state.copyWith(dieticianId: null, dieticianName: "NotFound"));
+    //   emit(state.copyWith(dietitianId: null, dietitianName: "NotFound"));
     // }
   }
 
-  void clearDieticianName() {
-    emit(state.copyWith(dieticianName: ""));
+  void cleardietitianName() {
+    emit(state.copyWith(dietitianName: ""));
   }
 
   double? getBMI() {

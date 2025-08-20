@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:respyr_dietician/common/widgets/text_input_decoration.dart';
-import 'package:respyr_dietician/features/account_setting_screen/presentation/pages/account_setting_screen.dart';
-import 'package:respyr_dietician/features/create_password_screen/presentation/cubit/create_password_cubit.dart';
-import 'package:respyr_dietician/features/create_password_screen/presentation/cubit/create_password_state.dart';
+import 'package:respyr_dietitian/common/widgets/text_input_decoration.dart';
+import 'package:respyr_dietitian/features/account_setting_screen/presentation/pages/account_setting_screen.dart';
+import 'package:respyr_dietitian/features/create_password_screen/presentation/cubit/create_password_cubit.dart';
+import 'package:respyr_dietitian/features/create_password_screen/presentation/cubit/create_password_state.dart';
 
 class CreatePasswordScreen extends StatelessWidget {
   final int stepCompleted;

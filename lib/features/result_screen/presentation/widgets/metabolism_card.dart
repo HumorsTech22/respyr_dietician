@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:respyr_dietician/core/utils/score_utils.dart';
+import 'package:respyr_dietitian/core/utils/score_utils.dart';
 
 class MetaCard extends StatelessWidget {
   final String imageString;

@@ -1,15 +1,15 @@
-class DieticianDetailModel {
+class DietitianDetailModel {
   final String id;
-  final String dieticianId;
+  final String dietitianId;
   final String name;
   final String phoneNo;
   final String email;
   final String location;
   final String logoUrl;
 
-  DieticianDetailModel({
+  DietitianDetailModel({
     required this.id,
-    required this.dieticianId,
+    required this.dietitianId,
     required this.name,
     required this.phoneNo,
     required this.email,
@@ -17,11 +17,11 @@ class DieticianDetailModel {
     required this.logoUrl,
   });
 
-  factory DieticianDetailModel.fromJson(Map<String, dynamic> json) {
+  factory DietitianDetailModel.fromJson(Map<String, dynamic> json) {
     final data = json['data'];
-    return DieticianDetailModel(
+    return DietitianDetailModel(
       id: data['id'].toString(),
-      dieticianId: data['dietician_id'],
+      dietitianId: data['dietician_id'],
       name: data['name'],
       phoneNo: data['phone_no'],
       email: data['email'],

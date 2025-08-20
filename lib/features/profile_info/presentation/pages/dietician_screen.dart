@@ -5,54 +5,53 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:respyr_dietician/core/utils/validators.dart';
-import 'package:respyr_dietician/features/profile_info/presentation/cubit/profile_cubit.dart';
-import 'package:respyr_dietician/features/profile_info/presentation/cubit/profile_state.dart';
-import 'package:respyr_dietician/features/profile_info/presentation/widgets/dietician_detail_screen.dart';
-import 'package:respyr_dietician/features/profile_info/presentation/widgets/profile_bottom_navigation.dart';
-import 'package:respyr_dietician/features/profile_info/presentation/widgets/profile_progress_bar.dart';
-import 'package:respyr_dietician/routes/app_routes.dart';
+import 'package:respyr_dietitian/core/utils/validators.dart';
+import 'package:respyr_dietitian/features/profile_info/presentation/cubit/profile_cubit.dart';
+import 'package:respyr_dietitian/features/profile_info/presentation/cubit/profile_state.dart';
+import 'package:respyr_dietitian/features/profile_info/presentation/widgets/profile_bottom_navigation.dart';
+import 'package:respyr_dietitian/features/profile_info/presentation/widgets/profile_progress_bar.dart';
+import 'package:respyr_dietitian/routes/app_routes.dart';
 
-class DieticianScreen extends StatefulWidget {
+class DietitianScreen extends StatefulWidget {
   final int stepCompleted;
 
-  const DieticianScreen({super.key, required this.stepCompleted});
+  const DietitianScreen({super.key, required this.stepCompleted});
 
   @override
-  State<DieticianScreen> createState() => _DieticianScreenState();
+  State<DietitianScreen> createState() => _DietitianScreenState();
 }
 
-class _DieticianScreenState extends State<DieticianScreen> {
-  final TextEditingController dieticianController = TextEditingController();
+class _DietitianScreenState extends State<DietitianScreen> {
+  final TextEditingController dietitianController = TextEditingController();
   String? errorText;
-  final FocusNode _dieticianFocusNode = FocusNode();
+  final FocusNode _dietitianFocusNode = FocusNode();
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      FocusScope.of(context).requestFocus(_dieticianFocusNode);
+      FocusScope.of(context).requestFocus(_dietitianFocusNode);
     });
   }
 
   @override
   void dispose() {
-    dieticianController.dispose();
-    _dieticianFocusNode.dispose();
+    dietitianController.dispose();
+    _dietitianFocusNode.dispose();
     super.dispose();
   }
 
   void _validateAndProceed(ProfileState state) async {
     final cubit = context.read<ProfileCubit>();
-    final input = dieticianController.text.trim();
+    final input = dietitianController.text.trim();
 
-    final error = Validators.validateDieticianId(input);
+    final error = Validators.validateDietitianId(input);
     setState(() => errorText = error);
 
     if (error != null) return;
 
     // Fetch asynchronously
-    await cubit.fetchDieticianName(input);
+    await cubit.fetchdietitianName(input);
 
     // ✅ Check if widget is still mounted
     if (!mounted) return;
@@ -60,23 +59,23 @@ class _DieticianScreenState extends State<DieticianScreen> {
     final updatedState = context.read<ProfileCubit>().state;
 
     // Show error if not found or failed
-    if (updatedState.dieticianName == 'NotFound' ||
-        updatedState.dieticianName == 'Error' ||
-        updatedState.dieticianName.trim().isEmpty) {
+    if (updatedState.dietitianName == 'NotFound' ||
+        updatedState.dietitianName == 'Error' ||
+        updatedState.dietitianName.trim().isEmpty) {
       setState(() {
-        errorText = "Dietician not found";
+        errorText = "dietitian not found";
       });
       return;
     }
 
-    cubit.updateDietician(input);
+    cubit.updatedietitian(input);
 
-    context.push(AppRoutes.dieticianDetailScreen);
+    context.push(AppRoutes.dietitianDetailScreen);
   }
 
   bool _validateInput(ProfileState state) {
-    final input = dieticianController.text.trim();
-    final error = Validators.validateDieticianId(input);
+    final input = dietitianController.text.trim();
+    final error = Validators.validateDietitianId(input);
     setState(() => errorText = error);
     return error == null;
   }
@@ -125,7 +124,7 @@ class _DieticianScreenState extends State<DieticianScreen> {
                           ),
                           const SizedBox(height: 24),
                           Text(
-                            'Your Dietician ID?',
+                            'Your dietitian ID?',
                             style: GoogleFonts.poppins(
                               color: const Color(0xFF252525),
                               fontSize: 34,
@@ -151,14 +150,14 @@ class _DieticianScreenState extends State<DieticianScreen> {
                               ),
                             ),
                             child: TextFormField(
-                              focusNode: _dieticianFocusNode,
-                              controller: dieticianController,
+                              focusNode: _dietitianFocusNode,
+                              controller: dietitianController,
 
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                               maxLength: 9,
                               decoration: InputDecoration(
-                                hintText: "Enter your dietician ID",
+                                hintText: "Enter your dietitian ID",
                                 hintStyle: GoogleFonts.poppins(
                                   color: const Color(0xFF535359),
                                   fontSize: 15,
@@ -179,7 +178,7 @@ class _DieticianScreenState extends State<DieticianScreen> {
                                 final cubit = context.read<ProfileCubit>();
 
                                 if (trimmed.isEmpty || trimmed.length <= 7) {
-                                  cubit.clearDieticianName();
+                                  cubit.cleardietitianName();
                                   return;
                                 }
                               },

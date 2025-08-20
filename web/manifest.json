@@ -1,6 +1,6 @@
 {
-    "name": "respyr_dietician",
-    "short_name": "respyr_dietician",
+    "name": "respyr_dietitian",
+    "short_name": "respyr_dietitian",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

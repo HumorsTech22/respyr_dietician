@@ -1,5 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:respyr_dietician/features/account_setting_screen/presentation/cubit/account_setting_state.dart';
+import 'package:respyr_dietitian/features/account_setting_screen/presentation/cubit/account_setting_state.dart';
 
 class AccountSettingCubit extends Cubit<AccountSettingState> {
   AccountSettingCubit()

@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 import 'package:equatable/equatable.dart';
-import 'package:respyr_dietician/features/profile_info/domain/usecases/height_unit.dart';
-import 'package:respyr_dietician/features/profile_info/domain/usecases/weight_unit.dart';
+import 'package:respyr_dietitian/features/profile_info/domain/usecases/height_unit.dart';
+import 'package:respyr_dietitian/features/profile_info/domain/usecases/weight_unit.dart';
 
 class ProfileState extends Equatable {
   final Uint8List? profileImage;
@@ -12,11 +12,11 @@ class ProfileState extends Equatable {
   final int? age;
   final double? height;
   final double? weight;
-  final String? dieticianId;
+  final String? dietitianId;
   final HeightUnit heightUnit;
   final WeightUnit weightUnit;
-  final String dieticianName;
-  final String dieticianImageUrl;
+  final String dietitianName;
+  final String dietitianImageUrl;
   final String phoneNo;
   final bool? isLoading;
 
@@ -29,11 +29,11 @@ class ProfileState extends Equatable {
     this.age,
     this.height,
     this.weight,
-    this.dieticianId,
+    this.dietitianId,
     this.heightUnit = HeightUnit.cm,
     this.weightUnit = WeightUnit.kg,
-    this.dieticianName = '',
-    this.dieticianImageUrl = '',
+    this.dietitianName = '',
+    this.dietitianImageUrl = '',
     this.phoneNo = '',
     this.isLoading,
   });
@@ -49,9 +49,9 @@ class ProfileState extends Equatable {
     double? weight,
     HeightUnit? heightUnit,
     WeightUnit? weightUnit,
-    String? dieticianId,
-    String? dieticianName,
-    String? dieticianImageUrl,
+    String? dietitianId,
+    String? dietitianName,
+    String? dietitianImageUrl,
     String? phoneNo,
     bool? isLoading,
   }) {
@@ -66,9 +66,9 @@ class ProfileState extends Equatable {
       weight: weight ?? this.weight,
       heightUnit: heightUnit ?? this.heightUnit,
       weightUnit: weightUnit ?? this.weightUnit,
-      dieticianId: dieticianId ?? this.dieticianId,
-      dieticianName: dieticianName ?? this.dieticianName,
-      dieticianImageUrl: dieticianImageUrl ?? this.dieticianImageUrl,
+      dietitianId: dietitianId ?? this.dietitianId,
+      dietitianName: dietitianName ?? this.dietitianName,
+      dietitianImageUrl: dietitianImageUrl ?? this.dietitianImageUrl,
       phoneNo: phoneNo ?? this.phoneNo,
       isLoading: isLoading ?? this.isLoading,
     );
@@ -86,14 +86,14 @@ class ProfileState extends Equatable {
     weight,
     heightUnit,
     weightUnit,
-    dieticianId,
-    dieticianName,
-    dieticianImageUrl,
+    dietitianId,
+    dietitianName,
+    dietitianImageUrl,
     phoneNo,
     isLoading,
   ];
 
   @override
   String toString() =>
-      'ProfileState(profileImage: $profileImage, name: $name, email: $email, location: $location, gender: $gender, age: $age, height: $height, weight: $weight, heightUnit: $heightUnit, weightUnit: $weightUnit, dieticianId: $dieticianId)';
+      'ProfileState(profileImage: $profileImage, name: $name, email: $email, location: $location, gender: $gender, age: $age, height: $height, weight: $weight, heightUnit: $heightUnit, weightUnit: $weightUnit, dietitianId: $dietitianId)';
 }

@@ -5,9 +5,9 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 
-import 'package:respyr_dietician/features/profile_info/presentation/cubit/profile_cubit.dart';
-import 'package:respyr_dietician/features/profile_info/presentation/cubit/profile_state.dart';
-import 'package:respyr_dietician/routes/app_routes.dart';
+import 'package:respyr_dietitian/features/profile_info/presentation/cubit/profile_cubit.dart';
+import 'package:respyr_dietitian/features/profile_info/presentation/cubit/profile_state.dart';
+import 'package:respyr_dietitian/routes/app_routes.dart';
 
 class ProfileAvatar extends StatelessWidget {
   final double radius;
@@ -36,21 +36,21 @@ class ProfileAvatar extends StatelessWidget {
     return BlocBuilder<ProfileCubit, ProfileState>(
       builder: (context, state) {
         final profileImage = state.profileImage;
-        final dieticianImageUrl = state.dieticianImageUrl;
+        final dietitianImageUrl = state.dietitianImageUrl;
 
         Widget avatarContent;
 
-        if (dieticianImageUrl.isNotEmpty) {
+        if (dietitianImageUrl.isNotEmpty) {
           // ✅ Priority 1: API image
           avatarContent = GestureDetector(
             onTap:
                 allowTap
-                    ? () => _openFullScreen(context, dieticianImageUrl)
+                    ? () => _openFullScreen(context, dietitianImageUrl)
                     : null,
             child: CircleAvatar(
               radius: radius,
               backgroundColor: const Color(0xFFF0F0F0),
-              backgroundImage: NetworkImage(dieticianImageUrl),
+              backgroundImage: NetworkImage(dietitianImageUrl),
             ),
           );
         } else if (profileImage != null) {

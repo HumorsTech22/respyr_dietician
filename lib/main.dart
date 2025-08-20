@@ -1,25 +1,41 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:respyr_dietician/features/profile_info/data/repository/dietician_repository.dart';
-import 'package:respyr_dietician/features/profile_info/domain/usecases/calculate_bmi.dart';
-import 'package:respyr_dietician/core/services/usb_communication_service.dart';
-import 'package:respyr_dietician/features/account_setting_screen/presentation/pages/account_setting_screen.dart';
-import 'package:respyr_dietician/features/device_connectivity/data/usb_repository_impl.dart';
-import 'package:respyr_dietician/features/device_connectivity/presentation/cubit/usb_connection_cubit.dart';
-import 'package:respyr_dietician/features/device_connectivity/presentation/pages/device_connectivity_screen.dart';
-import 'package:respyr_dietician/features/profile_info/domain/usecases/calculate_bmi.dart';
-import 'package:respyr_dietician/features/profile_info/domain/usecases/calculate_bmr.dart';
-import 'package:respyr_dietician/features/profile_info/presentation/cubit/profile_cubit.dart';
-import 'package:respyr_dietician/features/profile_info/presentation/pages/profile_info_screen.dart';
-import 'package:respyr_dietician/features/profile_info/presentation/widgets/image_cropper_screen.dart';
-import 'package:respyr_dietician/features/result_screen/presentation/pages/result_screen.dart';
-import 'package:respyr_dietician/routes/app_router.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:respyr_dietitian/features/dietictian_result_screen/presentation/cubit/dietitian_result_cubit.dart';
+import 'package:respyr_dietitian/features/profile_info/data/repository/dietician_repository.dart';
+import 'package:respyr_dietitian/features/profile_info/domain/usecases/calculate_bmi.dart';
+import 'package:respyr_dietitian/features/profile_info/domain/usecases/calculate_bmr.dart';
+import 'package:respyr_dietitian/features/profile_info/presentation/cubit/profile_cubit.dart';
+import 'package:respyr_dietitian/features/test_result_screen/presentation/cubit/test_result_cubit.dart';
 
-void main() {
+import 'package:respyr_dietitian/routes/app_router.dart';
+
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize local notifications
+  const AndroidInitializationSettings androidInitSettings =
+      AndroidInitializationSettings(
+        '@mipmap/ic_launcher',
+      ); // Ensure you have this icon
+
+  const InitializationSettings initSettings = InitializationSettings(
+    android: androidInitSettings,
+  );
+
+  await flutterLocalNotificationsPlugin.initialize(initSettings);
+
+  if (await Permission.notification.isDenied) {
+    await Permission.notification.request();
+  }
+
   final calculateBMI = CalculateBMI();
   final calculateBMR = CalculateBMR();
-  final dieticianRepository = DieticianRepository();
+  final dieticianRepository = DietitianRepository();
+
   runApp(
     MultiBlocProvider(
       providers: [
@@ -27,6 +43,10 @@ void main() {
           create:
               (_) =>
                   ProfileCubit(calculateBMI, calculateBMR, dieticianRepository),
+        ),
+        BlocProvider<TestResultCubit>(create: (_) => TestResultCubit()),
+        BlocProvider<DietitianResultCubit>(
+          create: (_) => DietitianResultCubit(),
         ),
       ],
       child: const MyApp(),
@@ -36,8 +56,34 @@ void main() {
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
+
+  // void _showStartupNotification() async {
+  //   const AndroidNotificationDetails androidDetails =
+  //       AndroidNotificationDetails(
+  //         'startup_channel',
+  //         'Startup Notifications',
+  //         channelDescription: 'Notification shown when the app launches',
+  //         importance: Importance.max,
+  //         priority: Priority.high,
+  //         ticker: 'ticker',
+  //       );
+
+  //   const NotificationDetails notificationDetails = NotificationDetails(
+  //     android: androidDetails,
+  //   );
+
+  //   await flutterLocalNotificationsPlugin.show(
+  //     0,
+  //     'Welcome!',
+  //     'App has started successfully 🚀',
+  //     notificationDetails,
+  //   );
+  // }
+
   @override
   Widget build(BuildContext context) {
+    // _showStartupNotification(); // Show on app launch
+
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       routerConfig: appRouter,

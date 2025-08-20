@@ -1,4 +1,4 @@
-# respyr_dietician
+# respyr_dietitian
 
 A new Flutter project.
 

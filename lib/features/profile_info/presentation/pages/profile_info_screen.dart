@@ -6,13 +6,13 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:respyr_dietician/common/widgets/text_input_decoration.dart';
-import 'package:respyr_dietician/features/profile_info/presentation/cubit/profile_cubit.dart';
-import 'package:respyr_dietician/features/profile_info/presentation/cubit/profile_state.dart';
-import 'package:respyr_dietician/features/profile_info/presentation/widgets/profile_bottom_navigation.dart';
-import 'package:respyr_dietician/features/profile_info/presentation/widgets/profile_progress_bar.dart';
-import 'package:respyr_dietician/features/profile_info/presentation/widgets/region_selector.dart';
-import 'package:respyr_dietician/routes/app_routes.dart';
+import 'package:respyr_dietitian/common/widgets/text_input_decoration.dart';
+import 'package:respyr_dietitian/features/profile_info/presentation/cubit/profile_cubit.dart';
+import 'package:respyr_dietitian/features/profile_info/presentation/cubit/profile_state.dart';
+import 'package:respyr_dietitian/features/profile_info/presentation/widgets/profile_bottom_navigation.dart';
+import 'package:respyr_dietitian/features/profile_info/presentation/widgets/profile_progress_bar.dart';
+import 'package:respyr_dietitian/features/profile_info/presentation/widgets/region_selector.dart';
+import 'package:respyr_dietitian/routes/app_routes.dart';
 
 class ProfileInfoScreen extends StatefulWidget {
   final int stepCompleted;

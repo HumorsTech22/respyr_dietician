@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:respyr_dietician/common/widgets/text_input_decoration.dart';
-import 'package:respyr_dietician/features/profile_info/presentation/cubit/profile_cubit.dart';
+import 'package:respyr_dietitian/common/widgets/text_input_decoration.dart';
+import 'package:respyr_dietitian/features/profile_info/presentation/cubit/profile_cubit.dart';
 
 class RegionSelectorField extends StatelessWidget {
   final TextEditingController controller;

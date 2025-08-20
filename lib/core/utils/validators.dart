@@ -1,5 +1,5 @@
-import 'package:respyr_dietician/features/profile_info/domain/usecases/height_unit.dart';
-import 'package:respyr_dietician/features/profile_info/domain/usecases/weight_unit.dart';
+import 'package:respyr_dietitian/features/profile_info/domain/usecases/height_unit.dart';
+import 'package:respyr_dietitian/features/profile_info/domain/usecases/weight_unit.dart';
 
 class Validators {
   static String? validateAge(String input) {
@@ -64,10 +64,10 @@ class Validators {
     return null;
   }
 
-  static String? validateDieticianId(String input) {
+  static String? validateDietitianId(String input) {
     final trimmed = input.trim();
 
-    if (trimmed.isEmpty) return "Please enter your Dietician ID";
+    if (trimmed.isEmpty) return "Please enter your Dietitian ID";
     if (trimmed.length < 3) return "ID must be greater than 3 characters long";
 
     return null;

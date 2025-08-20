@@ -2,21 +2,24 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:respyr_dietician/features/profile_info/presentation/pages/age_screen.dart';
-import 'package:respyr_dietician/features/profile_info/presentation/pages/dietician_screen.dart';
-import 'package:respyr_dietician/features/profile_info/presentation/pages/gender_screen.dart';
-import 'package:respyr_dietician/features/profile_info/presentation/pages/height_screen.dart';
-import 'package:respyr_dietician/features/profile_info/presentation/pages/profile_info_screen.dart';
-import 'package:respyr_dietician/features/profile_info/presentation/pages/profile_welcome_screen.dart';
-import 'package:respyr_dietician/features/profile_info/presentation/pages/weight_screen.dart';
-import 'package:respyr_dietician/features/profile_info/presentation/widgets/dietician_detail_screen.dart';
-import 'package:respyr_dietician/features/profile_info/presentation/widgets/full_screen_image_view.dart';
-import 'package:respyr_dietician/features/profile_info/presentation/widgets/image_cropper_screen.dart';
-import 'package:respyr_dietician/features/result_screen/presentation/pages/result_screen.dart';
-import 'package:respyr_dietician/routes/app_routes.dart';
+import 'package:respyr_dietitian/dummy.dart';
+import 'package:respyr_dietitian/features/dietictian_result_screen/presentation/pages/dietitian_result_screen.dart';
+import 'package:respyr_dietitian/features/profile_info/presentation/pages/age_screen.dart';
+import 'package:respyr_dietitian/features/profile_info/presentation/pages/dietician_screen.dart';
+import 'package:respyr_dietitian/features/profile_info/presentation/pages/gender_screen.dart';
+import 'package:respyr_dietitian/features/profile_info/presentation/pages/height_screen.dart';
+import 'package:respyr_dietitian/features/profile_info/presentation/pages/profile_info_screen.dart';
+import 'package:respyr_dietitian/features/profile_info/presentation/pages/profile_welcome_screen.dart';
+import 'package:respyr_dietitian/features/profile_info/presentation/pages/weight_screen.dart';
+import 'package:respyr_dietitian/features/profile_info/presentation/widgets/dietician_detail_screen.dart';
+import 'package:respyr_dietitian/features/profile_info/presentation/widgets/full_screen_image_view.dart';
+import 'package:respyr_dietitian/features/profile_info/presentation/widgets/image_cropper_screen.dart';
+import 'package:respyr_dietitian/features/result_screen/presentation/pages/result_screen.dart';
+import 'package:respyr_dietitian/features/test_result_screen/presentation/pages/test_result_screen.dart';
+import 'package:respyr_dietitian/routes/app_routes.dart';
 
 final GoRouter appRouter = GoRouter(
-  initialLocation: AppRoutes.profileInfoScreen,
+  initialLocation: AppRoutes.dietitianResultScreen,
   debugLogDiagnostics: true, // optional: logs routing in console
   routes: [
     GoRoute(
@@ -58,13 +61,13 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.dieticianScreen,
       builder: (context, state) {
         final step = state.extra as int? ?? 6;
-        return DieticianScreen(stepCompleted: step);
+        return DietitianScreen(stepCompleted: step);
       },
     ),
     GoRoute(
-      path: AppRoutes.dieticianDetailScreen,
+      path: AppRoutes.dietitianDetailScreen,
       builder: (context, state) {
-        return DieticianDetailScreen();
+        return DietitianDetailScreen();
       },
     ),
     GoRoute(
@@ -79,6 +82,24 @@ final GoRouter appRouter = GoRouter(
           return _errorScreen('No image data provided');
         }
         return ImageCropperScreen(imageData: imageData);
+      },
+    ),
+    GoRoute(
+      path: AppRoutes.testResultScreen,
+      builder: (context, state) {
+        return TestResultScreen();
+      },
+    ),
+    GoRoute(
+      path: AppRoutes.dietitianResultScreen,
+      builder: (context, state) {
+        return DietitianResultScreen();
+      },
+    ),
+    GoRoute(
+      path: AppRoutes.dummy,
+      builder: (context, state) {
+        return Dummy();
       },
     ),
     GoRoute(
