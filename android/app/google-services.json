@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "265394397027",
+    "project_id": "respyrdietician",
+    "storage_bucket": "respyrdietician.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:265394397027:android:f77e11822bb0daca233d56",
+        "android_client_info": {
+          "package_name": "com.humorstech.respyr_dietitian"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDoyLbE5CohE0plFXv-Xmwbyr_fV-FUhgU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
