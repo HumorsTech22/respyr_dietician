@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:respyr_dietitian/dummy.dart';
+import 'package:respyr_dietitian/features/device_connectivity/presentation/pages/breathe_tube_screen.dart';
+import 'package:respyr_dietitian/features/device_connectivity/presentation/pages/calibration_screen.dart';
+import 'package:respyr_dietitian/features/device_connectivity/presentation/pages/device_connectivity_screen.dart';
+import 'package:respyr_dietitian/features/device_connectivity/presentation/pages/inhale_screen.dart';
 import 'package:respyr_dietitian/features/dietictian_result_screen/presentation/pages/dietitian_result_screen.dart';
 import 'package:respyr_dietitian/features/profile_info/presentation/pages/age_screen.dart';
 import 'package:respyr_dietitian/features/profile_info/presentation/pages/dietician_screen.dart';
@@ -19,8 +23,8 @@ import 'package:respyr_dietitian/features/test_result_screen/presentation/pages/
 import 'package:respyr_dietitian/routes/app_routes.dart';
 
 final GoRouter appRouter = GoRouter(
-  initialLocation: AppRoutes.dietitianResultScreen,
-  debugLogDiagnostics: true, // optional: logs routing in console
+  initialLocation: AppRoutes.usbDeviceConnectivity,
+  debugLogDiagnostics: true,
   routes: [
     GoRoute(
       path: AppRoutes.profileInfoScreen,
@@ -84,6 +88,21 @@ final GoRouter appRouter = GoRouter(
         return ImageCropperScreen(imageData: imageData);
       },
     ),
+
+    GoRoute(
+      path: AppRoutes.breatheTubeScreen,
+      builder: (context, state) {
+        return BreatheTubeScreen();
+      },
+    ),
+
+    GoRoute(
+      path: AppRoutes.calibrationScreen,
+      builder: (context, state) {
+        return UsbCalibrationScreen();
+      },
+    ),
+
     GoRoute(
       path: AppRoutes.testResultScreen,
       builder: (context, state) {
@@ -94,6 +113,18 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.dietitianResultScreen,
       builder: (context, state) {
         return DietitianResultScreen();
+      },
+    ),
+    GoRoute(
+      path: AppRoutes.usbDeviceConnectivity,
+      builder: (context, state) {
+        return UsbDeviceConnectivity();
+      },
+    ),
+    GoRoute(
+      path: AppRoutes.inhaleScreen,
+      builder: (context, state) {
+        return InhaleScreen();
       },
     ),
     GoRoute(

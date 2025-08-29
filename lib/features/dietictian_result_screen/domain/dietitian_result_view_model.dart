@@ -21,15 +21,13 @@ class DietitianResultViewModel {
     if (ctx != null) {
       final box = ctx.findRenderObject() as RenderBox;
       final viewport = RenderAbstractViewport.of(box);
-      if (viewport != null) {
-        final offset = viewport.getOffsetToReveal(box, 0).offset;
+      final offset = viewport.getOffsetToReveal(box, 0.5).offset;
 
-        await scrollController.animateTo(
-          offset - 60, // shift up so sticky tabbar doesn't cover it
-          duration: const Duration(milliseconds: 400),
-          curve: Curves.easeInOut,
-        );
-      }
+      await scrollController.animateTo(
+        offset - 10,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOut,
+      );
     }
 
     isAnimating = false;
@@ -47,12 +45,10 @@ class DietitianResultViewModel {
     final tabWidth = box.size.width;
     final tabBarWidth = tabBarBox.size.width;
 
-    // Position of tab inside tabBar
     final tabOffset =
         box.localToGlobal(Offset.zero, ancestor: tabBarBox).dx +
         tabScrollController.offset;
 
-    // Center target
     final target = tabOffset - (tabBarWidth / 2) + (tabWidth / 2);
 
     tabScrollController.animateTo(
@@ -60,7 +56,7 @@ class DietitianResultViewModel {
         tabScrollController.position.minScrollExtent,
         tabScrollController.position.maxScrollExtent,
       ),
-      duration: const Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 200),
       curve: Curves.easeInOut,
     );
   }

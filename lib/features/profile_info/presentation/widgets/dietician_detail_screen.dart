@@ -123,80 +123,91 @@ class DietitianDetailScreen extends StatelessWidget {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
-                          TextButton(
-                            onPressed: () {
-                              context.pop();
-                            },
-                            style: TextButton.styleFrom(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 26,
-                                vertical: 10,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                side: BorderSide(color: Color(0xFFC7C6CE)),
-                                borderRadius: BorderRadius.circular(7),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                SvgPicture.asset(
-                                  "assets/images/common/closeicon.svg",
-                                  height: 24,
-                                  width: 24,
-                                  colorFilter: ColorFilter.mode(
-                                    Color(0xFFEA5455),
-                                    BlendMode.srcIn,
-                                  ),
+                          Expanded(
+                            child: TextButton(
+                              onPressed: () {
+                                context.pop();
+                              },
+                              style: TextButton.styleFrom(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 10,
                                 ),
-                                SizedBox(width: 5),
-                                Text(
-                                  'No, incorrect',
-                                  style: GoogleFonts.poppins(
-                                    color: const Color(0xFF252525),
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w400,
-                                    height: 1.10,
-                                    letterSpacing: -0.30,
-                                  ),
+                                shape: RoundedRectangleBorder(
+                                  side: BorderSide(color: Color(0xFFC7C6CE)),
+                                  borderRadius: BorderRadius.circular(7),
                                 ),
-                              ],
+                              ),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  SvgPicture.asset(
+                                    "assets/images/common/closeicon.svg",
+                                    height: 24,
+                                    width: 24,
+                                    colorFilter: ColorFilter.mode(
+                                      Color(0xFFEA5455),
+                                      BlendMode.srcIn,
+                                    ),
+                                  ),
+                                  SizedBox(width: 5),
+                                  Expanded(
+                                    child: Text(
+                                      'No, incorrect',
+                                      style: GoogleFonts.poppins(
+                                        color: const Color(0xFF252525),
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w400,
+                                        height: 1.10,
+                                        letterSpacing: -0.30,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                          TextButton(
-                            onPressed: () {
-                              context.push(AppRoutes.profileWelcomeScreen);
-                            },
-                            style: TextButton.styleFrom(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 26,
-                                vertical: 10,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                side: BorderSide(color: Color(0xFFC7C6CE)),
-                                borderRadius: BorderRadius.circular(7),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                SvgPicture.asset(
-                                  "assets/images/common/tick_icon.svg",
-                                  height: 24,
-                                  width: 24,
+                          SizedBox(width: 5),
+                          Expanded(
+                            child: TextButton(
+                              onPressed: () {
+                                context.push(AppRoutes.profileWelcomeScreen);
+                              },
+                              style: TextButton.styleFrom(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 10,
                                 ),
-                                SizedBox(width: 5),
-                                Text(
-                                  'Yes, correct',
-                                  style: GoogleFonts.poppins(
-                                    color: const Color(0xFF252525),
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w400,
-                                    height: 1.10,
-                                    letterSpacing: -0.30,
+                                shape: RoundedRectangleBorder(
+                                  side: BorderSide(color: Color(0xFFC7C6CE)),
+                                  borderRadius: BorderRadius.circular(7),
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  SvgPicture.asset(
+                                    "assets/images/common/tick_icon.svg",
+                                    height: 24,
+                                    width: 24,
                                   ),
-                                ),
-                              ],
+                                  SizedBox(width: 5),
+                                  Expanded(
+                                    child: Text(
+                                      'Yes, correct',
+                                      style: GoogleFonts.poppins(
+                                        color: const Color(0xFF252525),
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w400,
+                                        height: 1.10,
+                                        letterSpacing: -0.30,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ],

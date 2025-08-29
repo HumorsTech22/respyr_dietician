@@ -12,5 +12,9 @@ abstract class AppRoutes {
   static const dietitianDetailScreen = '/dietitian-detail-screen';
   static const testResultScreen = '/test-result-screen';
   static const dietitianResultScreen = '/dietitian-result-screen';
+  static const usbDeviceConnectivity = '/usb-device-connectivity';
+  static const breatheTubeScreen = '/breathe-tube-screen';
+  static const calibrationScreen = '/calibration-screen';
+  static const inhaleScreen = '/inhale-screen';
   static const dummy = '/dummy';
 }

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:respyr_dietitian/common/widgets/profile_avatar.dart';
 import 'package:respyr_dietitian/features/profile_info/presentation/cubit/profile_cubit.dart';
 import 'package:respyr_dietitian/features/profile_info/presentation/cubit/profile_state.dart';
+import 'package:respyr_dietitian/routes/app_routes.dart';
 
 class ProfileWelcomeScreen extends StatefulWidget {
   const ProfileWelcomeScreen({super.key});
@@ -53,7 +55,9 @@ class _ProfileWelcomeScreenState extends State<ProfileWelcomeScreen> {
               bottom: 50,
               right: 30,
               child: InkWell(
-                onTap: () {},
+                onTap: () {
+                  context.push(AppRoutes.usbDeviceConnectivity);
+                },
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [

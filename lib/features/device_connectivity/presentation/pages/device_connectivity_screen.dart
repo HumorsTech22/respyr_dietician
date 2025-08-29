@@ -3,16 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:respyr_dietitian/features/device_connectivity/presentation/cubit/usb_connection_cubit.dart';
-import 'package:respyr_dietitian/features/device_connectivity/presentation/cubit/usb_connection_state.dart';
-import 'package:respyr_dietitian/features/profile_info/presentation/pages/profile_info_screen.dart';
+import 'package:respyr_dietitian/features/device_connectivity/presentation/cubit/usb_connection/usb_connection_cubit.dart';
+import 'package:respyr_dietitian/features/device_connectivity/presentation/cubit/usb_connection/usb_connection_state.dart';
+import 'package:respyr_dietitian/routes/app_routes.dart';
 
 class UsbDeviceConnectivity extends StatelessWidget {
-  final int stepCompleted;
-  const UsbDeviceConnectivity({super.key, required this.stepCompleted});
-
-  final int totalStep = 5;
+  const UsbDeviceConnectivity({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -33,25 +31,6 @@ class UsbDeviceConnectivity extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Progress bar
-                  Row(
-                    children: List.generate(totalStep, (index) {
-                      final isFilled = index < stepCompleted;
-                      return Expanded(
-                        child: Container(
-                          height: 5,
-                          margin: EdgeInsets.only(
-                            right: index < totalStep - 1 ? 4.0 : 0,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isFilled ? Colors.black : Colors.grey[300],
-                            borderRadius: BorderRadius.circular(5),
-                          ),
-                        ),
-                      );
-                    }),
-                  ),
-                  const SizedBox(height: 30),
                   Text(
                     'Connect Device',
                     style: GoogleFonts.poppins(
@@ -193,6 +172,8 @@ class UsbDeviceConnectivity extends StatelessWidget {
         padding: const EdgeInsets.only(bottom: 30, left: 26, right: 26),
         child: BlocBuilder<UsbCubit, UsbState>(
           builder: (context, state) {
+            if (!state.isConnected) return const SizedBox.shrink();
+
             return Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -203,38 +184,26 @@ class UsbDeviceConnectivity extends StatelessWidget {
                     color: Colors.black,
                   ),
                   onPressed: () {
-                    Navigator.pop(context);
+                    context.pop();
                   },
                 ),
                 SizedBox(
                   width: 180,
                   child: ElevatedButton(
-                    onPressed: () async {
-                      await context.read<UsbCubit>().checkDevice();
-
-                      if (context.read<UsbCubit>().state.deviceId != null) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder:
-                                (_) => ProfileInfoScreen(
-                                  stepCompleted: stepCompleted + 1,
-                                ),
-                          ),
-                        );
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              "Device ID not received. Please try again.",
-                            ),
-                          ),
-                        );
-                      }
-                    },
+                    onPressed:
+                        state.isChecking
+                            ? null
+                            : () {
+                              context.read<UsbCubit>().checkAndProceed(
+                                context: context,
+                              );
+                            },
                     style: ElevatedButton.styleFrom(
                       foregroundColor: Colors.white,
-                      backgroundColor: const Color(0xFF308BF9),
+                      backgroundColor:
+                          state.isChecking
+                              ? Color(0xFFF0F0F0)
+                              : Color(0xFF308BF9),
                       padding: const EdgeInsets.symmetric(
                         horizontal: 10,
                         vertical: 13,
@@ -245,17 +214,17 @@ class UsbDeviceConnectivity extends StatelessWidget {
                       children: [
                         const Spacer(),
                         Text(
-                          "Finish up",
-                          style: GoogleFonts.poppins(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w400,
+                          "Next",
+                          style: GoogleFonts.mulish(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
                             color: Colors.white,
                           ),
                         ),
                         const Spacer(),
                         const Icon(
                           Icons.chevron_right_outlined,
-                          size: 26,
+                          size: 24,
                           color: Colors.white,
                         ),
                       ],

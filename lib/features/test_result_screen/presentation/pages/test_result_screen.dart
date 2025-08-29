@@ -13,8 +13,6 @@ class TestResultScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<TestResultCubit, TestResultState>(
       builder: (context, state) {
-        final result = state.testResult;
-
         return Scaffold(
           backgroundColor: Colors.white,
           body: Padding(

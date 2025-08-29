@@ -29,6 +29,7 @@ class _ProfileInfoScreenState extends State<ProfileInfoScreen> {
   final locationController = TextEditingController();
   final formKey = GlobalKey<FormState>();
   Uint8List? _croppedData;
+  bool _isRequestingPermission = false;
 
   @override
   void initState() {
@@ -40,29 +41,49 @@ class _ProfileInfoScreenState extends State<ProfileInfoScreen> {
   }
 
   Future<bool> _checkPermission(ImageSource source) async {
-    if (source == ImageSource.camera) {
-      var cameraStatus = await Permission.camera.status;
-      if (!cameraStatus.isGranted) {
-        cameraStatus = await Permission.camera.request();
-        if (!cameraStatus.isGranted) return false;
-      }
-    } else {
-      if (Platform.isAndroid) {
-        var photosStatus = await Permission.photos.status;
-        var storageStatus = await Permission.storage.status;
-        if (!photosStatus.isGranted && !storageStatus.isGranted) {
-          photosStatus = await Permission.photos.request();
-          storageStatus = await Permission.storage.request();
-        }
-        return photosStatus.isGranted || storageStatus.isGranted;
-      } else if (Platform.isIOS) {
-        return await Permission.photos.request().isGranted;
-      }
+    if (_isRequestingPermission) {
+      // Prevent overlapping permission requests
+      return false;
     }
-    return true;
+    _isRequestingPermission = true;
+
+    try {
+      if (source == ImageSource.camera) {
+        var cameraStatus = await Permission.camera.status;
+        if (!cameraStatus.isGranted) {
+          cameraStatus = await Permission.camera.request();
+          if (!cameraStatus.isGranted) return false;
+        }
+      } else {
+        if (Platform.isAndroid) {
+          var photosStatus = await Permission.photos.status;
+          var storageStatus = await Permission.storage.status;
+          if (!photosStatus.isGranted && !storageStatus.isGranted) {
+            photosStatus = await Permission.photos.request();
+            storageStatus = await Permission.storage.request();
+          }
+          return photosStatus.isGranted || storageStatus.isGranted;
+        } else if (Platform.isIOS) {
+          return await Permission.photos.request().isGranted;
+        }
+      }
+      return true;
+    } finally {
+      _isRequestingPermission = false;
+    }
   }
 
-  final regions = ['North', 'South', 'East', 'West'];
+  final regions = [
+    'North Indian',
+    'South Indian',
+    'East Indian',
+    'West Indian',
+    'Caucasian',
+    'African American',
+    'North-East Asian',
+    'South-East Asian',
+    'other',
+  ];
 
   Future<void> _pickImage(BuildContext context) async {
     final hasPermission = await _checkPermission(ImageSource.gallery);

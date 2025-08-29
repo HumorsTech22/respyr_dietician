@@ -7,20 +7,6 @@ class DietitianResultCubit extends Cubit<DietitianResultState> {
 
   static const List<String> _tabs = ['Gut', 'Fat', 'Liver'];
 
-  void loadMockData() {
-    final testResult = DietitianResultModel(
-      dttm: DateTime(2025, 7, 5, 12, 30).millisecondsSinceEpoch,
-      gutAbsorptiveScore: 97,
-      gutFermentativeScore: 3,
-      fatMetabolismScore: 70,
-      fatGlucoseMetabolismScore: 55,
-      liverHepaticScore: 82,
-      liverDetoxScore: 78,
-    );
-
-    emit(state.copyWith(testResult: testResult));
-  }
-
   void changeTab(String tab) {
     emit(state.copyWith(selectedTab: tab));
   }

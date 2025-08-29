@@ -56,49 +56,43 @@ class SectionWidget extends StatelessWidget {
               children: [
                 Container(
                   width: double.infinity,
-                  decoration: ShapeDecoration(
-                    color: const Color(0xFFF0F0F0),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
-                    ),
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                  decoration: BoxDecoration(
+                    color: Color(0xFFF0F0F0),
+                    borderRadius: BorderRadius.circular(15),
                   ),
-                  padding: EdgeInsets.symmetric(vertical: 24, horizontal: 13),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "Main Marker: Acetone",
-                            style: GoogleFonts.poppins(
-                              color: const Color(0xFF252525),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              height: 1.30,
-                              letterSpacing: -0.24,
-                            ),
-                          ),
-                          SizedBox(height: 4),
-                          Text(
-                            '1.03 ppm',
-                            style: GoogleFonts.poppins(
-                              color: const Color(0xFF252525),
-                              fontSize: 20,
-                              fontWeight: FontWeight.w600,
-                              height: 1.10,
-                              letterSpacing: -0.40,
-                            ),
-                          ),
-                        ],
+                      Text(
+                        'Main Marker: Acetone',
+                        style: GoogleFonts.poppins(
+                          color: const Color(0xFF252525),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          height: 1.30,
+                          letterSpacing: -0.24,
+                        ),
+                      ),
+                      SizedBox(height: 5),
+                      Text(
+                        '1.03 ppm',
+                        style: GoogleFonts.poppins(
+                          color: const Color(0xFF252525),
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                          height: 1.10,
+                          letterSpacing: -0.40,
+                        ),
                       ),
                     ],
                   ),
                 ),
+
                 SizedBox(height: 10),
                 for (final subtype in subTypes) ...[
                   MetabolismTabCard(metabolismSubtype: subtype),
-                  const SizedBox(height: 10),
                 ],
               ],
             ),

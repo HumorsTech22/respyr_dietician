@@ -2,6 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:permission_handler/permission_handler.dart';
+
+import 'package:respyr_dietitian/core/audio/audio_cubit.dart';
+import 'package:respyr_dietitian/core/services/usb_communication_service.dart';
+import 'package:respyr_dietitian/features/device_connectivity/data/repository/device_check_repo.dart';
+import 'package:respyr_dietitian/features/device_connectivity/data/usb_repository_impl.dart';
+import 'package:respyr_dietitian/features/device_connectivity/domain/usecase/device_check_usecase.dart';
+import 'package:respyr_dietitian/features/device_connectivity/presentation/cubit/usb_connection/usb_connection_cubit.dart';
 import 'package:respyr_dietitian/features/dietictian_result_screen/presentation/cubit/dietitian_result_cubit.dart';
 import 'package:respyr_dietitian/features/profile_info/data/repository/dietician_repository.dart';
 import 'package:respyr_dietitian/features/profile_info/domain/usecases/calculate_bmi.dart';
@@ -13,14 +20,13 @@ import 'package:respyr_dietitian/routes/app_router.dart';
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize local notifications
   const AndroidInitializationSettings androidInitSettings =
-      AndroidInitializationSettings(
-        '@mipmap/ic_launcher',
-      ); // Ensure you have this icon
+      AndroidInitializationSettings('@mipmap/ic_launcher');
 
   const InitializationSettings initSettings = InitializationSettings(
     android: androidInitSettings,
@@ -28,26 +34,34 @@ Future<void> main() async {
 
   await flutterLocalNotificationsPlugin.initialize(initSettings);
 
+  // Ask notification permission (Android 13+)
   if (await Permission.notification.isDenied) {
     await Permission.notification.request();
   }
 
+  // Init core dependencies
   final calculateBMI = CalculateBMI();
   final calculateBMR = CalculateBMR();
   final dieticianRepository = DietitianRepository();
+  final usbService = UsbCommunicationService();
+  final usbRepository = UsbRepositoryImpl(usbService);
+  final deviceCheckRepo = DeviceCheckRepo();
+  final deviceCheckUsecase = DeviceCheckUsecase(deviceCheckRepo);
 
   runApp(
     MultiBlocProvider(
       providers: [
-        BlocProvider<ProfileCubit>(
+        BlocProvider(
           create:
               (_) =>
                   ProfileCubit(calculateBMI, calculateBMR, dieticianRepository),
         ),
-        BlocProvider<TestResultCubit>(create: (_) => TestResultCubit()),
-        BlocProvider<DietitianResultCubit>(
-          create: (_) => DietitianResultCubit(),
+        BlocProvider(create: (_) => TestResultCubit()),
+        BlocProvider(create: (_) => DietitianResultCubit()),
+        BlocProvider(
+          create: (_) => UsbCubit(usbRepository, deviceCheckUsecase),
         ),
+        BlocProvider(create: (_) => AudioCubit()),
       ],
       child: const MyApp(),
     ),
@@ -57,39 +71,15 @@ Future<void> main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // void _showStartupNotification() async {
-  //   const AndroidNotificationDetails androidDetails =
-  //       AndroidNotificationDetails(
-  //         'startup_channel',
-  //         'Startup Notifications',
-  //         channelDescription: 'Notification shown when the app launches',
-  //         importance: Importance.max,
-  //         priority: Priority.high,
-  //         ticker: 'ticker',
-  //       );
-
-  //   const NotificationDetails notificationDetails = NotificationDetails(
-  //     android: androidDetails,
-  //   );
-
-  //   await flutterLocalNotificationsPlugin.show(
-  //     0,
-  //     'Welcome!',
-  //     'App has started successfully 🚀',
-  //     notificationDetails,
-  //   );
-  // }
-
   @override
   Widget build(BuildContext context) {
-    // _showStartupNotification(); // Show on app launch
-
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       routerConfig: appRouter,
     );
   }
 }
+
   // import 'dart:io';
   // import 'package:flutter/material.dart';
   // import 'package:google_fonts/google_fonts.dart';

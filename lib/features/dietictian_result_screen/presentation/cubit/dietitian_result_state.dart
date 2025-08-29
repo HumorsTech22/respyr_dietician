@@ -14,12 +14,12 @@ class DietitianResultState extends Equatable {
 
   DietitianResultState copyWith({
     bool? isLoading,
-    DietitianResultModel? testResult,
+    DietitianResultModel? dietitianResult,
     String? selectedTab,
   }) {
     return DietitianResultState(
       isLoading: isLoading ?? this.isLoading,
-      dietitianResult: testResult ?? this.dietitianResult,
+      dietitianResult: dietitianResult ?? this.dietitianResult,
       selectedTab: selectedTab ?? this.selectedTab,
     );
   }

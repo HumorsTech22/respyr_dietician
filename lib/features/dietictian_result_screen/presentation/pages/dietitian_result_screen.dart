@@ -12,6 +12,15 @@ import 'package:respyr_dietitian/features/dietictian_result_screen/presentation/
 import 'package:respyr_dietitian/features/dietictian_result_screen/presentation/widgets/sliver_tabbar_delegate.dart';
 import 'package:respyr_dietitian/features/dietictian_result_screen/presentation/widgets/tab_widget.dart';
 
+// class DietitianResultCntent extends StatelessWidget {
+//   const DietitianResultCntent({super.key});
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return ;
+//   }
+// }
+
 class DietitianResultScreen extends StatefulWidget {
   const DietitianResultScreen({super.key});
 
@@ -30,8 +39,9 @@ class _DietitianResultScreenState extends State<DietitianResultScreen> {
   }
 
   void _onVerticalScroll() {
-    if (viewModel.isAnimating) return; // Skip while animating to section
-
+    if (!viewModel.tabScrollController.hasClients || viewModel.isAnimating) {
+      return;
+    }
     final offset = viewModel.scrollController.offset;
     final gutPos = _getOffSet(viewModel.gutKey);
     final fatPos = _getOffSet(viewModel.fatKey);
@@ -64,6 +74,14 @@ class _DietitianResultScreenState extends State<DietitianResultScreen> {
     final box = ctx.findRenderObject() as RenderBox;
     return box.localToGlobal(Offset.zero).dy +
         viewModel.scrollController.offset;
+  }
+
+  @override
+  void dispose() {
+    viewModel.scrollController.removeListener(_onVerticalScroll);
+    viewModel.scrollController.dispose();
+    viewModel.tabScrollController.dispose();
+    super.dispose();
   }
 
   @override
@@ -238,13 +256,11 @@ class _DietitianResultScreenState extends State<DietitianResultScreen> {
                   child:
                       BlocBuilder<DietitianResultCubit, DietitianResultState>(
                         builder: (context, state) {
-                          return Container(
-                            color: Colors.white,
-                            child: SingleChildScrollView(
-                              controller: viewModel.tabScrollController,
-                              scrollDirection: Axis.horizontal,
-                              child: _buildTabs(state),
-                            ),
+                          return SingleChildScrollView(
+                            controller: viewModel.tabScrollController,
+                            scrollDirection: Axis.horizontal,
+
+                            child: _buildTabs(state),
                           );
                         },
                       ),
@@ -281,37 +297,36 @@ class _DietitianResultScreenState extends State<DietitianResultScreen> {
               ),
 
               SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Disclaimer',
-                        style: GoogleFonts.poppins(
-                          color: const Color(0xFF535359),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          height: 1.30,
-                          letterSpacing: -0.24,
+                child: SafeArea(
+                  minimum: EdgeInsets.only(bottom: 26),
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Disclaimer',
+                          style: GoogleFonts.poppins(
+                            color: const Color(0xFF535359),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            height: 1.30,
+                            letterSpacing: -0.24,
+                          ),
                         ),
-                      ),
-                      SizedBox(height: 10),
-                      Text(
-                        'This is a sample interpretation guide designed for use by certified dietitians and wellness professionals.  Respyr is a non-invasive lifestyle monitoring tool. It does not diagnose, prevent, or treat disease.   All data is derived from breath-based VOC analysis and should be interpreted within lifestyle and nutritional context.  For medical conditions or abnormalities (e.g., diabetic ketoacidosis, chronic liver disease, IBS/SIBO), users should be referred to licensed physicians.',
-                        style: GoogleFonts.poppins(
-                          color: const Color(0xFF535359),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w400,
-                          height: 1.30,
-                          letterSpacing: -0.24,
+                        SizedBox(height: 10),
+                        Text(
+                          'This is a sample interpretation guide designed for use by certified dietitians and wellness professionals.  Respyr is a non-invasive lifestyle monitoring tool. It does not diagnose, prevent, or treat disease.   All data is derived from breath-based VOC analysis and should be interpreted within lifestyle and nutritional context.   For medical conditions or abnormalities (e.g., diabetic ketoacidosis, chronic liver disease, IBS/SIBO), users should be referred to licensed physicians.',
+                          style: GoogleFonts.poppins(
+                            color: const Color(0xFF535359),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w400,
+                            height: 1.30,
+                            letterSpacing: -0.24,
+                          ),
                         ),
-                      ),
-                      SizedBox(height: 20),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -323,7 +338,7 @@ class _DietitianResultScreenState extends State<DietitianResultScreen> {
   }
 
   Widget _divider() {
-    return Container(height: 37, width: 1, color: Colors.black);
+    return Container(height: 43, width: 1, color: Colors.black);
   }
 
   Widget _buildTabs(DietitianResultState state) {
@@ -335,6 +350,8 @@ class _DietitianResultScreenState extends State<DietitianResultScreen> {
           text: "Gut Fermentation Metabolism",
           isActive: state.selectedTab == "Gut",
           onTap: () async {
+            if (!mounted) return;
+
             cubit.changeTab("Gut");
             await viewModel.scrollTo(viewModel.gutKey);
             viewModel.tabScrollTo(viewModel.tabGutKey);
@@ -346,6 +363,8 @@ class _DietitianResultScreenState extends State<DietitianResultScreen> {
           text: "Glucose vs Fat Metabolism",
           isActive: state.selectedTab == "Fat",
           onTap: () async {
+            if (!mounted) return;
+
             cubit.changeTab("Fat");
             await viewModel.scrollTo(viewModel.fatKey);
             viewModel.tabScrollTo(viewModel.tabFatKey);
@@ -357,6 +376,8 @@ class _DietitianResultScreenState extends State<DietitianResultScreen> {
           text: "Liver Hepatic Metabolism",
           isActive: state.selectedTab == "Liver",
           onTap: () async {
+            if (!mounted) return;
+
             cubit.changeTab("Liver");
             await viewModel.scrollTo(viewModel.liverKey);
             viewModel.tabScrollTo(viewModel.tabLiverKey);

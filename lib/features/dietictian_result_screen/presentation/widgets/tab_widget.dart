@@ -19,12 +19,14 @@ class TabWidget extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 25),
+        padding: const EdgeInsets.symmetric(horizontal: 25),
         decoration: BoxDecoration(
+          color: Colors.white,
+
           border: Border(
             bottom: BorderSide(
               color: isActive ? const Color(0xFF308BF9) : Colors.grey.shade300,
-              width: 2,
+              width: 2.5,
             ),
           ),
         ),
