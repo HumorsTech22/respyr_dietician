@@ -2,10 +2,13 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:respyr_dietitian/dummy.dart';
+import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/pages/bluetooth_breathe_tube.dart';
+import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/pages/bluetooth_calibration_screen.dart';
+import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/pages/bluetooth_device_connectivity.dart';
 import 'package:respyr_dietitian/features/device_connectivity/presentation/pages/breathe_tube_screen.dart';
 import 'package:respyr_dietitian/features/device_connectivity/presentation/pages/calibration_screen.dart';
 import 'package:respyr_dietitian/features/device_connectivity/presentation/pages/device_connectivity_screen.dart';
+import 'package:respyr_dietitian/features/device_connectivity/presentation/pages/exhale_screen.dart';
 import 'package:respyr_dietitian/features/device_connectivity/presentation/pages/inhale_screen.dart';
 import 'package:respyr_dietitian/features/dietictian_result_screen/presentation/pages/dietitian_result_screen.dart';
 import 'package:respyr_dietitian/features/profile_info/presentation/pages/age_screen.dart';
@@ -15,7 +18,7 @@ import 'package:respyr_dietitian/features/profile_info/presentation/pages/height
 import 'package:respyr_dietitian/features/profile_info/presentation/pages/profile_info_screen.dart';
 import 'package:respyr_dietitian/features/profile_info/presentation/pages/profile_welcome_screen.dart';
 import 'package:respyr_dietitian/features/profile_info/presentation/pages/weight_screen.dart';
-import 'package:respyr_dietitian/features/profile_info/presentation/widgets/dietician_detail_screen.dart';
+import 'package:respyr_dietitian/features/profile_info/presentation/pages/dietician_detail_screen.dart';
 import 'package:respyr_dietitian/features/profile_info/presentation/widgets/full_screen_image_view.dart';
 import 'package:respyr_dietitian/features/profile_info/presentation/widgets/image_cropper_screen.dart';
 import 'package:respyr_dietitian/features/result_screen/presentation/pages/result_screen.dart';
@@ -23,7 +26,7 @@ import 'package:respyr_dietitian/features/test_result_screen/presentation/pages/
 import 'package:respyr_dietitian/routes/app_routes.dart';
 
 final GoRouter appRouter = GoRouter(
-  initialLocation: AppRoutes.usbDeviceConnectivity,
+  initialLocation: AppRoutes.bluetoothDeviceConnectivity,
   debugLogDiagnostics: true,
   routes: [
     GoRoute(
@@ -128,9 +131,29 @@ final GoRouter appRouter = GoRouter(
       },
     ),
     GoRoute(
-      path: AppRoutes.dummy,
+      path: AppRoutes.exhaleScreen,
       builder: (context, state) {
-        return Dummy();
+        final baseValue = (state.extra ?? '') as String;
+        return ExhaleScreen(baseValue: baseValue);
+      },
+    ),
+    GoRoute(
+      path: AppRoutes.bluetoothDeviceConnectivity,
+      builder: (context, state) {
+        return BluetoothDeviceConnectivity();
+      },
+    ),
+
+    GoRoute(
+      path: AppRoutes.bluetoothBreatheTube,
+      builder: (context, state) {
+        return BluetoothBreatheTube();
+      },
+    ),
+    GoRoute(
+      path: AppRoutes.bluetoothCalibrationScreen,
+      builder: (context, state) {
+        return BluetoothCalibrationScreen();
       },
     ),
     GoRoute(

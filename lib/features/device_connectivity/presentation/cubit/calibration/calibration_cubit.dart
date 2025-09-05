@@ -13,6 +13,7 @@ class CalibrationCubit extends Cubit<CalibrationState> {
   bool signalsAlreadySent = false;
   bool isDisposed = false;
   bool _isRunningCalibration = false;
+  bool _wasConnected = false;
 
   CalibrationCubit(this.usbService, this.audioHelper)
     : super(const CalibrationState());
@@ -23,14 +24,15 @@ class CalibrationCubit extends Cubit<CalibrationState> {
         final normalized = status.toLowerCase().trim();
 
         if (normalized == "connected") {
+          _wasConnected = true; // mark that we have seen a connection
           handleUsbConnected(true);
-        } else if (normalized == "detached") {
-          // ✅ Only here show the dialog
-          handleUsbConnected(false);
-          showDisconnectedDialog();
         } else if (normalized == "disconnected") {
-          // watchdog / soft disconnect — just cleanup, no dialog
           handleUsbConnected(false);
+
+          // 👇 only show dialog if device was connected before
+          if (_wasConnected) {
+            showDisconnectedDialog();
+          }
         }
       },
       onError: (error) {

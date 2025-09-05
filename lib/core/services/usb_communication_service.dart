@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:usb_serial/transaction.dart';
 import 'package:usb_serial/usb_serial.dart';
@@ -32,7 +31,7 @@ class UsbCommunicationService {
 
   bool _isConnected = false;
   Timer? _watchdogTimer;
-  bool _isPaused = false; // pause/resume flag
+  bool _isPaused = false;
 
   Stream<String> get dataStream => _dataController.stream;
   Stream<bool> get connectionStatusStream => _connectionStatusController.stream;
@@ -40,7 +39,6 @@ class UsbCommunicationService {
   bool get isConnected => _isConnected;
   bool get isPaused => _isPaused;
 
-  // Listener Callbacks
   void Function(String status)? _onConnectionStatusChanged;
   void Function(String data)? _onDataReceived;
   void Function(String command)? _onCommandSent;

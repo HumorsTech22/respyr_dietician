@@ -9,8 +9,8 @@ import 'package:respyr_dietitian/core/audio/audio_state.dart';
 import 'package:respyr_dietitian/core/services/usb_communication_service.dart';
 import 'package:respyr_dietitian/features/device_connectivity/presentation/cubit/calibration/calibration_cubit.dart';
 import 'package:respyr_dietitian/features/device_connectivity/presentation/cubit/calibration/calibration_state.dart';
-import 'package:respyr_dietitian/features/device_connectivity/presentation/widgets/cancel_Test_dialog.dart';
-import 'package:respyr_dietitian/features/device_connectivity/presentation/widgets/disconnection_dialog.dart';
+import 'package:respyr_dietitian/common/dialogs/cancel_Test_dialog.dart';
+import 'package:respyr_dietitian/common/dialogs/disconnection_dialog.dart';
 import 'package:respyr_dietitian/routes/app_routes.dart';
 
 class UsbCalibrationScreen extends StatelessWidget {
@@ -48,12 +48,12 @@ class UsbCalibrationScreen extends StatelessWidget {
             (prev, curr) =>
                 prev.navigateToInhaleScreen != curr.navigateToInhaleScreen ||
                 prev.errorMessage != curr.errorMessage ||
-                prev.isDialogShown != curr.isDialogShown, // 👈 add this
+                prev.isDialogShown != curr.isDialogShown,
         listener: (context, state) {
           if (state.navigateToInhaleScreen) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               context.read<CalibrationCubit>().resetNavigationFlag();
-              context.push(AppRoutes.profileInfoScreen);
+              context.push(AppRoutes.inhaleScreen);
             });
           }
 

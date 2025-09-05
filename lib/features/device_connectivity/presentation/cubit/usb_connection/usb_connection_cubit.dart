@@ -13,6 +13,8 @@ class UsbCubit extends Cubit<UsbState> {
   final DeviceCheckUsecase deviceCheckUsecase;
   Timer? _healthCheckTimer;
 
+  Completer<String>? _deviceIdCompleter;
+
   UsbCubit(this.repository, this.deviceCheckUsecase) : super(const UsbState()) {
     _init();
   }
@@ -30,6 +32,7 @@ class UsbCubit extends Cubit<UsbState> {
         );
 
         if (connected) {
+          // Ask device for ID
           repository.sendData("!");
         } else {
           _healthCheckTimer?.cancel();
@@ -43,10 +46,17 @@ class UsbCubit extends Cubit<UsbState> {
         }
       },
       onDataReceived: (data) {
+        debugPrint("📥 Raw USB data received: $data");
+
         if (data.startsWith("H")) {
           final cleanId = data.substring(1).trim();
           emit(state.copyWith(deviceId: cleanId));
-          print("📥 Clean Device ID stored: RESPYR$cleanId");
+          debugPrint("📥 Clean Device ID stored: RESPYR$cleanId");
+
+          // ✅ Complete the waiting future if exists
+          if (_deviceIdCompleter != null && !_deviceIdCompleter!.isCompleted) {
+            _deviceIdCompleter!.complete(cleanId);
+          }
         }
       },
       onCommandSent: (command) {
@@ -73,15 +83,19 @@ class UsbCubit extends Cubit<UsbState> {
   Future<void> checkAndProceed({required BuildContext context}) async {
     emit(state.copyWith(isChecking: true));
 
+    // Reset completer for fresh wait
+    _deviceIdCompleter = Completer<String>();
+
+    // Ask device for ID
     repository.sendData("!");
 
     String? deviceId;
-    for (int i = 0; i < 30; i++) {
-      await Future.delayed(const Duration(milliseconds: 100));
-      if (state.deviceId != null) {
-        deviceId = state.deviceId;
-        break;
-      }
+    try {
+      deviceId = await _deviceIdCompleter!.future.timeout(
+        const Duration(seconds: 3),
+      );
+    } catch (_) {
+      deviceId = null;
     }
 
     if (deviceId == null) {
@@ -93,28 +107,32 @@ class UsbCubit extends Cubit<UsbState> {
       );
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Device ID not received. Please reconnect."),
-          ),
+          const SnackBar(content: Text("Device ID not received. Please wait.")),
         );
       }
       return;
     }
 
+    // ✅ Call usecase
     final result = await deviceCheckUsecase.checkSignal(deviceId);
+    debugPrint(
+      "🔍 checkSignal => signal=${result.signal}, isReady=${result.isReady}, deviceId=$deviceId",
+    );
 
     // Send signal back to device like clinical app
     repository.sendData(result.signal);
+    debugPrint("📤 Sent signal: ${result.signal}");
     repository.sendData("%");
+    debugPrint("📤 Sent terminator: %");
 
     emit(state.copyWith(isDeviceReady: result.isReady));
 
-    if (result.isReady) {
-      if (context.mounted) context.push(AppRoutes.breatheTubeScreen);
-    } else {
-      if (context.mounted) {
+    if (context.mounted) {
+      if (result.isReady) {
+        context.push(AppRoutes.breatheTubeScreen);
+      } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Device ID not received. Try Again ")),
+          const SnackBar(content: Text("Device not ready. Try Again")),
         );
       }
     }

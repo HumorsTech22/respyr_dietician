@@ -12,7 +12,7 @@ class InhaleCubit extends Cubit<InhaleState> {
   final AudioHelper audioHelper;
   Timer? _timer;
   StreamSubscription<String>? _usbDataSubscription;
-
+  bool _screenActive = true;
   InhaleCubit(this.usbService, this.audioHelper) : super(const InhaleState());
 
   void init() async {
@@ -33,11 +33,10 @@ class InhaleCubit extends Cubit<InhaleState> {
         timer.cancel();
         return;
       }
-      if (state.counter <= 0) {
-        timer.cancel();
-      } else {
-        emit(state.copyWith(counter: state.counter - 1));
-      }
+      final newCount = state.counter - 1;
+      emit(state.copyWith(counter: newCount));
+
+      if (newCount <= 0) timer.cancel();
     });
   }
 
@@ -71,7 +70,7 @@ class InhaleCubit extends Cubit<InhaleState> {
   }
 
   void _onUsbDataReceived(String data) {
-    if (state.isDisposed) return;
+    if (state.isDisposed || !_screenActive) return;
 
     final match = RegExp(r'/[\d.]+/').firstMatch(data);
     final extractedValue = match?.group(0);

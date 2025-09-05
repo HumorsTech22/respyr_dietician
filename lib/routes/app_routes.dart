@@ -16,5 +16,8 @@ abstract class AppRoutes {
   static const breatheTubeScreen = '/breathe-tube-screen';
   static const calibrationScreen = '/calibration-screen';
   static const inhaleScreen = '/inhale-screen';
-  static const dummy = '/dummy';
+  static const exhaleScreen = '/exhale-screen';
+  static const bluetoothDeviceConnectivity = '/bluetooth-device-connectivity';
+  static const bluetoothBreatheTube = '/bluetooth-breathe-tube';
+  static const bluetoothCalibrationScreen = '/bluetooth-calibration-screen';
 }

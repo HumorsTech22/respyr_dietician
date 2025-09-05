@@ -7,34 +7,38 @@ import 'package:respyr_dietitian/common/widgets/audio_helper.dart';
 import 'package:respyr_dietitian/common/widgets/internet_connectivity_handler.dart';
 import 'package:respyr_dietitian/core/audio/audio_cubit.dart';
 import 'package:respyr_dietitian/core/audio/audio_state.dart';
-import 'package:respyr_dietitian/core/services/usb_communication_service.dart';
-import 'package:respyr_dietitian/features/device_connectivity/presentation/cubit/breathe_tube/breathe_tube_cubit.dart';
-import 'package:respyr_dietitian/features/device_connectivity/presentation/cubit/breathe_tube/breathe_tube_state.dart';
+import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/repository/bluetooth_repository.dart';
+import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_breathe_tube_cubit/bluetooth_breathe_tube_cubit.dart';
+import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_breathe_tube_cubit/bluetooth_breathe_tube_state.dart';
 import 'package:respyr_dietitian/common/dialogs/cancel_Test_dialog.dart';
 import 'package:respyr_dietitian/common/dialogs/disconnection_dialog.dart';
 import 'package:respyr_dietitian/routes/app_routes.dart';
 
-class BreatheTubeScreen extends StatelessWidget {
-  const BreatheTubeScreen({super.key});
+class BluetoothBreatheTube extends StatelessWidget {
+  const BluetoothBreatheTube({super.key});
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => BreatheTubeCubit(UsbCommunicationService(), AudioHelper()),
-      child: BlocConsumer<BreatheTubeCubit, BreatheTubeState>(
+      create:
+          (ctx) => BluetoothBreatheTubeCubit(
+            ctx.read<BluetoothRepository>(),
+            AudioHelper(),
+          ),
+      child: BlocConsumer<BluetoothBreatheTubeCubit, BluetoothBreatheTubeState>(
         listener: (context, state) {
           if (state.isDialogShown) {
             showDeviceDisconnectedBox(
               context: context,
               onButtonPressed:
-                  () => context.read<BreatheTubeCubit>().cancelTest(),
+                  () => context.read<BluetoothBreatheTubeCubit>().disconnect(),
             );
           }
-          if (state.isTestCancelled) {
+          if (state.hasTestCancelled) {
             context.pushReplacement(AppRoutes.profileInfoScreen);
           }
           if (state.isCompleted) {
-            context.pushReplacement(AppRoutes.calibrationScreen);
+            context.pushReplacement(AppRoutes.bluetoothCalibrationScreen);
           }
         },
         builder: (context, state) {
@@ -42,7 +46,7 @@ class BreatheTubeScreen extends StatelessWidget {
             backgroundColor: Colors.white,
             body: InternetConnectivityHandler(
               onConnectivityChanged: (hasInternet) {
-                context.read<BreatheTubeCubit>().handleInternetChanged(
+                context.read<BluetoothBreatheTubeCubit>().handleInternetChanged(
                   hasInternet,
                 );
               },

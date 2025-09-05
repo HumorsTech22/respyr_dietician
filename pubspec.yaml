@@ -56,6 +56,7 @@ dependencies:
   audio_helper: ^0.1.1
   connectivity_plus: ^6.1.5
   shared_preferences: ^2.5.3
+  flutter_blue_plus: ^1.35.5
 
 
 dev_dependencies:

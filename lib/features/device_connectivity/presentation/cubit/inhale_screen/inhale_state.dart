@@ -9,7 +9,7 @@ class InhaleState extends Equatable {
   final bool hasInternet;
   final bool isMuted;
   final String? lastExtractedValue;
-
+  final String? errorMessage;
   final bool dialogShown;
 
   const InhaleState({
@@ -20,6 +20,7 @@ class InhaleState extends Equatable {
     this.hasInternet = true,
     this.isMuted = false,
     this.lastExtractedValue,
+    this.errorMessage,
     this.dialogShown = false,
   });
 
@@ -31,7 +32,7 @@ class InhaleState extends Equatable {
     bool? hasInternet,
     bool? isMuted,
     String? lastExtractedValue,
-
+    String? errorMessage,
     bool? dialogShown,
   }) {
     return InhaleState(
@@ -43,7 +44,7 @@ class InhaleState extends Equatable {
       hasInternet: hasInternet ?? this.hasInternet,
       isMuted: isMuted ?? this.isMuted,
       lastExtractedValue: lastExtractedValue ?? this.lastExtractedValue,
-
+      errorMessage: errorMessage ?? this.errorMessage,
       dialogShown: dialogShown ?? this.dialogShown,
     );
   }
@@ -55,10 +56,9 @@ class InhaleState extends Equatable {
     isDisposed,
     navigationToExhaleScreen,
     hasInternet,
-
     isMuted,
     lastExtractedValue,
-
+    errorMessage,
     dialogShown,
   ];
 }

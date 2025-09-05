@@ -1,5 +1,5 @@
+import 'package:audio_helper/audio_helper.dart';
 import 'package:flutter/foundation.dart';
-import 'package:just_audio/just_audio.dart';
 
 class AudioHelper {
   final AudioPlayer _audioPlayer = AudioPlayer();

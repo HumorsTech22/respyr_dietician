@@ -2,9 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:respyr_dietitian/common/widgets/audio_helper.dart';
 
 import 'package:respyr_dietitian/core/audio/audio_cubit.dart';
 import 'package:respyr_dietitian/core/services/usb_communication_service.dart';
+import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/datasource/uuid_bluetooth_manager.dart';
+import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/repository/bluetooth_repository.dart';
+import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/repository/bluetooth_repository_impl.dart';
+import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_breathe_tube_cubit/bluetooth_breathe_tube_cubit.dart';
 import 'package:respyr_dietitian/features/device_connectivity/data/repository/device_check_repo.dart';
 import 'package:respyr_dietitian/features/device_connectivity/data/usb_repository_impl.dart';
 import 'package:respyr_dietitian/features/device_connectivity/domain/usecase/device_check_usecase.dart';
@@ -39,6 +44,12 @@ Future<void> main() async {
     await Permission.notification.request();
   }
 
+  await [
+    Permission.bluetoothScan,
+    Permission.bluetoothConnect,
+    Permission.locationWhenInUse,
+  ].request();
+
   // Init core dependencies
   final calculateBMI = CalculateBMI();
   final calculateBMR = CalculateBMR();
@@ -49,21 +60,31 @@ Future<void> main() async {
   final deviceCheckUsecase = DeviceCheckUsecase(deviceCheckRepo);
 
   runApp(
-    MultiBlocProvider(
+    MultiRepositoryProvider(
       providers: [
-        BlocProvider(
-          create:
-              (_) =>
-                  ProfileCubit(calculateBMI, calculateBMR, dieticianRepository),
+        RepositoryProvider<BluetoothRepository>(
+          create: (_) => BluetoothRepositoryImpl(UuidBluetoothManager()),
         ),
-        BlocProvider(create: (_) => TestResultCubit()),
-        BlocProvider(create: (_) => DietitianResultCubit()),
-        BlocProvider(
-          create: (_) => UsbCubit(usbRepository, deviceCheckUsecase),
-        ),
-        BlocProvider(create: (_) => AudioCubit()),
       ],
-      child: const MyApp(),
+      child: MultiBlocProvider(
+        providers: [
+          BlocProvider(
+            create:
+                (_) => ProfileCubit(
+                  calculateBMI,
+                  calculateBMR,
+                  dieticianRepository,
+                ),
+          ),
+          BlocProvider(create: (_) => TestResultCubit()),
+          BlocProvider(create: (_) => DietitianResultCubit()),
+          BlocProvider(
+            create: (_) => UsbCubit(usbRepository, deviceCheckUsecase),
+          ),
+          BlocProvider(create: (_) => AudioCubit()),
+        ],
+        child: const MyApp(),
+      ),
     ),
   );
 }

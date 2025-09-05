@@ -2,12 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:respyr_dietitian/common/widgets/audio_helper.dart';
 import 'package:respyr_dietitian/core/services/usb_communication_service.dart';
 
 import 'package:respyr_dietitian/features/device_connectivity/presentation/cubit/inhale_screen/inhale_cubit.dart';
 import 'package:respyr_dietitian/features/device_connectivity/presentation/cubit/inhale_screen/inhale_state.dart';
+import 'package:respyr_dietitian/common/dialogs/cancel_Test_dialog.dart';
+import 'package:respyr_dietitian/common/dialogs/disconnection_dialog.dart';
+import 'package:respyr_dietitian/routes/app_routes.dart';
 
 class InhaleScreen extends StatelessWidget {
   const InhaleScreen({super.key});
@@ -44,40 +48,14 @@ class _InhaleView extends StatelessWidget {
               prev.dialogShown != curr.dialogShown,
       listener: (context, state) {
         if (state.dialogShown) {
-          // ⚠️ Show disconnected popup (UI-level)
-          showDialog(
-            context: context,
-            builder:
-                (_) => AlertDialog(
-                  title: const Text("Device Disconnected"),
-                  content: const Text("The device has been disconnected."),
-                  actions: [
-                    TextButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        // TODO: navigate back to dashboard if required
-                      },
-                      child: const Text("OK"),
-                    ),
-                  ],
-                ),
-          );
+          showDeviceDisconnectedBox(context: context, onButtonPressed: () {});
         }
 
-        if (state.navigationToExhaleScreen) {
-          // ⚡ Navigate to Exhale screen when cubit triggers
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder:
-                  (_) => Scaffold(
-                    body: Center(
-                      child: Text(
-                        "➡️ Exhale Screen (baseValue: ${state.lastExtractedValue})",
-                      ),
-                    ),
-                  ),
-            ),
+        if (state.navigationToExhaleScreen &&
+            state.lastExtractedValue != null) {
+          context.push(
+            AppRoutes.exhaleScreen,
+            extra: state.lastExtractedValue!,
           );
         }
       },
@@ -86,23 +64,23 @@ class _InhaleView extends StatelessWidget {
 
         return Scaffold(
           backgroundColor: Colors.white,
-          appBar: AppBar(
-            title: Text(
-              state.isConnected
-                  ? "USB device connected"
-                  : "USB device not connected",
-              style: GoogleFonts.mulish(
-                fontSize: 15,
-                color: state.isConnected ? Colors.green : Colors.red,
-              ),
-            ),
-            actions: [
-              IconButton(
-                onPressed: cubit.toggleMute,
-                icon: Icon(state.isMuted ? Icons.volume_off : Icons.volume_up),
-              ),
-            ],
-          ),
+          // appBar: AppBar(
+          //   title: Text(
+          //     state.isConnected
+          //         ? "USB device connected"
+          //         : "USB device not connected",
+          //     style: GoogleFonts.mulish(
+          //       fontSize: 15,
+          //       color: state.isConnected ? Colors.green : Colors.red,
+          //     ),
+          //   ),
+          //   actions: [
+          //     IconButton(
+          //       onPressed: cubit.toggleMute,
+          //       icon: Icon(state.isMuted ? Icons.volume_off : Icons.volume_up),
+          //     ),
+          //   ],
+          // ),
           body: SafeArea(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
@@ -118,44 +96,20 @@ class _InhaleView extends StatelessWidget {
                                 width: 375,
                                 child: Image(
                                   image: AssetImage(
-                                    'assets/gif_images/inhale.gif',
+                                    'assets/images/gif_images/inhale.gif',
                                   ),
                                 ),
                               )
-                              : SvgPicture.asset("assets/inhale_hold.svg"),
+                              : SvgPicture.asset(
+                                "assets/images/device_connection/inhale_hold.svg",
+                              ),
                     ),
                     Positioned(
                       top: 10,
                       left: 20,
                       child: IconButton(
                         onPressed: () {
-                          // Cancel test (UI responsibility)
-                          showDialog(
-                            context: context,
-                            builder:
-                                (_) => AlertDialog(
-                                  title: const Text("Cancel Test"),
-                                  content: const Text(
-                                    "Are you sure you want to cancel the test?",
-                                  ),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () {
-                                        Navigator.pop(context);
-                                        cubit.stopAllProcesses();
-                                        Navigator.pop(
-                                          context,
-                                        ); // back to dashboard
-                                      },
-                                      child: const Text("Yes"),
-                                    ),
-                                    TextButton(
-                                      onPressed: () => Navigator.pop(context),
-                                      child: const Text("No"),
-                                    ),
-                                  ],
-                                ),
-                          );
+                          showCancelTestDialog(context);
                         },
                         icon: Container(
                           height: 20,
@@ -165,7 +119,7 @@ class _InhaleView extends StatelessWidget {
                             color: Colors.white,
                           ),
                           child: SvgPicture.asset(
-                            "assets/svg_icons/close_icon.svg",
+                            "assets/images/common/closeicon.svg",
                           ),
                         ),
                       ),
