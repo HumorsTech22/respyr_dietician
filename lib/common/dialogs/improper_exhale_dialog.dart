@@ -4,10 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 
 void showImproperExhale({
   required BuildContext context,
-  required VoidCallback
-  tryAgainButtonClicked, // Callback to listen for button click
-  required VoidCallback
-  needHelpButtonCancel, // Callback to listen for button click
+  required VoidCallback tryAgainButtonClicked,
+  required VoidCallback needHelpButtonCancel,
 }) {
   showDialog(
     context: context,
@@ -33,7 +31,9 @@ void showImproperExhale({
               mainAxisSize: MainAxisSize.min, // Adjust height based on content
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                SvgPicture.asset("assets/sagar/impropper.svg"),
+                SvgPicture.asset(
+                  "assets/images/device_connection/improper.svg",
+                ),
                 const SizedBox(height: 29.61),
                 Text(
                   "Improper Exhale",

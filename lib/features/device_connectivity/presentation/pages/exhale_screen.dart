@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_svg/svg.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:respyr_dietitian/common/dialogs/cancel_Test_dialog.dart';
 import 'package:respyr_dietitian/core/services/usb_communication_service.dart';
+import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/params/generating_result_params.dart';
 import 'package:respyr_dietitian/features/device_connectivity/domain/processor/usb_blow_processor.dart';
 import 'package:respyr_dietitian/features/device_connectivity/presentation/cubit/exhale_screen/exhale_cubit.dart';
 import 'package:respyr_dietitian/features/device_connectivity/presentation/cubit/exhale_screen/exhale_state.dart';
 import 'package:respyr_dietitian/common/dialogs/improper_exhale_dialog.dart';
+import 'package:respyr_dietitian/routes/app_routes.dart';
 
 class ExhaleScreen extends StatelessWidget {
   final String baseValue;
@@ -43,33 +48,46 @@ class ExhaleScreen extends StatelessWidget {
               ...processor.blowValuesList,
             ];
 
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder:
-                    (_) => Scaffold(
-                      appBar: AppBar(title: const Text("Blow Results")),
-                      body: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              "✅ Blow Complete!",
-                              style: Theme.of(context).textTheme.headlineLarge,
-                            ),
-                            const SizedBox(height: 20),
-                            Text("Max Pressure: $maxPR"),
-                            Text("Best Pressure: $bestPR"),
-                            Text("Blow Duration: $duration ms"),
-                            const SizedBox(height: 20),
-                            Text("Captured Values: $allValues"),
-                          ],
-                        ),
-                      ),
-                    ),
-              ),
+            final params = GeneratingResultParams(
+              maxPressure: maxPR,
+              bestPressure: bestPR,
+              blowDuration: duration,
+              blowValuesList: allValues,
             );
+
+            // Navigate to your result screen properly
+            context.pushReplacement(
+              AppRoutes.generatingResultScreen,
+              extra: params,
+            );
+
+            //   Navigator.push(
+            //     context,
+            //     MaterialPageRoute(
+            //       builder:
+            //           (_) => Scaffold(
+            //             appBar: AppBar(title: const Text("Blow Results")),
+            //             body: Padding(
+            //               padding: const EdgeInsets.all(16.0),
+            //               child: Column(
+            //                 mainAxisAlignment: MainAxisAlignment.center,
+            //                 children: [
+            //                   Text(
+            //                     "✅ Blow Complete!",
+            //                     style: Theme.of(context).textTheme.headlineLarge,
+            //                   ),
+            //                   const SizedBox(height: 20),
+            //                   Text("Max Pressure: $maxPR"),
+            //                   Text("Best Pressure: $bestPR"),
+            //                   Text("Blow Duration: $duration ms"),
+            //                   const SizedBox(height: 20),
+            //                   Text("Captured Values: $allValues"),
+            //                 ],
+            //               ),
+            //             ),
+            //           ),
+            //     ),
+            //   );
           }
 
           if (state is ExhaleImproper) {
@@ -108,15 +126,95 @@ class ExhaleScreen extends StatelessWidget {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        // GIF
-                        SizedBox(
-                          height: 300,
-                          width: double.infinity,
-                          child: Image.asset(
-                            'assets/images/gif_images/exhale.gif',
-                          ),
+                        // // GIF
+                        Stack(
+                          children: [
+                            SizedBox(
+                              height: 350,
+                              width: MediaQuery.of(context).size.width * 0.96,
+                              child: Image.asset(
+                                'assets/images/gif_images/exhale.gif',
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 10,
+                              ),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  IconButton(
+                                    onPressed:
+                                        () => showCancelTestDialog(
+                                          context,
+                                          () => context.pushReplacement(
+                                            AppRoutes.usbDeviceConnectivity,
+                                          ),
+                                        ),
+                                    icon: Container(
+                                      height: 20,
+                                      width: 20,
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(5),
+                                        color: Colors.white,
+                                      ),
+                                      child: SvgPicture.asset(
+                                        "assets/images/common/closeicon.svg",
+                                      ),
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  IconButton(
+                                    onPressed: () {},
+                                    icon: Icon(Icons.volume_up),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (state.progress > 0.2 && state.progress < 0.49)
+                              Positioned(
+                                bottom: 50,
+                                left: 40,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 15,
+                                    vertical: 10,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(25),
+                                    color: Colors.white,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Text(
+                                        "Having trouble with exhale?\t",
+                                        textAlign: TextAlign.center,
+                                        style: GoogleFonts.mulish(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: Color(0xFF595959),
+                                        ),
+                                      ),
+                                      InkWell(
+                                        onTap: () {},
+                                        child: Text(
+                                          "Try practice test",
+                                          textAlign: TextAlign.center,
+                                          style: GoogleFonts.mulish(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            color: Color(0xFF308BF9),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
-
                         // Instruction text
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -143,7 +241,6 @@ class ExhaleScreen extends StatelessWidget {
                           ),
                         ),
 
-                        // Progress bar with threshold marker
                         Stack(
                           children: [
                             SizedBox(

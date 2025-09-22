@@ -6,82 +6,92 @@ import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presenta
 import 'package:shared_preferences/shared_preferences.dart';
 
 class BluetoothCalibrationCubit extends Cubit<BluetoothCalibrationState> {
-  final BluetoothRepository bluetoothRepo;
-  final AudioHelper audioHelper;
+  final BluetoothRepository repo;
+  final AudioHelper _audioHelper;
+
   StreamSubscription<bool>? _connSub;
   StreamSubscription<String>? _dataSub;
 
   bool signalsAlreadySent = false;
-  bool isDisposed = false;
   bool _isRunningCalibration = false;
+  bool _disposed = false;
 
-  BluetoothCalibrationCubit(this.bluetoothRepo, this.audioHelper)
-    : super(const BluetoothCalibrationState());
+  BluetoothCalibrationCubit(this.repo, this._audioHelper)
+    : super(const BluetoothCalibrationState()) {
+    init();
+  }
 
   void init() {
-    _connSub = bluetoothRepo.connectionStatusStream().listen((connected) {
+    // Listen for Bluetooth connection
+    _connSub = repo.connectionStatusStream().listen((connected) {
       handleBluetoothConnection(connected);
     });
 
-    _dataSub = bluetoothRepo.receivedDataStream().listen((data) {
+    // Listen for incoming Bluetooth data
+    _dataSub = repo.receivedDataStream().listen((data) {
       onBluetoothDataReceived(data);
     });
+    if (repo.isConnected) {
+      handleBluetoothConnection(true);
+    }
   }
 
   Future<void> handleBluetoothConnection(bool connected) async {
+    if (_disposed) return;
+
     emit(state.copyWith(isBluetoothConnected: connected));
 
     if (connected) {
-      print("Bluetooth Connected");
-      if (_isRunningCalibration) {
+      print("✅ Bluetooth Connected");
+
+      // Start calibration automatically
+      if (!_isRunningCalibration) {
         _isRunningCalibration = true;
-        await Future.delayed(Duration(seconds: 1));
-        await _startCalibrationSequence();
+        await Future.delayed(const Duration(seconds: 1));
+        _startCalibrationSequence();
       }
     } else {
-      audioHelper.stopAudio();
-      _dataSub?.cancel();
-      _dataSub = null;
-      _connSub?.cancel();
-      _connSub = null;
-      print("Bluetooth Disconnected");
-    }
-
-    if (!state.isDialogShown) {
-      showDisconnectedDialog();
+      print("❌ Bluetooth Disconnected");
+      _audioHelper.stopAudio();
+      if (!state.isDialogShown) {
+        showDisconnectedDialog();
+      }
     }
   }
 
   void onBluetoothDataReceived(String data) {
-    if (data.isEmpty) return;
+    if (data.isEmpty || _disposed) return;
+
     final normalized = data.trim().toLowerCase();
-    print("Received Bluetooth Data: '$data' (normalized: '$normalized')");
+    print("📨 Received Bluetooth Data: '$data' (normalized: '$normalized')");
 
     if (normalized.contains("inhale") && !state.navigateToInhaleScreen) {
-      print("Inhale Detected -> Navigating to inhale screen");
+      print("➡️ Inhale detected → Navigating to inhale screen");
       stop();
-      emit(state.copyWith(navigateToInhaleScreen: true));
+      emit(
+        state.copyWith(navigateToInhaleScreen: true, waitForInhaleCmd: false),
+      );
     }
-  }
-
-  void resetNavigationFlag() {
-    emit(state.copyWith(navigateToInhaleScreen: false));
   }
 
   Future<void> sendCalibrationCommand(int step) async {
     try {
-      if (step == 1) {
+      if (step == 1 && !signalsAlreadySent) {
         final prefs = await SharedPreferences.getInstance();
         final signal = prefs.getString("isFirstReading") ?? "{";
-        print("➡️ Sending calibration data to device...");
-        await bluetoothRepo.sendData("?");
-        await bluetoothRepo.sendData("}");
-        await bluetoothRepo.sendData(signal);
-        await bluetoothRepo.sendData("+");
-        print("✅ Calibration data sent to device");
+
+        print("➡️ Sending calibration commands to device...");
+
+        await repo.sendData("?");
+        await repo.sendData("}");
+        await repo.sendData(signal);
+        await repo.sendData("+");
+
+        signalsAlreadySent = true;
+        print("✅ Calibration commands sent successfully");
       }
     } catch (e) {
-      print("❌ Failed to send data: $e");
+      print("❌ Failed to send calibration commands: $e");
       emit(
         state.copyWith(textError: "Failed to send data to Bluetooth device"),
       );
@@ -89,60 +99,56 @@ class BluetoothCalibrationCubit extends Cubit<BluetoothCalibrationState> {
   }
 
   Future<void> _startCalibrationSequence() async {
+    if (!_isRunningCalibration || _disposed) return;
+
     signalsAlreadySent = false;
 
     for (int i = 1; i <= 5; i++) {
-      if (isDisposed ||
-          state.navigateToInhaleScreen ||
-          !state.isBluetoothConnected) {
+      if (_disposed ||
+          !state.isBluetoothConnected ||
+          state.navigateToInhaleScreen) {
         return;
       }
 
-      if (i < 5) {
-        await Future.delayed(Duration(seconds: 20));
+      await Future.delayed(Duration(seconds: i == 1 ? 20 : 10));
+      if (i == 3) {
+        _audioHelper.playActivatingSensors();
+      }
+      if (i == 4) {
+        _audioHelper.playStartBreathTest();
       }
 
+      if (_disposed) return;
       emit(state.copyWith(completedSteps: i));
-      print("Calibration step completed: $i");
+      print("✅ Calibration step $i completed");
 
-      if (!signalsAlreadySent) {
-        await sendCalibrationCommand(1);
-        signalsAlreadySent = true;
-      }
+      await sendCalibrationCommand(i);
     }
-    print("🚦 Calibration steps done, waiting for inhale command...");
+    emit(state.copyWith(waitForInhaleCmd: true));
+    print("🚦 Calibration sequence done, waiting for inhale...");
   }
 
-  void toggleMute() => audioHelper.stopAudio();
-  bool get isMuted => audioHelper.isMuted;
-
-  void pause() {
-    audioHelper.stopAudio();
-    emit(state.copyWith(isMuted: false));
+  void showDisconnectedDialog() {
+    emit(state.copyWith(isDialogShown: true));
   }
 
-  void resume() {
-    emit(state.copyWith(isMuted: false));
-    if (state.isBluetoothConnected) _startCalibrationSequence();
+  void dialogDismissed() {
+    if (_disposed) return;
+    emit(state.copyWith(isDialogShown: false));
   }
 
   void stop() {
-    isDisposed = true;
+    _disposed = true;
     _connSub?.cancel();
     _dataSub?.cancel();
     _connSub = null;
     _dataSub = null;
+    _audioHelper.stopAudio();
   }
 
   @override
   Future<void> close() {
     stop();
     return super.close();
-  }
-
-  void showDisconnectedDialog() {
-    if (!state.isDialogShown) {
-      emit(state.copyWith(isDialogShown: true));
-    }
   }
 }

@@ -110,10 +110,6 @@ class CalibrationCubit extends Cubit<CalibrationState> {
     print("🚦 Calibration steps done, waiting for inhale command...");
   }
 
-  void resetNavigationFlag() {
-    emit(state.copyWith(navigateToInhaleScreen: false));
-  }
-
   Future<void> sendStepSpecificData(int step) async {
     try {
       if (step == 1) {

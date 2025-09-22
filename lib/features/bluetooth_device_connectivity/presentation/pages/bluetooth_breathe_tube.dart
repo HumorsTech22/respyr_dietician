@@ -5,8 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:respyr_dietitian/common/widgets/audio_helper.dart';
 import 'package:respyr_dietitian/common/widgets/internet_connectivity_handler.dart';
-import 'package:respyr_dietitian/core/audio/audio_cubit.dart';
-import 'package:respyr_dietitian/core/audio/audio_state.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/repository/bluetooth_repository.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_breathe_tube_cubit/bluetooth_breathe_tube_cubit.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_breathe_tube_cubit/bluetooth_breathe_tube_state.dart';
@@ -30,12 +28,17 @@ class BluetoothBreatheTube extends StatelessWidget {
           if (state.isDialogShown) {
             showDeviceDisconnectedBox(
               context: context,
-              onButtonPressed:
-                  () => context.read<BluetoothBreatheTubeCubit>().disconnect(),
-            );
+              onButtonPressed: () {
+                context.read<BluetoothBreatheTubeCubit>().dialogDismissed();
+                context.pushReplacement(AppRoutes.bluetoothDeviceConnectivity);
+              },
+            ).then((_) {
+              context.read<BluetoothBreatheTubeCubit>().dialogDismissed();
+            });
           }
+
           if (state.hasTestCancelled) {
-            context.pushReplacement(AppRoutes.profileInfoScreen);
+            context.pushReplacement(AppRoutes.bluetoothDeviceConnectivity);
           }
           if (state.isCompleted) {
             context.pushReplacement(AppRoutes.bluetoothCalibrationScreen);
@@ -61,7 +64,13 @@ class BluetoothBreatheTube extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           IconButton(
-                            onPressed: () => showCancelTestDialog(context),
+                            onPressed:
+                                () => showCancelTestDialog(
+                                  context,
+                                  () => context.pushReplacement(
+                                    AppRoutes.bluetoothDeviceConnectivity,
+                                  ),
+                                ),
                             icon: SvgPicture.asset(
                               "assets/images/common/closeicon.svg",
                             ),
@@ -69,12 +78,21 @@ class BluetoothBreatheTube extends StatelessWidget {
                           const Spacer(),
                           IconButton(
                             onPressed: () {
-                              context.read<AudioCubit>().toggleMute();
+                              context
+                                  .read<BluetoothBreatheTubeCubit>()
+                                  .audioHelper
+                                  .toggleMute();
                             },
-                            icon: BlocBuilder<AudioCubit, AudioState>(
-                              builder: (context, audioState) {
+                            icon: BlocBuilder<
+                              BluetoothBreatheTubeCubit,
+                              BluetoothBreatheTubeState
+                            >(
+                              builder: (context, state) {
                                 return Icon(
-                                  audioState.isMuted
+                                  context
+                                          .read<BluetoothBreatheTubeCubit>()
+                                          .audioHelper
+                                          .isMuted
                                       ? Icons.volume_off
                                       : Icons.volume_up,
                                 );

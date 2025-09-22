@@ -2,15 +2,22 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/params/generating_result_params.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/pages/bluetooth_breathe_tube.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/pages/bluetooth_calibration_screen.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/pages/bluetooth_device_connectivity.dart';
+import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/pages/bluetooth_exhale_screen.dart';
+import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/pages/bluetooth_generating_result_screen.dart';
+import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/pages/bluetooth_inhale_screen.dart';
 import 'package:respyr_dietitian/features/device_connectivity/presentation/pages/breathe_tube_screen.dart';
 import 'package:respyr_dietitian/features/device_connectivity/presentation/pages/calibration_screen.dart';
 import 'package:respyr_dietitian/features/device_connectivity/presentation/pages/device_connectivity_screen.dart';
 import 'package:respyr_dietitian/features/device_connectivity/presentation/pages/exhale_screen.dart';
+import 'package:respyr_dietitian/features/device_connectivity/presentation/pages/generating_result.dart';
 import 'package:respyr_dietitian/features/device_connectivity/presentation/pages/inhale_screen.dart';
 import 'package:respyr_dietitian/features/dietictian_result_screen/presentation/pages/dietitian_result_screen.dart';
+import 'package:respyr_dietitian/features/help_center/presentation/pages/help_center_page.dart';
+import 'package:respyr_dietitian/features/log_food/presentation/pages/log_food_pages.dart';
 import 'package:respyr_dietitian/features/profile_info/presentation/pages/age_screen.dart';
 import 'package:respyr_dietitian/features/profile_info/presentation/pages/dietician_screen.dart';
 import 'package:respyr_dietitian/features/profile_info/presentation/pages/gender_screen.dart';
@@ -26,7 +33,7 @@ import 'package:respyr_dietitian/features/test_result_screen/presentation/pages/
 import 'package:respyr_dietitian/routes/app_routes.dart';
 
 final GoRouter appRouter = GoRouter(
-  initialLocation: AppRoutes.bluetoothDeviceConnectivity,
+  initialLocation: AppRoutes.logFoodPage,
   debugLogDiagnostics: true,
   routes: [
     GoRoute(
@@ -138,6 +145,18 @@ final GoRouter appRouter = GoRouter(
       },
     ),
     GoRoute(
+      path: AppRoutes.generatingResultScreen,
+      builder: (context, state) {
+        final params = state.extra as GeneratingResultParams;
+        return GeneratingResult(
+          maxPressure: params.maxPressure,
+          bestPressure: params.bestPressure,
+          blowDuration: params.blowDuration,
+          blowValuesList: params.blowValuesList,
+        );
+      },
+    ),
+    GoRoute(
       path: AppRoutes.bluetoothDeviceConnectivity,
       builder: (context, state) {
         return BluetoothDeviceConnectivity();
@@ -154,6 +173,43 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.bluetoothCalibrationScreen,
       builder: (context, state) {
         return BluetoothCalibrationScreen();
+      },
+    ),
+    GoRoute(
+      path: AppRoutes.bluetoothInhaleScreen,
+      builder: (context, state) {
+        return BluetoothInhaleScreen();
+      },
+    ),
+    GoRoute(
+      path: AppRoutes.bluetoothExhaleScreen,
+      builder: (context, state) {
+        final baseValue = (state.extra ?? "") as String;
+        return BluetoothExhaleScreen(baseValue: baseValue);
+      },
+    ),
+    GoRoute(
+      path: AppRoutes.logFoodPage,
+      builder: (context, state) {
+        return LogFoodPage();
+      },
+    ),
+    GoRoute(
+      path: AppRoutes.helpCenterPage,
+      builder: (context, state) {
+        return HelpCenterPage();
+      },
+    ),
+    GoRoute(
+      path: AppRoutes.bluetoothGeneratingResultScreen,
+      builder: (context, state) {
+        final params = state.extra as GeneratingResultParams;
+        return BluetoothGeneratingResultScreen(
+          maxPressure: params.maxPressure,
+          bestPressure: params.bestPressure,
+          blowDuration: params.blowDuration,
+          blowValuesList: params.blowValuesList,
+        );
       },
     ),
     GoRoute(

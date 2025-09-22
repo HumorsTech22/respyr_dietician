@@ -5,9 +5,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:respyr_dietitian/common/dialogs/bluetooth_enable_dialog.dart';
-import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/datasource/uuid_bluetooth_manager.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/repository/bluetooth_repository.dart';
-import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/repository/bluetooth_repository_impl.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_connection_cubit/bluetooth_connection_cubit.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_connection_cubit/bluetooth_connection_state.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/widgets/device_section.dart';
@@ -18,16 +16,11 @@ class BluetoothDeviceConnectivity extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return RepositoryProvider<BluetoothRepository>(
-      create: (_) => BluetoothRepositoryImpl(UuidBluetoothManager()),
-      child: BlocProvider(
-        create:
-            (ctx) =>
-                BluetoothConnectionCubit(ctx.read<BluetoothRepository>())
-                  ..init(),
-
-        child: const _BluetoothDeviceConnectivityView(),
-      ),
+    return BlocProvider(
+      create:
+          (ctx) =>
+              BluetoothConnectionCubit(ctx.read<BluetoothRepository>())..init(),
+      child: const _BluetoothDeviceConnectivityView(),
     );
   }
 }

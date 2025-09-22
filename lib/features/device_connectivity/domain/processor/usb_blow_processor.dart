@@ -226,7 +226,7 @@ class UsbBlowProcessor {
   bool isAbort = false;
   bool diffTStampFlag = false;
   bool moveToResults = false;
-  bool improperBlow = false; // 👈 new flag
+  bool improperBlow = false;
 
   double? firstDataValue;
   double? thresholdPercentage;

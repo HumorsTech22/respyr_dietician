@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-void showDeviceDisconnectedBox({
+Future<void> showDeviceDisconnectedBox({
   required BuildContext context,
-  required VoidCallback onButtonPressed, // Callback to listen for button click
+  required VoidCallback onButtonPressed,
 }) {
-  showDialog(
+  return showDialog<void>(
     context: context,
     barrierDismissible: false,
     builder:
@@ -27,10 +27,12 @@ void showDeviceDisconnectedBox({
               bottom: 20,
             ),
             child: Column(
-              mainAxisSize: MainAxisSize.min, // Adjust height based on content
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                SvgPicture.asset("assets/not_connected.svg"),
+                SvgPicture.asset(
+                  "assets/images/device_connection/bluetooth_device_disconnection.svg",
+                ),
                 const SizedBox(height: 20),
                 Text(
                   "Device Disconnected",
@@ -51,7 +53,7 @@ void showDeviceDisconnectedBox({
                     fontWeight: FontWeight.w400,
                   ),
                 ),
-                const SizedBox(height: 20), // Add spacing before buttons
+                const SizedBox(height: 20),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -73,10 +75,7 @@ void showDeviceDisconnectedBox({
                 ),
                 TextButton(
                   onPressed: () {
-                    // Navigator.push(
-                    //   context,
-                    //   MaterialPageRoute(builder: (_) => const OtgConnection()),
-                    // );
+                    // TODO: navigate to another page if needed
                   },
                   style: TextButton.styleFrom(padding: EdgeInsets.zero),
                   child: Text(

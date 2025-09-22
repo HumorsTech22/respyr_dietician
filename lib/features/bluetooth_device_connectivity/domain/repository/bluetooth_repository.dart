@@ -2,7 +2,6 @@ import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/mod
 
 abstract class BluetoothRepository {
   Stream<List<BluetoothDeviceModel>> scan({Duration? timeout});
-
   Future<void> connectById(String id);
   Future<void> disconnect();
 
@@ -10,6 +9,7 @@ abstract class BluetoothRepository {
 
   Stream<bool> connectionStatusStream();
   Stream<String> receivedDataStream();
+  Stream<bool> deviceReadyStream();
 
   Future<void> sendData(String data);
 }

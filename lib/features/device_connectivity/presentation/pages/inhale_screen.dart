@@ -109,7 +109,10 @@ class _InhaleView extends StatelessWidget {
                       left: 20,
                       child: IconButton(
                         onPressed: () {
-                          showCancelTestDialog(context);
+                          showCancelTestDialog(
+                            context,
+                            () => context.push(AppRoutes.usbDeviceConnectivity),
+                          );
                         },
                         icon: Container(
                           height: 20,

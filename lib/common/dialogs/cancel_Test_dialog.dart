@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-Future<bool> showCancelTestDialog(BuildContext context) async {
+Future<bool> showCancelTestDialog(
+  BuildContext context,
+  VoidCallback onPressed,
+) async {
   final bool? shouldCancel = await showDialog<bool>(
     context: context,
     barrierDismissible: true,
@@ -41,7 +44,7 @@ Future<bool> showCancelTestDialog(BuildContext context) async {
                   width: double.infinity,
                   child: OutlinedButton(
                     onPressed: () {
-                      Navigator.pop(context, false); // ❌ User cancels
+                      Navigator.pop(context, false);
                     },
                     style: OutlinedButton.styleFrom(
                       shape: RoundedRectangleBorder(
@@ -66,9 +69,7 @@ Future<bool> showCancelTestDialog(BuildContext context) async {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context, true); // ✅ Confirm
-                    },
+                    onPressed: onPressed,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFEA5455),
                     ),

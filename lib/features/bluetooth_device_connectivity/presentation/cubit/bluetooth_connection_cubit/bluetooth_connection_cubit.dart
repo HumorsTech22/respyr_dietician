@@ -10,6 +10,7 @@ class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
   StreamSubscription<bool>? _connSub;
   StreamSubscription<String>? _dataSub;
   StreamSubscription<List<BluetoothDeviceModel>>? _scanSub;
+  StreamSubscription<bool>? _readySub;
   Timer? _scanTimer;
 
   BluetoothConnectionCubit(this.repo) : super(const BluetoothConnectionState());
@@ -17,36 +18,43 @@ class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
   void init() {
     _listenConnection();
     _listenData();
+    _listenReady();
     startScan();
   }
 
-  void startScan() {
+  void startScan({Duration timeout = const Duration(seconds: 15)}) {
     _scanSub?.cancel();
+    _scanTimer?.cancel();
+
     emit(
       state.copyWith(
         status: BluetoothConnectionStatus.scanning,
         isScanning: true,
         devices: [],
+        connectingDeviceId: null,
       ),
     );
 
-    _scanSub = repo.scan().listen(
-      (devices) {
-        emit(state.copyWith(devices: devices));
-      },
-      onError: (e) {
-        emit(
-          state.copyWith(
-            status: BluetoothConnectionStatus.error,
-            isScanning: false,
-            error: '$e',
-          ),
+    _scanSub = repo
+        .scan(timeout: timeout)
+        .listen(
+          (devices) {
+            emit(state.copyWith(devices: devices));
+          },
+          onError: (e) {
+            emit(
+              state.copyWith(
+                status: BluetoothConnectionStatus.textError,
+                isScanning: false,
+                error: '$e',
+              ),
+            );
+          },
         );
-      },
-    );
 
-    _scanTimer = Timer(const Duration(seconds: 15), () {
+    _scanTimer = Timer(timeout, () {
       _scanSub?.cancel();
+      _scanSub = null;
       emit(state.copyWith(isScanning: false));
     });
   }
@@ -61,53 +69,77 @@ class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
 
     try {
       await repo.connectById(id);
-      await repo.sendData("{");
-      emit(
-        state.copyWith(
-          isConnected: true,
-          connectingDeviceId: null,
-          status: BluetoothConnectionStatus.connected,
-        ),
-      );
     } catch (e) {
       emit(
         state.copyWith(
           isConnected: false,
           connectingDeviceId: null,
-          status: BluetoothConnectionStatus.error,
+          status: BluetoothConnectionStatus.textError,
           error: e.toString(),
         ),
       );
+      if (_scanSub == null) {
+        startScan();
+      }
     }
+  }
+
+  void _listenConnection() {
+    _connSub?.cancel();
+    _connSub = repo.connectionStatusStream().listen((connected) {
+      if (connected) {
+        emit(
+          state.copyWith(
+            isConnected: true,
+            connectingDeviceId: null,
+            status: BluetoothConnectionStatus.connected,
+          ),
+        );
+      } else {
+        emit(
+          state.copyWith(
+            isConnected: false,
+            connectingDeviceId: null,
+            status: BluetoothConnectionStatus.disconnected,
+            devices: [],
+          ),
+        );
+        startScan();
+      }
+    });
+  }
+
+  void _listenReady() {
+    _readySub?.cancel();
+    _readySub = repo.deviceReadyStream().listen((ready) async {
+      if (ready) {
+        // ✅ Device fully ready → send opening command
+        try {
+          await repo.sendData("{");
+          emit(state.copyWith(lastData: "Sent opening command {"));
+        } catch (e) {
+          emit(state.copyWith(error: "Send error: $e"));
+        }
+      }
+    });
   }
 
   Future<void> disconnect() async {
     await repo.disconnect();
   }
 
-  Future<void> send(String data) => repo.sendData(data);
-
-  void _listenConnection() {
-    _connSub?.cancel();
-    _connSub = repo.connectionStatusStream().listen((connected) {
-      emit(
-        state.copyWith(
-          isConnected: connected,
-          status:
-              connected
-                  ? BluetoothConnectionStatus.connected
-                  : BluetoothConnectionStatus.disconnected,
-        ),
-      );
-    });
+  Future<void> send(String data) async {
+    try {
+      await repo.sendData(data);
+      emit(state.copyWith(lastData: "Sent: $data"));
+    } catch (e) {
+      emit(state.copyWith(error: "Send error: $e"));
+    }
   }
 
   void _listenData() {
     _dataSub?.cancel();
     _dataSub = repo.receivedDataStream().listen((s) {
-      if (s.trim() == '120') {
-        disconnect();
-      }
       emit(state.copyWith(lastData: s));
     });
   }
@@ -117,6 +149,7 @@ class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
     _connSub?.cancel();
     _dataSub?.cancel();
     _scanSub?.cancel();
+    _readySub?.cancel();
     _scanTimer?.cancel();
     return super.close();
   }

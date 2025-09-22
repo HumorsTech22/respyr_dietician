@@ -6,12 +6,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:respyr_dietitian/common/widgets/audio_helper.dart';
 import 'package:respyr_dietitian/core/audio/audio_cubit.dart';
 import 'package:respyr_dietitian/core/audio/audio_state.dart';
-import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/datasource/bluetooth_manager.dart';
-import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/datasource/uuid_bluetooth_manager.dart';
-import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/repository/bluetooth_repository_impl.dart';
+import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/repository/bluetooth_repository.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_calibration_cubit/bluetooth_calibration_cubit.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_calibration_cubit/bluetooth_calibration_state.dart';
-import 'package:respyr_dietitian/features/device_connectivity/presentation/cubit/calibration/calibration_cubit.dart';
 import 'package:respyr_dietitian/common/dialogs/cancel_Test_dialog.dart';
 import 'package:respyr_dietitian/common/dialogs/disconnection_dialog.dart';
 import 'package:respyr_dietitian/routes/app_routes.dart';
@@ -38,14 +35,12 @@ class BluetoothCalibrationScreen extends StatelessWidget {
     ];
 
     return BlocProvider(
-      create: (_) {
-        final cubit = BluetoothCalibrationCubit(
-          BluetoothRepositoryImpl(UuidBluetoothManager()),
-          AudioHelper(),
-        );
-        cubit.init();
-        return cubit;
-      },
+      create:
+          (ctx) => BluetoothCalibrationCubit(
+            ctx.read<BluetoothRepository>(),
+            AudioHelper(),
+          ),
+
       child: BlocListener<BluetoothCalibrationCubit, BluetoothCalibrationState>(
         listenWhen:
             (prev, curr) =>
@@ -55,8 +50,7 @@ class BluetoothCalibrationScreen extends StatelessWidget {
         listener: (context, state) {
           if (state.navigateToInhaleScreen) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              context.read<CalibrationCubit>().resetNavigationFlag();
-              context.push(AppRoutes.inhaleScreen);
+              context.pushReplacement(AppRoutes.bluetoothInhaleScreen);
             });
           }
 
@@ -72,12 +66,15 @@ class BluetoothCalibrationScreen extends StatelessWidget {
           }
 
           if (state.isDialogShown) {
-            // 👇 same disconnection handler as in BreatheTubeScreen
             showDeviceDisconnectedBox(
               context: context,
-              onButtonPressed:
-                  () => context.read<BluetoothCalibrationCubit>().stop(),
-            );
+              onButtonPressed: () {
+                context.read<BluetoothCalibrationCubit>().dialogDismissed();
+                context.pushReplacement(AppRoutes.bluetoothDeviceConnectivity);
+              },
+            ).then((_) {
+              context.read<BluetoothCalibrationCubit>().dialogDismissed();
+            });
           }
         },
         child:
@@ -93,7 +90,13 @@ class BluetoothCalibrationScreen extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             IconButton(
-                              onPressed: () => showCancelTestDialog(context),
+                              onPressed:
+                                  () => showCancelTestDialog(
+                                    context,
+                                    () => context.push(
+                                      AppRoutes.bluetoothDeviceConnectivity,
+                                    ),
+                                  ),
                               icon: SvgPicture.asset(
                                 "assets/images/common/closeicon.svg",
                               ),
@@ -170,12 +173,15 @@ Widget _buildProgressIndicator(
   final double circleSize = screenWidth * 0.06;
   final double lineWidth = screenWidth * 0.12;
 
+  final bool isFinalStepLoading =
+      step == 4 && state.waitForInhaleCmd && !state.navigateToInhaleScreen;
+
   return Row(
     children: [
       Stack(
         alignment: Alignment.center,
         children: [
-          if (isCurrentStep)
+          if (isCurrentStep || isFinalStepLoading)
             SizedBox(
               height: circleSize,
               width: circleSize,
@@ -185,7 +191,7 @@ Widget _buildProgressIndicator(
               ),
             ),
           SvgPicture.asset(
-            isCompleted
+            isCompleted && !isFinalStepLoading
                 ? "assets/images/device_connection/verified.svg"
                 : "assets/images/device_connection/unverified.svg",
             height: circleSize,
@@ -199,7 +205,8 @@ Widget _buildProgressIndicator(
           height: 4,
           width: lineWidth,
           decoration: BoxDecoration(
-            color: isCompleted ? Color(0xFF3FAF58) : const Color(0xFFE0E0E0),
+            color:
+                isCompleted ? const Color(0xFF3FAF58) : const Color(0xFFE0E0E0),
             borderRadius: BorderRadius.circular(2),
           ),
         ),

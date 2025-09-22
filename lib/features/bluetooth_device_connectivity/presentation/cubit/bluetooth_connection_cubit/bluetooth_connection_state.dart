@@ -7,7 +7,7 @@ enum BluetoothConnectionStatus {
   connecting,
   connected,
   disconnected,
-  error,
+  textError,
 }
 
 class BluetoothConnectionState extends Equatable {
@@ -16,7 +16,7 @@ class BluetoothConnectionState extends Equatable {
   final bool isScanning;
   final bool isConnected;
   final String? lastData;
-  final String? error;
+  final String? textError;
   final String? connectingDeviceId;
 
   const BluetoothConnectionState({
@@ -25,7 +25,7 @@ class BluetoothConnectionState extends Equatable {
     this.isScanning = false,
     this.isConnected = false,
     this.lastData,
-    this.error,
+    this.textError,
     this.connectingDeviceId,
   });
 
@@ -43,7 +43,7 @@ class BluetoothConnectionState extends Equatable {
     isScanning: isScanning ?? this.isScanning,
     isConnected: isConnected ?? this.isConnected,
     lastData: lastData ?? this.lastData,
-    error: error,
+    textError: textError,
     connectingDeviceId: connectingDeviceId ?? this.connectingDeviceId,
   );
 
@@ -54,7 +54,7 @@ class BluetoothConnectionState extends Equatable {
     isScanning,
     isConnected,
     lastData,
-    error,
+    textError,
     connectingDeviceId,
   ];
 }

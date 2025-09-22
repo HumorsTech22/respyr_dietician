@@ -9,6 +9,7 @@ class UuidBluetoothManager {
 
   final _connCtrl = StreamController<bool>.broadcast();
   final _dataCtrl = StreamController<String>.broadcast();
+  final _readyCtrl = StreamController<bool>.broadcast();
 
   StreamSubscription<List<ScanResult>>? _scanSub;
   StreamSubscription<BluetoothConnectionState>? _connSub;
@@ -27,6 +28,7 @@ class UuidBluetoothManager {
   bool get isConnected => _isConnected;
   Stream<bool> get connectionStream => _connCtrl.stream;
   Stream<String> get dataStream => _dataCtrl.stream;
+  Stream<bool> get deviceReadyStream => _readyCtrl.stream;
 
   Future<void> startScan({
     Duration timeout = const Duration(seconds: 8),
@@ -41,12 +43,10 @@ class UuidBluetoothManager {
       final filtered =
           results.where((r) {
             final adv = r.advertisementData;
-
             final matchesName = r.device.platformName.startsWith("Respyr");
             final matchesService = adv.serviceUuids.contains(
               serviceUuid.toString(),
             );
-
             return matchesName || matchesService;
           }).toList();
 
@@ -57,7 +57,8 @@ class UuidBluetoothManager {
   }
 
   Future<void> stopScan() => FlutterBluePlus.stopScan();
-  Future<void> connect(BluetoothDevice device) async {
+
+  Future<void> connect(BluetoothDevice device, {Function? onConnected}) async {
     await stopScan();
     await _device?.disconnect();
     _device = device;
@@ -71,30 +72,26 @@ class UuidBluetoothManager {
       _isConnected = connected;
       _connCtrl.add(connected);
 
-      print("📡 Connection state update: $connected");
-
       if (connected) {
-        // Only discover after confirmed connection
         await _discoverAndSubscribe();
+        _readyCtrl.add(true); // ✅ Device ready for commands
+        if (onConnected != null) onConnected();
       } else {
         _teardown();
       }
     });
   }
 
-  // 🔑 Connect by deviceId (remoteId.str). Will scan if needed.
   Future<void> connectById(
     String id, {
     Duration scanTimeout = const Duration(seconds: 10),
   }) async {
-    // 1) Already connected?
     final connected = await FlutterBluePlus.connectedDevices;
     final already = connected.where((d) => d.remoteId.str == id).toList();
     if (already.isNotEmpty) {
       return connect(already.first);
     }
 
-    // 2) Discover by scanning
     final found = Completer<void>();
     StreamSubscription<List<ScanResult>>? sub;
 
@@ -125,6 +122,7 @@ class UuidBluetoothManager {
     }
   }
 
+  /// Discover services and subscribe to notifications
   Future<void> _discoverAndSubscribe() async {
     if (_device == null) return;
     print("🔍 Discovering services...");
@@ -147,7 +145,6 @@ class UuidBluetoothManager {
 
     if (notifyChar == null || writeChar == null) {
       print("❌ Required notify/write characteristics NOT found");
-
       throw Exception('Required notify/write characteristics not found');
     }
 
@@ -164,6 +161,7 @@ class UuidBluetoothManager {
     });
   }
 
+  /// Send data
   Future<void> write(String data) async {
     if (_writeChar == null || !_isConnected) {
       throw Exception('Device not ready for write');
@@ -175,6 +173,7 @@ class UuidBluetoothManager {
     );
   }
 
+  /// Disconnect
   Future<void> disconnect() async {
     try {
       await _device?.disconnect();
@@ -201,5 +200,6 @@ class UuidBluetoothManager {
     _connSub?.cancel();
     _connCtrl.close();
     _dataCtrl.close();
+    _readyCtrl.close();
   }
 }

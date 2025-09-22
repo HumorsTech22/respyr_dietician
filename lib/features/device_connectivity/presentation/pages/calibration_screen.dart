@@ -52,7 +52,6 @@ class UsbCalibrationScreen extends StatelessWidget {
         listener: (context, state) {
           if (state.navigateToInhaleScreen) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              context.read<CalibrationCubit>().resetNavigationFlag();
               context.push(AppRoutes.inhaleScreen);
             });
           }
@@ -88,7 +87,13 @@ class UsbCalibrationScreen extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         IconButton(
-                          onPressed: () => showCancelTestDialog(context),
+                          onPressed:
+                              () => showCancelTestDialog(
+                                context,
+                                () => context.push(
+                                  AppRoutes.usbDeviceConnectivity,
+                                ),
+                              ),
                           icon: SvgPicture.asset(
                             "assets/images/common/closeicon.svg",
                           ),

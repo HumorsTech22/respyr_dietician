@@ -13,65 +13,70 @@ class BluetoothBreatheTubeCubit extends Cubit<BluetoothBreatheTubeState> {
 
   BluetoothBreatheTubeCubit(this.bluetoothRepo, this.audioHelper)
     : super(const BluetoothBreatheTubeState()) {
-    _init();
+    init();
   }
 
-  void _init() {
-    // Listen to live connection changes
+  void init() {
     _connSub = bluetoothRepo.connectionStatusStream().listen((connected) {
-      print("📡 Bluetooth status changed: $connected"); // ADD HERE
+      print("📡 Bluetooth Breathe tube status changed: $connected");
 
       emit(state.copyWith(isBluetoothConnected: connected));
 
       if (connected) {
-        _startProgress();
+        if (!_isProgressRunning && state.progress < 1.0) {
+          _startProgress();
+        }
       } else {
-        _progressTimer?.cancel();
-        audioHelper.stopAudio();
         _showDisconnectedDialog();
       }
     });
 
-    // Check current connection immediately
     final initiallyConnected = bluetoothRepo.isConnected;
     emit(state.copyWith(isBluetoothConnected: initiallyConnected));
-
-    if (initiallyConnected) {
+    if (initiallyConnected && !_isProgressRunning) {
       _startProgress();
     }
   }
 
-  void _startProgress() {
-    const totalDuration = 5; // seconds
-    const steps = totalDuration * 1000 ~/ 10; // 10ms per step
+  bool get _isProgressRunning => _progressTimer?.isActive ?? false;
+
+  void _startProgress() async {
+    const durationMs = 5000;
+    const stepMs = 50;
+    const steps = durationMs ~/ stepMs;
     const incrementValue = 1.0 / steps;
 
     audioHelper.playPlaceBreatheTube();
-    print("🎬 Starting progress...");
 
     _progressTimer?.cancel();
-    _progressTimer = Timer.periodic(const Duration(milliseconds: 10), (timer) {
+    _progressTimer = Timer.periodic(Duration(milliseconds: stepMs), (timer) {
       if (!state.isBluetoothConnected) {
-        print("⛔ Progress stopped: not connected");
-
         timer.cancel();
+        audioHelper.stopAudio();
         return;
       }
 
-      final value = (state.progress + incrementValue).clamp(0.0, 1.0);
-      print("⏱ Progress: ${(value * 100).toInt()}%");
+      final newValue = (state.progress + incrementValue).clamp(0.0, 1.0);
+      emit(state.copyWith(progress: newValue));
 
-      emit(state.copyWith(progress: value));
-
-      if (value >= 1.0) {
+      if (newValue >= 1.0 && state.isBluetoothConnected) {
         timer.cancel();
+        audioHelper.stopAudio();
         emit(state.copyWith(isCompleted: true));
       }
     });
   }
 
+  void _pauseProgress() {
+    _progressTimer?.cancel();
+    audioHelper.stopAudio();
+  }
+
   void _showDisconnectedDialog() {
-    emit(state.copyWith(isDialogShown: true));
+    if (!state.isDialogShown) {
+      _pauseProgress();
+      emit(state.copyWith(isDialogShown: true));
+    }
   }
 
   void cancelTest() {
@@ -80,9 +85,12 @@ class BluetoothBreatheTubeCubit extends Cubit<BluetoothBreatheTubeState> {
 
   void handleInternetChanged(bool hasInternet) {
     emit(state.copyWith(hasInternet: hasInternet));
+
     if (!hasInternet) {
-      _progressTimer?.cancel();
-    } else if (state.progress < 1 && state.isBluetoothConnected) {
+      _pauseProgress();
+    } else if (state.progress < 1 &&
+        state.isBluetoothConnected &&
+        !_isProgressRunning) {
       _startProgress();
     }
   }
@@ -95,9 +103,13 @@ class BluetoothBreatheTubeCubit extends Cubit<BluetoothBreatheTubeState> {
     await bluetoothRepo.disconnect();
   }
 
+  void dialogDismissed() {
+    emit(state.copyWith(isDialogShown: false));
+  }
+
   @override
   Future<void> close() {
-    _progressTimer?.cancel();
+    _pauseProgress();
     _connSub?.cancel();
     return super.close();
   }

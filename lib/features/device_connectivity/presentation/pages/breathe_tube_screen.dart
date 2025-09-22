@@ -57,7 +57,13 @@ class BreatheTubeScreen extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           IconButton(
-                            onPressed: () => showCancelTestDialog(context),
+                            onPressed:
+                                () => showCancelTestDialog(
+                                  context,
+                                  () => context.push(
+                                    AppRoutes.usbDeviceConnectivity,
+                                  ),
+                                ),
                             icon: SvgPicture.asset(
                               "assets/images/common/closeicon.svg",
                             ),

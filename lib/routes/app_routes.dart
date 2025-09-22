@@ -17,7 +17,15 @@ abstract class AppRoutes {
   static const calibrationScreen = '/calibration-screen';
   static const inhaleScreen = '/inhale-screen';
   static const exhaleScreen = '/exhale-screen';
+  static const generatingResultScreen = '/generating-result-screen';
   static const bluetoothDeviceConnectivity = '/bluetooth-device-connectivity';
   static const bluetoothBreatheTube = '/bluetooth-breathe-tube';
   static const bluetoothCalibrationScreen = '/bluetooth-calibration-screen';
+  static const bluetoothInhaleScreen = '/bluetooth-inhale-screen';
+  static const bluetoothExhaleScreen = '/bluetooth-exhale-screen';
+  static const bluetoothGeneratingResultScreen =
+      '/bluetooth-generating-result-screen';
+
+  static const logFoodPage = "/log-food-page";
+  static const helpCenterPage = "/help-center-page";
 }
