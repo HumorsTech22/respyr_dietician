@@ -17,7 +17,7 @@
 //   }
 // }
 
-import 'package:respyr_dietitian/features/dietictian_result_screen/data/model/dietitian_result_model.dart';
+import 'package:respyr_dietitian/features/dietitian_result_screen/data/model/dietitian_result_model.dart';
 
 class DietitianResultRepository {
   Future<DietitianResultModel> fetchResults() async {

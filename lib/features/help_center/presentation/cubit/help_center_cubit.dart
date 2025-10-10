@@ -1,15 +1,18 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:respyr_dietitian/features/help_center/presentation/cubit/help_center_state.dart';
+import 'package:respyr_dietitian/features/help_center/data/help_center_faq_quest.dart';
+import 'help_center_state.dart';
 
 class HelpCenterCubit extends Cubit<HelpCenterState> {
-  HelpCenterCubit() : super(HelpCenterInitial());
+  HelpCenterCubit()
+    : super(
+        HelpCenterLoaded(expandedFaqs: List.filled(faqItems.length, false)),
+      );
 
   void toggleFaq(int index) {
     if (state is HelpCenterLoaded) {
       final currentState = (state as HelpCenterLoaded);
       final expanded = List<bool>.from(currentState.expandedFaqs);
       expanded[index] = !expanded[index];
-
       emit(currentState.copyWith(expandedFaqs: expanded));
     }
   }

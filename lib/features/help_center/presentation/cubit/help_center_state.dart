@@ -3,16 +3,12 @@ abstract class HelpCenterState {}
 class HelpCenterInitial extends HelpCenterState {}
 
 class HelpCenterLoaded extends HelpCenterState {
-  final List<String> faqs;
   final List<bool> expandedFaqs;
 
-  HelpCenterLoaded({required this.faqs, required this.expandedFaqs});
+  HelpCenterLoaded({required this.expandedFaqs});
 
   HelpCenterLoaded copyWith({List<bool>? expandedFaqs}) {
-    return HelpCenterLoaded(
-      faqs: faqs,
-      expandedFaqs: expandedFaqs ?? this.expandedFaqs,
-    );
+    return HelpCenterLoaded(expandedFaqs: expandedFaqs ?? this.expandedFaqs);
   }
 }
 

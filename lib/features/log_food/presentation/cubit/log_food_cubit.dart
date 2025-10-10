@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:respyr_dietitian/features/log_food/data/repository/log_food_repository.dart';
 import 'package:respyr_dietitian/features/log_food/domain/entities/food_item.dart';

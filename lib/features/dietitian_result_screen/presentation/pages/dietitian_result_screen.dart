@@ -3,14 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:respyr_dietitian/features/dietictian_result_screen/domain/dietitian_result_view_model.dart';
-import 'package:respyr_dietitian/features/dietictian_result_screen/presentation/cubit/dietitian_result_cubit.dart';
-import 'package:respyr_dietitian/features/dietictian_result_screen/presentation/cubit/dietitian_result_state.dart';
-import 'package:respyr_dietitian/features/dietictian_result_screen/presentation/widgets/bmi_bmr_widget.dart';
-import 'package:respyr_dietitian/features/dietictian_result_screen/presentation/widgets/metabolism_card.dart';
-import 'package:respyr_dietitian/features/dietictian_result_screen/presentation/widgets/section_widget.dart';
-import 'package:respyr_dietitian/features/dietictian_result_screen/presentation/widgets/sliver_tabbar_delegate.dart';
-import 'package:respyr_dietitian/features/dietictian_result_screen/presentation/widgets/tab_widget.dart';
+import 'package:respyr_dietitian/features/dietitian_result_screen/domain/dietitian_result_view_model.dart';
+import 'package:respyr_dietitian/features/dietitian_result_screen/presentation/cubit/dietitian_result_cubit.dart';
+import 'package:respyr_dietitian/features/dietitian_result_screen/presentation/cubit/dietitian_result_state.dart';
+import 'package:respyr_dietitian/features/dietitian_result_screen/presentation/widgets/bmi_bmr_widget.dart';
+import 'package:respyr_dietitian/features/dietitian_result_screen/presentation/widgets/metabolism_card.dart';
+import 'package:respyr_dietitian/features/dietitian_result_screen/presentation/widgets/section_widget.dart';
+import 'package:respyr_dietitian/features/dietitian_result_screen/presentation/widgets/sliver_tabbar_delegate.dart';
+import 'package:respyr_dietitian/features/dietitian_result_screen/presentation/widgets/tab_widget.dart';
 
 // class DietitianResultCntent extends StatelessWidget {
 //   const DietitianResultCntent({super.key});

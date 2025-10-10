@@ -15,7 +15,9 @@ import 'package:respyr_dietitian/features/device_connectivity/presentation/pages
 import 'package:respyr_dietitian/features/device_connectivity/presentation/pages/exhale_screen.dart';
 import 'package:respyr_dietitian/features/device_connectivity/presentation/pages/generating_result.dart';
 import 'package:respyr_dietitian/features/device_connectivity/presentation/pages/inhale_screen.dart';
-import 'package:respyr_dietitian/features/dietictian_result_screen/presentation/pages/dietitian_result_screen.dart';
+import 'package:respyr_dietitian/features/diet_log/presentation/pages/diet_log_pages.dart';
+import 'package:respyr_dietitian/features/dietitian_dashboard/presentation/pages/dietitian_dashboard_page.dart';
+import 'package:respyr_dietitian/features/dietitian_result_screen/presentation/pages/dietitian_result_screen.dart';
 import 'package:respyr_dietitian/features/help_center/presentation/pages/help_center_page.dart';
 import 'package:respyr_dietitian/features/log_food/presentation/pages/log_food_pages.dart';
 import 'package:respyr_dietitian/features/profile_info/presentation/pages/age_screen.dart';
@@ -33,7 +35,7 @@ import 'package:respyr_dietitian/features/test_result_screen/presentation/pages/
 import 'package:respyr_dietitian/routes/app_routes.dart';
 
 final GoRouter appRouter = GoRouter(
-  initialLocation: AppRoutes.logFoodPage,
+  initialLocation: AppRoutes.dieitianDashboardPage,
   debugLogDiagnostics: true,
   routes: [
     GoRoute(
@@ -198,6 +200,18 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.helpCenterPage,
       builder: (context, state) {
         return HelpCenterPage();
+      },
+    ),
+    GoRoute(
+      path: AppRoutes.dietLogPage,
+      builder: (context, state) {
+        return DietLogScreen();
+      },
+    ),
+    GoRoute(
+      path: AppRoutes.dieitianDashboardPage,
+      builder: (context, state) {
+        return DietitianDashboardScreen();
       },
     ),
     GoRoute(

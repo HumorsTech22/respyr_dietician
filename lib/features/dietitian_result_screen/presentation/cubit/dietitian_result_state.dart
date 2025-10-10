@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:respyr_dietitian/features/dietictian_result_screen/data/model/dietitian_result_model.dart';
+import 'package:respyr_dietitian/features/dietitian_result_screen/data/model/dietitian_result_model.dart';
 
 class DietitianResultState extends Equatable {
   final bool isLoading;

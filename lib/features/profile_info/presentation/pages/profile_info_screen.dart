@@ -192,9 +192,7 @@ class _ProfileInfoScreenState extends State<ProfileInfoScreen> {
                                           extra: _croppedData,
                                         );
                                       } else {
-                                        _pickImage(
-                                          context,
-                                        ); // Open picker if no image is cropped yet
+                                        _pickImage(context);
                                       }
                                     },
 

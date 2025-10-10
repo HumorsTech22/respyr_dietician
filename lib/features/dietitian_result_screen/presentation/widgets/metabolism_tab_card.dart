@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:respyr_dietitian/core/utils/score_utils.dart';
-import 'package:respyr_dietitian/features/dietictian_result_screen/presentation/widgets/segment_linebar.dart';
+import 'package:respyr_dietitian/features/dietitian_result_screen/presentation/widgets/segment_linebar.dart';
 
 class MetabolismTabCard extends StatelessWidget {
   final String metabolismSubtype;

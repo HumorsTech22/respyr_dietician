@@ -28,4 +28,6 @@ abstract class AppRoutes {
 
   static const logFoodPage = "/log-food-page";
   static const helpCenterPage = "/help-center-page";
+  static const dietLogPage = "/diet-log-page";
+  static const dieitianDashboardPage = "/dietitian-dashboard-page";
 }

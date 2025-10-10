@@ -1,6 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:respyr_dietitian/features/dietictian_result_screen/data/model/dietitian_result_model.dart';
-import 'package:respyr_dietitian/features/dietictian_result_screen/presentation/cubit/dietitian_result_state.dart';
+import 'package:respyr_dietitian/features/dietitian_result_screen/data/model/dietitian_result_model.dart';
+import 'package:respyr_dietitian/features/dietitian_result_screen/presentation/cubit/dietitian_result_state.dart';
 
 class DietitianResultCubit extends Cubit<DietitianResultState> {
   DietitianResultCubit() : super(const DietitianResultState());

@@ -9,6 +9,8 @@ import 'package:respyr_dietitian/features/log_food/domain/entities/food_item.dar
 import 'package:respyr_dietitian/features/log_food/domain/entities/meal_category.dart';
 import 'package:respyr_dietitian/features/log_food/presentation/cubit/log_food_cubit.dart';
 import 'package:respyr_dietitian/features/log_food/presentation/cubit/log_food_state.dart';
+import 'package:respyr_dietitian/features/log_food/presentation/cubit/test_timer_cubit/test_timer_cubit.dart';
+import 'package:respyr_dietitian/features/log_food/presentation/cubit/test_timer_cubit/test_timer_state.dart';
 import 'package:respyr_dietitian/features/log_food/presentation/widgets/log_food_item_list.dart';
 import 'package:respyr_dietitian/features/log_food/presentation/widgets/nutrients_progess.dart';
 
@@ -71,23 +73,34 @@ class LogFoodPage extends StatelessWidget {
                             ],
                           ),
                           const Spacer(),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 10,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF308BF9),
-                              borderRadius: BorderRadius.circular(50),
-                            ),
-                            child: Text(
-                              'Save',
-                              style: GoogleFonts.poppins(
-                                color: Colors.white,
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
-                                height: 1.10,
-                                letterSpacing: 0.30,
+                          InkWell(
+                            onTap: () {
+                              context.read<TestTimerCubit>().startTest();
+                              showModalBottomSheet(
+                                context: context,
+                                isScrollControlled: true,
+                                isDismissible: true,
+                                builder: (_) => const TestBottomSheet(),
+                              );
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 10,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF308BF9),
+                                borderRadius: BorderRadius.circular(50),
+                              ),
+                              child: Text(
+                                'Save',
+                                style: GoogleFonts.poppins(
+                                  color: Colors.white,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                  height: 1.10,
+                                  letterSpacing: 0.30,
+                                ),
                               ),
                             ),
                           ),
@@ -593,6 +606,190 @@ class LogFoodPage extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class TestBottomSheet extends StatelessWidget {
+  const TestBottomSheet({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<TestTimerCubit, TestTimerState>(
+      builder: (context, state) {
+        if (state is TestTimerInProgress) {
+          final hours = state.remainingTime.inHours
+              .remainder(60)
+              .toString()
+              .padLeft(2, '0');
+          final days = state.remainingTime.inDays
+              .remainder(60)
+              .toString()
+              .padLeft(2, '0');
+          final minutes = state.remainingTime.inMinutes
+              .remainder(60)
+              .toString()
+              .padLeft(2, '0');
+          final seconds = state.remainingTime.inSeconds
+              .remainder(60)
+              .toString()
+              .padLeft(2, '0');
+
+          return Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Countdown Box
+                Container(
+                  height: 124,
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 25,
+                    vertical: 20,
+                  ),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(15),
+                    color: const Color(0xFFF0F0F0),
+                  ),
+                  child: Column(
+                    children: [
+                      Text(
+                        'Your test timing ends in',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.poppins(
+                          color: const Color(0xFF252525),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w400,
+                          letterSpacing: -0.24,
+                        ),
+                      ),
+                      const SizedBox(height: 15),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 7),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            _buildLabel('days'),
+                            _buildLabel('hrs'),
+                            _buildLabel('mins'),
+                            _buildLabel('secs'),
+                          ],
+                        ),
+                      ),
+                      // Timer Row
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          _buildTime(days),
+                          _buildColon(),
+                          _buildTime(hours),
+                          _buildColon(),
+                          _buildTime(minutes),
+                          _buildColon(),
+                          _buildTime(seconds),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                SvgPicture.asset("assets/images/common/test_not_taken.svg"),
+                const SizedBox(height: 16),
+                Text(
+                  "You Haven't Tested Yet Today",
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
+                    color: const Color(0xFF252525),
+                    fontSize: 25,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: -1,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Take test before your dietician find out!',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
+                    color: const Color(0xFF252525),
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: -0.30,
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                Text(
+                  'Your dietician uses these results to understand your daily progress and provide the right guidance.',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
+                    color: const Color(0xFF252525),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w400,
+                    letterSpacing: -0.24,
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed:
+                      () => context.read<TestTimerCubit>().completeTest(),
+                  child: const Text("Slide to start test"),
+                ),
+              ],
+            ),
+          );
+        } else if (state is TestTimerExpired) {
+          return Container(
+            padding: const EdgeInsets.all(16),
+            child: const Center(child: Text("⏰ Test Expired")),
+          );
+        } else if (state is TestTimerCompleted) {
+          return Container(
+            padding: const EdgeInsets.all(16),
+            child: const Center(child: Text("✅ Test Completed")),
+          );
+        }
+        return const SizedBox.shrink();
+      },
+    );
+  }
+
+  // Reusable helpers
+  Widget _buildLabel(String text) {
+    return Text(
+      text,
+      textAlign: TextAlign.center,
+      style: GoogleFonts.poppins(
+        color: const Color(0xFF252525),
+        fontSize: 8,
+        fontWeight: FontWeight.w400,
+        letterSpacing: -0.16,
+      ),
+    );
+  }
+
+  Widget _buildTime(String value) {
+    return Text(
+      value,
+      textAlign: TextAlign.center,
+      style: GoogleFonts.poppins(
+        color: const Color(0xFF252525),
+        fontSize: 25,
+        fontWeight: FontWeight.w600,
+        letterSpacing: -0.50,
+      ),
+    );
+  }
+
+  Widget _buildColon() {
+    return Text(
+      ':',
+      textAlign: TextAlign.center,
+      style: GoogleFonts.poppins(
+        color: const Color(0xFF252525),
+        fontSize: 25,
+        fontWeight: FontWeight.w600,
+        letterSpacing: -0.50,
       ),
     );
   }

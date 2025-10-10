@@ -87,6 +87,7 @@ flutter:
     - assets/images/device_connection/
     - assets/images/result_screen/
     - assets/images/gif_images/
+    - assets/images/dietitian_dashboard/
     - assets/audio/
     
 
