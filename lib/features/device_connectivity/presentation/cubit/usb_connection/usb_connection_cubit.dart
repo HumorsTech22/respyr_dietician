@@ -32,7 +32,6 @@ class UsbCubit extends Cubit<UsbState> {
         );
 
         if (connected) {
-          // Ask device for ID
           repository.sendData("!");
         } else {
           _healthCheckTimer?.cancel();
@@ -53,7 +52,6 @@ class UsbCubit extends Cubit<UsbState> {
           emit(state.copyWith(deviceId: cleanId));
           debugPrint("📥 Clean Device ID stored: RESPYR$cleanId");
 
-          // ✅ Complete the waiting future if exists
           if (_deviceIdCompleter != null && !_deviceIdCompleter!.isCompleted) {
             _deviceIdCompleter!.complete(cleanId);
           }
@@ -83,10 +81,8 @@ class UsbCubit extends Cubit<UsbState> {
   Future<void> checkAndProceed({required BuildContext context}) async {
     emit(state.copyWith(isChecking: true));
 
-    // Reset completer for fresh wait
     _deviceIdCompleter = Completer<String>();
 
-    // Ask device for ID
     repository.sendData("!");
 
     String? deviceId;
@@ -113,7 +109,6 @@ class UsbCubit extends Cubit<UsbState> {
       return;
     }
 
-    // ✅ Call usecase
     final result = await deviceCheckUsecase.checkSignal(deviceId);
     debugPrint(
       "🔍 checkSignal => signal=${result.signal}, isReady=${result.isReady}, deviceId=$deviceId",

@@ -15,6 +15,7 @@ import 'package:respyr_dietitian/features/device_connectivity/presentation/pages
 import 'package:respyr_dietitian/features/device_connectivity/presentation/pages/exhale_screen.dart';
 import 'package:respyr_dietitian/features/device_connectivity/presentation/pages/generating_result.dart';
 import 'package:respyr_dietitian/features/device_connectivity/presentation/pages/inhale_screen.dart';
+import 'package:respyr_dietitian/features/device_connectivity/presentation/pages/issue_with_connection_screen.dart';
 import 'package:respyr_dietitian/features/diet_log/presentation/pages/diet_log_pages.dart';
 import 'package:respyr_dietitian/features/dietitian_dashboard/presentation/pages/dietitian_dashboard_page.dart';
 import 'package:respyr_dietitian/features/dietitian_result_screen/presentation/pages/dietitian_result_screen.dart';
@@ -212,6 +213,12 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.dieitianDashboardPage,
       builder: (context, state) {
         return DietitianDashboardScreen();
+      },
+    ),
+    GoRoute(
+      path: AppRoutes.issueWithConnectionScreen,
+      builder: (context, state) {
+        return IssueWithConnectionScreen();
       },
     ),
     GoRoute(

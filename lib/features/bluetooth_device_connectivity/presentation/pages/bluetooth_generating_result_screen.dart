@@ -51,7 +51,7 @@ class BluetoothGeneratingResultScreen extends StatelessWidget {
                 context
                     .read<BluetoothGeneratingResultCubit>()
                     .dialogDismissed();
-                Navigator.pop(context); // same flow as clinical
+                context.go(AppRoutes.dieitianDashboardPage);
               },
             );
           }
@@ -78,9 +78,7 @@ class BluetoothGeneratingResultScreen extends StatelessWidget {
                         onPressed:
                             () => showCancelTestDialog(
                               context,
-                              () => context.pushReplacement(
-                                AppRoutes.bluetoothDeviceConnectivity,
-                              ),
+                              () => context.go(AppRoutes.dieitianDashboardPage),
                             ),
                         icon: Container(
                           height: 20,
@@ -170,7 +168,7 @@ class BluetoothGeneratingResultScreen extends StatelessWidget {
         ),
         if (step < 3)
           SizedBox(
-            height: 40, // 👈 smaller & safer height
+            height: 40,
             child: Align(
               alignment: Alignment.centerLeft,
               child: Container(

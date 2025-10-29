@@ -88,6 +88,13 @@ class __BluetoothDeviceConnectivityViewState
                 letterSpacing: -2.04,
               ),
             ),
+            leading: IconButton(
+              onPressed: () {
+                context.pop();
+                context.read<BluetoothConnectionCubit>().sendAbort();
+              },
+              icon: SvgPicture.asset("assets/images/common/closeicon.svg"),
+            ),
             backgroundColor: Colors.white,
             surfaceTintColor: Colors.white,
           ),
@@ -145,14 +152,14 @@ class __BluetoothDeviceConnectivityViewState
                             width: double.infinity,
                             child: ElevatedButton(
                               onPressed:
-                                  state.isConnected
+                                  (state.isConnected &&
+                                          state.connectingDeviceId != null)
                                       ? () {
                                         context.push(
                                           AppRoutes.bluetoothBreatheTube,
                                         );
                                       }
                                       : null,
-
                               style: ElevatedButton.styleFrom(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 10,
@@ -179,25 +186,30 @@ class __BluetoothDeviceConnectivityViewState
                             ),
                           ),
                           const SizedBox(height: 10),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(25.5),
-                              border: Border.all(
-                                width: 1,
-                                color: const Color(0xFFC7C6CE),
+                          GestureDetector(
+                            onTap: () {
+                              context.push(AppRoutes.issueWithConnectionScreen);
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 8,
                               ),
-                            ),
-                            child: Text(
-                              'issue with connection?',
-                              style: GoogleFonts.poppins(
-                                color: const Color(0xFF252525),
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(25.5),
+                                border: Border.all(
+                                  width: 1,
+                                  color: const Color(0xFFC7C6CE),
+                                ),
+                              ),
+                              child: Text(
+                                'issue with connection?',
+                                style: GoogleFonts.poppins(
+                                  color: const Color(0xFF252525),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ),
                           ),

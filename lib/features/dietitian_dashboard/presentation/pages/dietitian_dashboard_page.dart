@@ -1,36 +1,47 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:go_router/go_router.dart';
+
 import 'package:respyr_dietitian/core/utils/text_style.dart';
 import 'package:respyr_dietitian/features/dietitian_dashboard/data/model/dietitian_dashboard_meal_model.dart';
 import 'package:respyr_dietitian/features/dietitian_dashboard/presentation/cubit/dietitian_dashboard_cubit.dart';
 import 'package:respyr_dietitian/features/dietitian_dashboard/presentation/cubit/dietitian_dashboard_state.dart';
+import 'package:respyr_dietitian/features/dietitian_dashboard/presentation/widgets/customized_dashboard_color_text.dart';
+import 'package:respyr_dietitian/features/dietitian_dashboard/presentation/widgets/dietitian_dashboard_result.dart';
 import 'package:respyr_dietitian/features/dietitian_dashboard/presentation/widgets/food_container_list.dart';
-import 'package:respyr_dietitian/features/test_result_screen/presentation/pages/test_result_screen.dart';
+import 'package:respyr_dietitian/routes/app_routes.dart';
 
 class DietitianDashboardScreen extends StatelessWidget {
   const DietitianDashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    SystemChrome.setSystemUIOverlayStyle(
-      SystemUiOverlayStyle(
-        statusBarColor: Color(0xFFFFE29F),
-        statusBarIconBrightness: Brightness.dark,
-      ),
+    context.read<DietitianDashboardCubit>().loadDietitianDashboard(
+      DateTime.now(),
     );
+
     return Scaffold(
       extendBodyBehindAppBar: true,
       body: BlocBuilder<DietitianDashboardCubit, DietitianDashboardState>(
         builder: (context, state) {
           if (state is DietitianDashboardLoading) {
             return const Center(
-              child: CircularProgressIndicator(color: Color(0xFF908BF9)),
+              child: CircularProgressIndicator(color: Color(0xFF308BF9)),
             );
           } else if (state is DietitianDashboardLoaded) {
-            final meal = state.meal;
-            return _DashboardMealView(meal: meal);
+            SystemChrome.setSystemUIOverlayStyle(
+              SystemUiOverlayStyle(
+                statusBarColor:
+                    CustomizedDashboardColorText.getGradientColor()
+                        .colors
+                        .first,
+                statusBarIconBrightness: Brightness.dark,
+              ),
+            );
+            return _DashboardMealView(meal: state.meal);
           } else if (state is DietitianDashboardError) {
             return const Center(child: Text("Error loading dashboard"));
           }
@@ -41,120 +52,193 @@ class DietitianDashboardScreen extends StatelessWidget {
   }
 }
 
-class _DashboardMealView extends StatelessWidget {
+class _DashboardMealView extends StatefulWidget {
   final DietitianDashboardMealModel meal;
   const _DashboardMealView({required this.meal});
 
   @override
-  Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
+  State<_DashboardMealView> createState() => _DashboardMealViewState();
+}
 
-    return Scaffold(
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            Container(
-              height: screenHeight,
-              width: double.infinity,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFFFFE29F), Color(0xFFFFA99F)],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                ),
-              ),
-              child: SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
+class _DashboardMealViewState extends State<_DashboardMealView> {
+  late LinearGradient _currentGradient;
+  late Color _iconTextColor;
+  late Color _totalContainerColor;
+  late Color _titleColor;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _updateColors();
+
+    _timer = Timer.periodic(
+      const Duration(minutes: 1),
+      (_) => _checkTimeChange(),
+    );
+  }
+
+  void _updateColors() {
+    _currentGradient = CustomizedDashboardColorText.getGradientColor();
+    _iconTextColor = CustomizedDashboardColorText.dashboardIconTextColor();
+    _totalContainerColor = CustomizedDashboardColorText.totalContColor();
+    _titleColor = CustomizedDashboardColorText.titleColor();
+  }
+
+  void _checkTimeChange() {
+    final newGradient = CustomizedDashboardColorText.getGradientColor();
+    final newTextColor = CustomizedDashboardColorText.dashboardIconTextColor();
+    final newTotalContColor = CustomizedDashboardColorText.totalContColor();
+    final newTitleColor = CustomizedDashboardColorText.titleColor();
+
+    if (newGradient.colors.first != _currentGradient.colors.first) {
+      setState(() {
+        _currentGradient = newGradient;
+        _iconTextColor = newTextColor;
+        _totalContainerColor = newTotalContColor;
+        _titleColor = newTitleColor;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          AnimatedContainer(
+            duration: const Duration(seconds: 2),
+            curve: Curves.easeInOut,
+            height: MediaQuery.of(context).size.height,
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+            decoration: BoxDecoration(gradient: _currentGradient),
+            child: SafeArea(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  _dashboardDietitianHeader(),
+                  const SizedBox(height: 40),
+
+                  AnimatedDefaultTextStyle(
+                    duration: const Duration(milliseconds: 800),
+                    style: poppinsTextStyle(
+                      color: _iconTextColor,
+                      fontSize: 34,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    child: Text(
+                      "It's ${CustomizedDashboardColorText.mealTitle()} time!",
+                    ),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      _dashboardDietitianHeader(),
-                      const SizedBox(height: 40),
-                      Text(
-                        "It's ${meal.mealTitle} time!",
+
+                  const SizedBox(height: 10),
+                  AnimatedDefaultTextStyle(
+                    duration: const Duration(milliseconds: 800),
+                    style: poppinsTextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w300,
+                      color: _iconTextColor,
+                    ),
+                    child: RichText(
+                      textAlign: TextAlign.center,
+                      text: TextSpan(
                         style: poppinsTextStyle(
-                          color: const Color(0xFFDA5647),
-                          fontSize: 34,
-                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w300,
+                          color: _iconTextColor,
                         ),
-                      ),
-                      const SizedBox(height: 10),
-                      RichText(
-                        textAlign: TextAlign.center,
-                        text: TextSpan(
-                          style: poppinsTextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w300,
-                            color: const Color(0xFFDA5747),
-                          ),
-                          children: [
-                            const TextSpan(text: 'As per your '),
-                            TextSpan(
-                              text: 'diet plan',
-                              style: poppinsTextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                                color: const Color(0xFFDA5747),
-                              ),
+                        children: [
+                          const TextSpan(text: 'As per your '),
+                          TextSpan(
+                            text: 'diet plan',
+                            style: poppinsTextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: _iconTextColor,
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(22),
-                        ),
-                        child: Text(
-                          meal.timeRange,
-                          textAlign: TextAlign.center,
+                    ),
+                  ),
+
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(22),
+                    ),
+                    child: Text(
+                      CustomizedDashboardColorText.mealTime(),
+                      textAlign: TextAlign.center,
+                      style: poppinsTextStyle(
+                        color: _iconTextColor,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 26),
+
+                  FoodContainerList(
+                    foodItems: widget.meal.foodItems,
+                    iconColor: _iconTextColor,
+                  ),
+
+                  _totalFoodCountContainer(context, widget.meal),
+
+                  const SizedBox(height: 40),
+                  GestureDetector(
+                    onTap:
+                        () =>
+                            context.push(AppRoutes.bluetoothDeviceConnectivity),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          "Take Test",
                           style: poppinsTextStyle(
-                            color: const Color(0xFFDA5747),
-                            fontSize: 15,
+                            color: Colors.white,
+                            fontSize: 18,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 26),
-
-                      FoodContainerList(foodItems: meal.foodItems),
-                      _totalFoodCountContainer(context, meal),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-            Container(
-              width: double.infinity,
-              color: Colors.white,
-              child: Column(
-                children: [
-                  const SizedBox(height: 20),
-                  Text(
-                    "Future content goes here",
-                    style: poppinsTextStyle(
-                      color: Colors.black,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
+                        const SizedBox(width: 5),
+                        const Icon(
+                          Icons.keyboard_arrow_right,
+                          color: Colors.white,
+                        ),
+                      ],
                     ),
                   ),
-                  // TestResultScreen(),
-                  const SizedBox(height: 1000),
                 ],
               ),
             ),
-          ],
-        ),
+          ),
+
+          Container(
+            width: double.infinity,
+            color: Colors.white,
+            child: Column(
+              children: [
+                DietitianDashboardResult(),
+                const SizedBox(height: 80),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -166,59 +250,49 @@ class _DashboardMealView extends StatelessWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Hi sparsh',
+            AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 800),
               style: poppinsTextStyle(
-                color: const Color(0xFF252525),
+                color: _titleColor,
                 fontSize: 15,
                 fontWeight: FontWeight.w400,
               ),
+              child: const Text('Hi Sparsh'),
             ),
-            Text(
-              'Good morning',
+            AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 800),
               style: poppinsTextStyle(
-                color: const Color(0xFF252525),
+                color: _titleColor,
                 fontSize: 25,
                 fontWeight: FontWeight.w600,
               ),
+              child: Text(CustomizedDashboardColorText.greetingText()),
             ),
           ],
         ),
-        const Spacer(),
-        Container(
-          height: 40,
-          width: 40,
-          padding: const EdgeInsets.all(5),
-          decoration: const BoxDecoration(
-            color: Color(0xFFE48326),
-            shape: BoxShape.circle,
-          ),
-          child: SvgPicture.asset(
-            "assets/images/dietitian_dashboard/messages_icon.svg",
-            height: 15,
-            width: 15,
-          ),
-        ),
-        const SizedBox(width: 5),
-        Container(
-          height: 40,
-          width: 40,
-          padding: const EdgeInsets.all(5),
-          decoration: const BoxDecoration(
-            color: Color(0xFFE48326),
-            shape: BoxShape.circle,
-          ),
-          child: SvgPicture.asset(
-            "assets/images/common/profile_logo.svg",
-            height: 24,
-            width: 24,
-            colorFilter: const ColorFilter.mode(
-              Color(0xFFFFFFFF),
-              BlendMode.srcIn,
-            ),
-          ),
+        Row(
+          children: [
+            _circleIcon("assets/images/dietitian_dashboard/messages_icon.svg"),
+            const SizedBox(width: 8),
+            _circleIcon("assets/images/common/profile_logo.svg"),
+          ],
         ),
       ],
+    );
+  }
+
+  Widget _circleIcon(String assetPath) {
+    return AnimatedContainer(
+      duration: const Duration(seconds: 1),
+      curve: Curves.easeInOut,
+      height: 40,
+      width: 40,
+      padding: const EdgeInsets.all(5),
+      decoration: BoxDecoration(color: _iconTextColor, shape: BoxShape.circle),
+      child: SvgPicture.asset(
+        assetPath,
+        colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+      ),
     );
   }
 
@@ -226,15 +300,16 @@ class _DashboardMealView extends StatelessWidget {
     BuildContext context,
     DietitianDashboardMealModel meal,
   ) {
-    return Container(
+    return AnimatedContainer(
+      duration: const Duration(seconds: 2),
+      curve: Curves.easeInOut,
+      margin: const EdgeInsets.only(top: 16),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      height: MediaQuery.of(context).size.height * 0.18,
       decoration: BoxDecoration(
-        color: const Color(0xFFF6270E),
+        color: _totalContainerColor,
         borderRadius: BorderRadius.circular(15),
       ),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -270,7 +345,7 @@ class _DashboardMealView extends StatelessWidget {
               ),
             ],
           ),
-          Divider(),
+          const Divider(color: Colors.white54),
           Row(
             children: [
               Expanded(
@@ -280,7 +355,7 @@ class _DashboardMealView extends StatelessWidget {
                   () {},
                 ),
               ),
-              SizedBox(width: 10),
+              const SizedBox(width: 10),
               Expanded(
                 child: _textRowButton(
                   "assets/images/common/rice_bowl.svg",
@@ -299,10 +374,19 @@ class _DashboardMealView extends StatelessWidget {
     return GestureDetector(
       onTap: onPressed,
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          SvgPicture.asset(svgAsset),
-          SizedBox(width: 5),
+          if (svgAsset.isNotEmpty)
+            SvgPicture.asset(
+              svgAsset,
+              height: 16,
+              width: 16,
+              colorFilter: const ColorFilter.mode(
+                Colors.white,
+                BlendMode.srcIn,
+              ),
+            ),
+          const SizedBox(width: 5),
           Text(
             text,
             style: poppinsTextStyle(
@@ -311,8 +395,7 @@ class _DashboardMealView extends StatelessWidget {
               fontWeight: FontWeight.w600,
             ),
           ),
-          SizedBox(width: 5),
-
+          const SizedBox(width: 5),
           const Icon(Icons.keyboard_arrow_right, color: Colors.white),
         ],
       ),

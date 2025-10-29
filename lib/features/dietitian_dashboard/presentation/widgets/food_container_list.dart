@@ -5,7 +5,12 @@ import 'package:respyr_dietitian/features/dietitian_dashboard/data/model/dietiti
 
 class FoodContainerList extends StatelessWidget {
   final List<DietitianDashboardFoodItem> foodItems;
-  const FoodContainerList({super.key, required this.foodItems});
+  final Color iconColor;
+  const FoodContainerList({
+    super.key,
+    required this.foodItems,
+    required this.iconColor,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -27,12 +32,13 @@ class FoodContainerList extends StatelessWidget {
               children: [
                 SvgPicture.asset(
                   "assets/images/dietitian_dashboard/dish_svg.svg",
+                  colorFilter: ColorFilter.mode(iconColor, BlendMode.srcIn),
                 ),
                 const SizedBox(width: 10),
                 Text(
                   item.foodNumber.toString(),
                   style: poppinsTextStyle(
-                    color: const Color(0xFFDA5747),
+                    color: iconColor,
                     fontSize: 25,
                     fontWeight: FontWeight.w700,
                   ),
@@ -64,10 +70,10 @@ class FoodContainerList extends StatelessWidget {
                         const SizedBox(width: 4),
                         InkWell(
                           onTap: () {},
-                          child: const Icon(
+                          child: Icon(
                             Icons.info_outline,
                             size: 12,
-                            color: Color(0xFFDA5747),
+                            color: iconColor,
                           ),
                         ),
                       ],

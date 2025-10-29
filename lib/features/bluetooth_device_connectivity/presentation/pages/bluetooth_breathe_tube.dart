@@ -25,23 +25,31 @@ class BluetoothBreatheTube extends StatelessWidget {
           ),
       child: BlocConsumer<BluetoothBreatheTubeCubit, BluetoothBreatheTubeState>(
         listener: (context, state) {
+          final cubit = context.read<BluetoothBreatheTubeCubit>();
           if (state.isDialogShown) {
             showDeviceDisconnectedBox(
               context: context,
               onButtonPressed: () {
-                context.read<BluetoothBreatheTubeCubit>().dialogDismissed();
-                context.pushReplacement(AppRoutes.bluetoothDeviceConnectivity);
+                cubit.dialogDismissed();
+                context.pop();
+                cubit.disconnect();
+                context.go(AppRoutes.dieitianDashboardPage);
               },
-            ).then((_) {
-              context.read<BluetoothBreatheTubeCubit>().dialogDismissed();
+            );
+          } else if (state.hasTestCancelled) {
+            showCancelTestDialog(context, () {
+              cubit.dialogDismissed();
+              cubit.abortProcess();
+              context.pop();
+              context.go(AppRoutes.dieitianDashboardPage);
+            }).then((_) {
+              cubit.dialogDismissed();
             });
           }
 
-          if (state.hasTestCancelled) {
-            context.pushReplacement(AppRoutes.bluetoothDeviceConnectivity);
-          }
           if (state.isCompleted) {
-            context.pushReplacement(AppRoutes.bluetoothCalibrationScreen);
+            cubit.close();
+            context.push(AppRoutes.bluetoothCalibrationScreen);
           }
         },
         builder: (context, state) {
@@ -64,13 +72,11 @@ class BluetoothBreatheTube extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           IconButton(
-                            onPressed:
-                                () => showCancelTestDialog(
-                                  context,
-                                  () => context.pushReplacement(
-                                    AppRoutes.bluetoothDeviceConnectivity,
-                                  ),
-                                ),
+                            onPressed: () {
+                              context
+                                  .read<BluetoothBreatheTubeCubit>()
+                                  .cancelTest();
+                            },
                             icon: SvgPicture.asset(
                               "assets/images/common/closeicon.svg",
                             ),

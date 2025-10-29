@@ -11,6 +11,7 @@ import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/r
 import 'package:respyr_dietitian/features/device_connectivity/data/repository/device_check_repo.dart';
 import 'package:respyr_dietitian/features/device_connectivity/data/usb_repository_impl.dart';
 import 'package:respyr_dietitian/features/device_connectivity/domain/usecase/device_check_usecase.dart';
+import 'package:respyr_dietitian/features/device_connectivity/presentation/cubit/issue_with_connection/issue_with_connection_cubit.dart';
 import 'package:respyr_dietitian/features/device_connectivity/presentation/cubit/usb_connection/usb_connection_cubit.dart';
 import 'package:respyr_dietitian/features/diet_log/data/diet_log_repository.dart';
 import 'package:respyr_dietitian/features/diet_log/presentation/cubit/diet_log_cubit.dart';
@@ -92,6 +93,9 @@ Future<void> main() async {
           BlocProvider(create: (_) => LogFoodCubit(LogFoodRepository())),
           BlocProvider(create: (_) => HelpCenterCubit()),
           BlocProvider(create: (_) => TestTimerCubit()),
+          BlocProvider(
+            create: (_) => OtgCubit(OpenSettingsUseCase(OtgRepository())),
+          ),
           BlocProvider(
             create:
                 (_) =>

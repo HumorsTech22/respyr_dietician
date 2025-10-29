@@ -5,7 +5,6 @@ class DietitianDashboardRepository {
     await Future.delayed(Duration(milliseconds: 500));
 
     return DietitianDashboardMealModel(
-      mealTitle: "Breakfast",
       foodItems: [
         DietitianDashboardFoodItem(
           foodDetails: "2 ladles (60g each)",
@@ -26,7 +25,6 @@ class DietitianDashboardRepository {
           kCal: 3,
         ),
       ],
-      timeRange: "08:00-09:00 AM",
       totalCalories: 291,
     );
   }

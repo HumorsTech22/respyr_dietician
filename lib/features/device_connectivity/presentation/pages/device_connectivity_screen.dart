@@ -48,12 +48,10 @@ class UsbDeviceConnectivity extends StatelessWidget {
                   ),
                   const Spacer(),
                   SizedBox(
-                    height:
-                        300, // Set this to the height of your image or container
+                    height: 300,
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
-                        // Centered SVG Image
                         Center(
                           child: SvgPicture.asset(
                             state.isConnected
@@ -66,9 +64,7 @@ class UsbDeviceConnectivity extends StatelessWidget {
                           Positioned(
                             bottom: 30,
                             child: Container(
-                              width:
-                                  MediaQuery.of(context).size.width *
-                                  0.5, // responsive width
+                              width: MediaQuery.of(context).size.width * 0.5,
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 16,
                                 vertical: 5,
@@ -98,7 +94,7 @@ class UsbDeviceConnectivity extends StatelessWidget {
                                   ),
 
                                   Text(
-                                    "RESPYR${state.deviceId}", // ← this should be dynamic if you're using Cubit
+                                    "RESPYR${state.deviceId}",
                                     style: GoogleFonts.poppins(
                                       color: const Color(0xFF535359),
                                       fontSize: 12,
@@ -135,7 +131,7 @@ class UsbDeviceConnectivity extends StatelessWidget {
                       width: 200,
                       child: TextButton(
                         onPressed: () {
-                          // Handle help
+                          context.push(AppRoutes.issueWithConnectionScreen);
                         },
                         style: TextButton.styleFrom(
                           side: const BorderSide(color: Colors.blue),

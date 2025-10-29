@@ -1,13 +1,9 @@
 class DietitianDashboardMealModel {
-  final String mealTitle;
-  final String timeRange;
   final int totalCalories;
   final List<DietitianDashboardFoodItem> foodItems;
 
   DietitianDashboardMealModel({
-    required this.mealTitle,
     required this.foodItems,
-    required this.timeRange,
     required this.totalCalories,
   });
 }

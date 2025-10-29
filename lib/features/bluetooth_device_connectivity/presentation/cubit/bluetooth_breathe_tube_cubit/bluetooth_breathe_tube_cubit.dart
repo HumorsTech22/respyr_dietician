@@ -5,21 +5,22 @@ import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/r
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_breathe_tube_cubit/bluetooth_breathe_tube_state.dart';
 
 class BluetoothBreatheTubeCubit extends Cubit<BluetoothBreatheTubeState> {
-  final BluetoothRepository bluetoothRepo;
+  final BluetoothRepository repo;
   final AudioHelper audioHelper;
 
-  StreamSubscription<bool>? _connSub;
+  StreamSubscription<bool>? connSub;
   Timer? _progressTimer;
 
-  BluetoothBreatheTubeCubit(this.bluetoothRepo, this.audioHelper)
+  BluetoothBreatheTubeCubit(this.repo, this.audioHelper)
     : super(const BluetoothBreatheTubeState()) {
     init();
   }
 
+  // ----------------- INIT -----------------
   void init() {
-    _connSub = bluetoothRepo.connectionStatusStream().listen((connected) {
-      print("📡 Bluetooth Breathe tube status changed: $connected");
-
+    connSub = repo.connectionStatusStream().listen((connected) {
+      print("📡 Bluetooth Breathe Tube connection: $connected");
+      if (state.isCompleted) return;
       emit(state.copyWith(isBluetoothConnected: connected));
 
       if (connected) {
@@ -27,12 +28,14 @@ class BluetoothBreatheTubeCubit extends Cubit<BluetoothBreatheTubeState> {
           _startProgress();
         }
       } else {
+        _pauseProgress();
         _showDisconnectedDialog();
       }
     });
 
-    final initiallyConnected = bluetoothRepo.isConnected;
+    final initiallyConnected = repo.isConnected;
     emit(state.copyWith(isBluetoothConnected: initiallyConnected));
+
     if (initiallyConnected && !_isProgressRunning) {
       _startProgress();
     }
@@ -40,26 +43,29 @@ class BluetoothBreatheTubeCubit extends Cubit<BluetoothBreatheTubeState> {
 
   bool get _isProgressRunning => _progressTimer?.isActive ?? false;
 
-  void _startProgress() async {
+  // ----------------- PROGRESS -----------------
+  void _startProgress() {
     const durationMs = 5000;
     const stepMs = 50;
     const steps = durationMs ~/ stepMs;
-    const incrementValue = 1.0 / steps;
+    const increment = 1.0 / steps;
 
     audioHelper.playPlaceBreatheTube();
-
     _progressTimer?.cancel();
-    _progressTimer = Timer.periodic(Duration(milliseconds: stepMs), (timer) {
+
+    _progressTimer = Timer.periodic(const Duration(milliseconds: stepMs), (
+      timer,
+    ) {
       if (!state.isBluetoothConnected) {
         timer.cancel();
         audioHelper.stopAudio();
         return;
       }
 
-      final newValue = (state.progress + incrementValue).clamp(0.0, 1.0);
-      emit(state.copyWith(progress: newValue));
+      final next = (state.progress + increment).clamp(0.0, 1.0);
+      emit(state.copyWith(progress: next));
 
-      if (newValue >= 1.0 && state.isBluetoothConnected) {
+      if (next >= 1.0) {
         timer.cancel();
         audioHelper.stopAudio();
         emit(state.copyWith(isCompleted: true));
@@ -72,45 +78,69 @@ class BluetoothBreatheTubeCubit extends Cubit<BluetoothBreatheTubeState> {
     audioHelper.stopAudio();
   }
 
+  // ----------------- DIALOGS -----------------
   void _showDisconnectedDialog() {
     if (!state.isDialogShown) {
-      _pauseProgress();
       emit(state.copyWith(isDialogShown: true));
     }
   }
 
-  void cancelTest() {
-    emit(state.copyWith(hasTestCancelled: true));
+  /// Called when any dialog (disconnect or cancel) is closed.
+  void dialogDismissed() {
+    emit(state.copyWith(isDialogShown: false, hasTestCancelled: false));
+    audioHelper.stopAudio();
   }
 
+  /// Ensure cancel dialog triggers only once
+  void cancelTest() {
+    if (!state.hasTestCancelled) {
+      emit(state.copyWith(hasTestCancelled: true));
+    }
+  }
+
+  // ----------------- INTERNET HANDLER -----------------
   void handleInternetChanged(bool hasInternet) {
     emit(state.copyWith(hasInternet: hasInternet));
 
     if (!hasInternet) {
       _pauseProgress();
-    } else if (state.progress < 1 &&
-        state.isBluetoothConnected &&
-        !_isProgressRunning) {
+    } else if (state.isBluetoothConnected &&
+        !_isProgressRunning &&
+        state.progress < 1.0) {
       _startProgress();
     }
   }
 
+  // ----------------- CONNECTION -----------------
   Future<void> connectById(String id) async {
-    await bluetoothRepo.connectById(id);
+    try {
+      await repo.connectById(id);
+    } catch (e) {
+      print("❌ connectById failed: $e");
+      _showDisconnectedDialog();
+    }
+  }
+
+  void abortProcess() {
+    if (state.isBluetoothConnected) repo.sendData("&");
   }
 
   Future<void> disconnect() async {
-    await bluetoothRepo.disconnect();
+    try {
+      await repo.disconnect();
+    } catch (e) {
+      print("⚠️ disconnect failed: $e");
+    } finally {
+      _pauseProgress();
+      emit(state.copyWith(isBluetoothConnected: false));
+    }
   }
 
-  void dialogDismissed() {
-    emit(state.copyWith(isDialogShown: false));
-  }
-
+  // // ----------------- CLEANUP -----------------
   @override
   Future<void> close() {
     _pauseProgress();
-    _connSub?.cancel();
+    connSub?.cancel();
     return super.close();
   }
 }

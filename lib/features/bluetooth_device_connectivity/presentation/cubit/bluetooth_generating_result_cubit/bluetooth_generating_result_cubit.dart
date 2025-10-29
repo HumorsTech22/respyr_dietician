@@ -118,7 +118,7 @@ class BluetoothGeneratingResultCubit
     } catch (e) {
       emit(state.copyWith(textError: "Error while processing results: $e"));
     } finally {
-      _isProcessing = false; // ready for next packet
+      _isProcessing = false;
     }
   }
 

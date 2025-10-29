@@ -48,9 +48,11 @@ class BluetoothCalibrationScreen extends StatelessWidget {
                 prev.textError != curr.textError ||
                 prev.isDialogShown != curr.isDialogShown,
         listener: (context, state) {
+          final cubit = context.read<BluetoothCalibrationCubit>();
           if (state.navigateToInhaleScreen) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              context.pushReplacement(AppRoutes.bluetoothInhaleScreen);
+              cubit.close();
+              context.go(AppRoutes.bluetoothInhaleScreen);
             });
           }
 
@@ -69,8 +71,10 @@ class BluetoothCalibrationScreen extends StatelessWidget {
             showDeviceDisconnectedBox(
               context: context,
               onButtonPressed: () {
-                context.read<BluetoothCalibrationCubit>().dialogDismissed();
-                context.pushReplacement(AppRoutes.bluetoothDeviceConnectivity);
+                cubit.dialogDismissed();
+                context.pop();
+                cubit.disconnect();
+                context.go(AppRoutes.dieitianDashboardPage);
               },
             ).then((_) {
               context.read<BluetoothCalibrationCubit>().dialogDismissed();
@@ -91,12 +95,15 @@ class BluetoothCalibrationScreen extends StatelessWidget {
                           children: [
                             IconButton(
                               onPressed:
-                                  () => showCancelTestDialog(
-                                    context,
-                                    () => context.push(
-                                      AppRoutes.bluetoothDeviceConnectivity,
-                                    ),
-                                  ),
+                                  () => showCancelTestDialog(context, () {
+                                    context
+                                        .read<BluetoothCalibrationCubit>()
+                                        .sendAbort();
+                                    context.go(AppRoutes.dieitianDashboardPage);
+                                    context
+                                        .read<BluetoothCalibrationCubit>()
+                                        .dialogDismissed();
+                                  }),
                               icon: SvgPicture.asset(
                                 "assets/images/common/closeicon.svg",
                               ),

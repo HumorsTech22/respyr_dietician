@@ -59,7 +59,6 @@ class BluetoothExhaleScreen extends StatelessWidget {
               blowValuesList: allValues,
             );
 
-            // Navigate to your result screen properly
             context.pushReplacement(
               AppRoutes.bluetoothGeneratingResultScreen,
               extra: params,
@@ -73,9 +72,7 @@ class BluetoothExhaleScreen extends StatelessWidget {
                 onButtonPressed: () {
                   context.read<BluetoothExhaleCubit>().stop();
                   context.read<BluetoothExhaleCubit>().dialogDismissed();
-                  context.pushReplacement(
-                    AppRoutes.bluetoothDeviceConnectivity,
-                  );
+                  context.go(AppRoutes.dieitianDashboardPage);
                 },
               ).then(
                 (_) => context.read<BluetoothExhaleCubit>().dialogDismissed(),
@@ -88,9 +85,7 @@ class BluetoothExhaleScreen extends StatelessWidget {
                 onButtonPressed: () {
                   context.read<BluetoothExhaleCubit>().stop();
                   context.read<BluetoothExhaleCubit>().dialogDismissed();
-                  context.pushReplacement(
-                    AppRoutes.bluetoothDeviceConnectivity,
-                  );
+                  context.go(AppRoutes.dieitianDashboardPage);
                 },
               ).then(
                 (_) => context.read<BluetoothExhaleCubit>().dialogDismissed(),
@@ -101,11 +96,9 @@ class BluetoothExhaleScreen extends StatelessWidget {
               showImproperExhale(
                 context: context,
                 tryAgainButtonClicked: () {
-                  context.read<BluetoothExhaleCubit>().stop();
+                  context.read<BluetoothExhaleCubit>().abortBlow();
                   context.read<BluetoothExhaleCubit>().dialogDismissed();
-                  context.pushReplacement(
-                    AppRoutes.bluetoothDeviceConnectivity,
-                  );
+                  context.go(AppRoutes.dieitianDashboardPage);
                 },
                 needHelpButtonCancel: () {
                   Navigator.pop(context);
@@ -159,8 +152,8 @@ class BluetoothExhaleScreen extends StatelessWidget {
                                 onPressed:
                                     () => showCancelTestDialog(
                                       context,
-                                      () => context.pushReplacement(
-                                        AppRoutes.bluetoothDeviceConnectivity,
+                                      () => context.go(
+                                        AppRoutes.dieitianDashboardPage,
                                       ),
                                     ),
                                 icon: Container(

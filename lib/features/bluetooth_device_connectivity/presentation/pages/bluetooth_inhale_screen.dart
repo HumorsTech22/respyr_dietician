@@ -51,7 +51,7 @@ class _BluetoothInhaleView extends StatelessWidget {
             context: context,
             onButtonPressed: () {
               context.read<BluetoothInhaleCubit>().dialogDismissed();
-              context.pushReplacement(AppRoutes.bluetoothDeviceConnectivity);
+              context.go(AppRoutes.dieitianDashboardPage);
             },
           ).then((_) {
             context.read<BluetoothInhaleCubit>().dialogDismissed();
@@ -98,7 +98,7 @@ class _BluetoothInhaleView extends StatelessWidget {
                             () => showCancelTestDialog(
                               context,
                               () => context.pushReplacement(
-                                AppRoutes.bluetoothDeviceConnectivity,
+                                AppRoutes.dieitianDashboardPage,
                               ),
                             ),
                         icon: Container(

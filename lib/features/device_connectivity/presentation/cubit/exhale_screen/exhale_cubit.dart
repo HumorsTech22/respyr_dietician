@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:respyr_dietitian/core/services/usb_communication_service.dart';
 import 'package:respyr_dietitian/features/device_connectivity/domain/processor/usb_blow_processor.dart';
-import 'package:respyr_dietitian/features/device_connectivity/presentation/widgets/threshold.dart';
+import 'package:respyr_dietitian/common/widgets/threshold.dart';
 import 'exhale_state.dart';
 
 class ExhaleCubit extends Cubit<ExhaleState> {

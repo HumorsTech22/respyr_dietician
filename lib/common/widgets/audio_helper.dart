@@ -22,7 +22,7 @@ class AudioHelper {
   Future<void> playInhaleAudio() async => playAudio('audio/inhale_1.mp3');
 
   Future<void> playActivatingSensors() async =>
-      playAudio('audio/activating_sensons.mp3');
+      playAudio("audio/activating_sensors.mp3");
 
   Future<void> playStartBreathTest() async =>
       playAudio('audio/start_breath_test.mp3');

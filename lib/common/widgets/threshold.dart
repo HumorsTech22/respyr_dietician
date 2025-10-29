@@ -1,5 +1,5 @@
 class Thresholds {
-  static const double blowThreshold = 5.0;
+  static const double blowThreshold = 1.0;
   static const double abortDifference = 1500;
 
   static double calculateThresholdPercentage(double baseValue) {

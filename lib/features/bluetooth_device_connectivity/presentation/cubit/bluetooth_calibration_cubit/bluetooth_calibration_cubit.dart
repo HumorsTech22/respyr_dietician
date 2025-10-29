@@ -22,12 +22,10 @@ class BluetoothCalibrationCubit extends Cubit<BluetoothCalibrationState> {
   }
 
   void init() {
-    // Listen for Bluetooth connection
     _connSub = repo.connectionStatusStream().listen((connected) {
       handleBluetoothConnection(connected);
     });
 
-    // Listen for incoming Bluetooth data
     _dataSub = repo.receivedDataStream().listen((data) {
       onBluetoothDataReceived(data);
     });
@@ -38,7 +36,6 @@ class BluetoothCalibrationCubit extends Cubit<BluetoothCalibrationState> {
 
   Future<void> handleBluetoothConnection(bool connected) async {
     if (_disposed) return;
-
     emit(state.copyWith(isBluetoothConnected: connected));
 
     if (connected) {
@@ -98,6 +95,10 @@ class BluetoothCalibrationCubit extends Cubit<BluetoothCalibrationState> {
     }
   }
 
+  void sendAbort() {
+    repo.sendData("&");
+  }
+
   Future<void> _startCalibrationSequence() async {
     if (!_isRunningCalibration || _disposed) return;
 
@@ -135,6 +136,16 @@ class BluetoothCalibrationCubit extends Cubit<BluetoothCalibrationState> {
   void dialogDismissed() {
     if (_disposed) return;
     emit(state.copyWith(isDialogShown: false));
+  }
+
+  Future<void> disconnect() async {
+    try {
+      await repo.disconnect();
+    } catch (e) {
+      print("⚠️ disconnect failed: $e");
+    } finally {
+      emit(state.copyWith(isBluetoothConnected: false));
+    }
   }
 
   void stop() {

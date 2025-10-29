@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:respyr_dietitian/common/widgets/audio_helper.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/processor/bluetooth_blow_processor.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/repository/bluetooth_repository.dart';
-import 'package:respyr_dietitian/features/device_connectivity/presentation/widgets/threshold.dart';
+import 'package:respyr_dietitian/common/widgets/threshold.dart';
 import 'bluetooth_exhale_state.dart';
 
 class BluetoothExhaleCubit extends Cubit<BluetoothExhaleState> {
@@ -50,7 +50,6 @@ class BluetoothExhaleCubit extends Cubit<BluetoothExhaleState> {
     if (connected) {
       print("✅ Bluetooth Connected");
 
-      // counter started
       _startCountdown();
     } else {
       print("❌ Bluetooth Disconnected");
@@ -134,6 +133,10 @@ class BluetoothExhaleCubit extends Cubit<BluetoothExhaleState> {
         timer.cancel();
       }
     });
+  }
+
+  void abortBlow() {
+    repo.sendData("&");
   }
 
   void stop() {

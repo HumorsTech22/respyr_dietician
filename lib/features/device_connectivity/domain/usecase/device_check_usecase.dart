@@ -70,7 +70,6 @@ class DeviceCheckUsecase {
         }
       }
 
-      // Save state
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString("isFirstReading", signal);
       await prefs.setBool("is_device_ready", isReady);

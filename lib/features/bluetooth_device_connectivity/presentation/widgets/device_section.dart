@@ -33,9 +33,13 @@ class DeviceSection extends StatelessWidget {
       content = _buildDeviceList(context);
     }
 
+    final validDeviceId =
+        state.connectingDeviceId != null &&
+        RegExp(r'^\d+$').hasMatch(state.connectingDeviceId!);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Stack(
             alignment: Alignment.center,
@@ -47,6 +51,7 @@ class DeviceSection extends StatelessWidget {
                     ? "assets/images/device_connection/connected.svg"
                     : "assets/images/device_connection/bluetooth_disconnected.svg",
               ),
+
               if (state.devices.isNotEmpty && !state.isConnected)
                 Positioned(
                   right: 110,
@@ -67,6 +72,45 @@ class DeviceSection extends StatelessWidget {
           ),
           const SizedBox(height: 30),
           if (!state.isConnected) content,
+          if (state.isConnected && validDeviceId)
+            Container(
+              width: MediaQuery.of(context).size.width * 0.5,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                color: const Color(0xFFD9D9D9),
+                border: Border.all(color: const Color(0xFFB9B9B9)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  SvgPicture.asset(
+                    'assets/images/device_connection/device_id.svg',
+                  ),
+                  Text(
+                    'Device Id:',
+                    style: GoogleFonts.poppins(
+                      color: const Color(0xFF535359),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w400,
+                      height: 1.10,
+                      letterSpacing: -0.24,
+                    ),
+                  ),
+                  Text(
+                    'RESPYR${state.connectingDeviceId ?? ""}',
+                    style: GoogleFonts.poppins(
+                      color: const Color(0xFF535359),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w400,
+                      height: 1.10,
+                      letterSpacing: -0.24,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
           if (state.isConnected)
             Text(
               'Device Connected',

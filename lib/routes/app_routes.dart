@@ -30,4 +30,5 @@ abstract class AppRoutes {
   static const helpCenterPage = "/help-center-page";
   static const dietLogPage = "/diet-log-page";
   static const dieitianDashboardPage = "/dietitian-dashboard-page";
+  static const issueWithConnectionScreen = "/issue-with-connection-screem";
 }
