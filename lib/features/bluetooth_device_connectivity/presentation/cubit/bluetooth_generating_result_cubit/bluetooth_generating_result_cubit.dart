@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/repository/bluetooth_repository.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_generating_result_cubit/bluetooth_generating_result_state.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class BluetoothGeneratingResultCubit
     extends Cubit<BluetoothGeneratingResultState> {
@@ -129,6 +130,16 @@ class BluetoothGeneratingResultCubit
   void dialogDismissed() {
     if (_disposed) return;
     emit(state.copyWith(isDialogShown: false));
+  }
+
+  void sendAbort() {
+    repo.sendData("&");
+  }
+
+  Future<void> setCancelOrDisconnectFlag() async {
+    final prefs = await SharedPreferences.getInstance();
+    final DateTime now = DateTime.now();
+    await prefs.setString('cancel_or_disconnect_time', now.toIso8601String());
   }
 
   void stop() {

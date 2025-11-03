@@ -74,6 +74,7 @@ class BluetoothCalibrationScreen extends StatelessWidget {
                 cubit.dialogDismissed();
                 context.pop();
                 cubit.disconnect();
+
                 context.go(AppRoutes.dieitianDashboardPage);
               },
             ).then((_) {
@@ -95,10 +96,13 @@ class BluetoothCalibrationScreen extends StatelessWidget {
                           children: [
                             IconButton(
                               onPressed:
-                                  () => showCancelTestDialog(context, () {
+                                  () => showCancelTestDialog(context, () async {
                                     context
                                         .read<BluetoothCalibrationCubit>()
                                         .sendAbort();
+                                    await context
+                                        .read<BluetoothCalibrationCubit>()
+                                        .setCancelOrDisconnectFlag();
                                     context.go(AppRoutes.dieitianDashboardPage);
                                     context
                                         .read<BluetoothCalibrationCubit>()

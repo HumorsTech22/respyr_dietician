@@ -14,6 +14,7 @@ class UuidBluetoothManager {
   StreamSubscription<List<ScanResult>>? _scanSub;
   StreamSubscription<BluetoothConnectionState>? _connSub;
   StreamSubscription<List<int>>? _notifySub;
+  StreamSubscription<BluetoothAdapterState>? _adapterStateSub;
 
   bool _isConnected = false;
 
@@ -31,16 +32,46 @@ class UuidBluetoothManager {
   Stream<String> get dataStream => _dataCtrl.stream;
   Stream<bool> get deviceReadyStream => _readyCtrl.stream;
 
+  // ----------------- Constructor -----------------
+  UuidBluetoothManager() {
+    // 🔍 Global listener for Bluetooth adapter state
+    _adapterStateSub = FlutterBluePlus.adapterState.listen((state) {
+      if (state == BluetoothAdapterState.off ||
+          state == BluetoothAdapterState.turningOff) {
+        if (kDebugMode) {
+          print("⚠️ Bluetooth turned OFF — performing teardown");
+        }
+        _handleBluetoothOff();
+      } else if (state == BluetoothAdapterState.on) {
+        if (kDebugMode) print("✅ Bluetooth adapter is ON");
+      }
+    });
+  }
+
+  void _handleBluetoothOff() {
+    _isConnected = false;
+    if (!_connCtrl.isClosed) _connCtrl.add(false);
+    if (!_readyCtrl.isClosed) _readyCtrl.add(false);
+    _teardown();
+  }
+
   // ----------------- Scan -----------------
   Future<void> startScan({
     Duration timeout = const Duration(seconds: 8),
     void Function(List<ScanResult>)? onResults,
   }) async {
-    // ensure no scan running
+    final adapterState = await FlutterBluePlus.adapterState.first;
+    if (adapterState != BluetoothAdapterState.on) {
+      if (kDebugMode) {
+        print("⚠️ Cannot start scan — Bluetooth is off");
+      }
+      return;
+    }
+
     try {
       await FlutterBluePlus.stopScan();
     } catch (_) {}
-    _scanSub?.cancel();
+    await _scanSub?.cancel();
 
     await FlutterBluePlus.startScan(timeout: timeout);
 
@@ -75,24 +106,20 @@ class UuidBluetoothManager {
 
     print("🔌 Connecting to ${device.remoteId.str}...");
 
-    // connect
     try {
       await device.connect(autoConnect: false);
     } catch (e) {
-      // connect sometimes throws; continue to listen to connectionState anyway
       if (kDebugMode) print("⚠️ connect() threw: $e");
     }
 
-    // subscribe to connection state
     _connSub?.cancel();
     _connSub = device.connectionState.listen((s) async {
       final connected = s == BluetoothConnectionState.connected;
       _isConnected = connected;
-      _connCtrl.add(connected);
+      if (!_connCtrl.isClosed) _connCtrl.add(connected);
 
       if (connected) {
         try {
-          // Optional: request larger MTU (Android). ignore errors.
           try {
             await device.requestMtu(247);
             if (kDebugMode) print("✅ MTU requested");
@@ -102,17 +129,13 @@ class UuidBluetoothManager {
 
           await _discoverAndSubscribe();
 
-          // Only consider device ready after notify subscription established
-          _readyCtrl.add(true);
+          if (!_readyCtrl.isClosed) _readyCtrl.add(true);
           if (onConnected != null) onConnected();
         } catch (e, st) {
           if (kDebugMode) {
             print("❌ Discover/subscribe failed: $e\n$st");
           }
-          // If critical failure, tear down and emit disconnected
           _teardown();
-          _isConnected = false;
-          _connCtrl.add(false);
         }
       } else {
         _teardown();
@@ -164,7 +187,7 @@ class UuidBluetoothManager {
     }
   }
 
-  // ----------------- Discover & subscribe -----------------
+  // ----------------- Discover & Subscribe -----------------
   Future<void> _discoverAndSubscribe() async {
     if (_device == null) throw Exception('No device');
 
@@ -192,37 +215,33 @@ class UuidBluetoothManager {
     _notifyChar = notifyChar;
     _writeChar = writeChar;
 
-    // Ensure notifications enabled and subscription established before returning "ready"
     try {
       await _notifyChar!.setNotifyValue(true);
     } catch (e) {
-      // Some devices need small delay before setNotify; try again once
       await Future.delayed(const Duration(milliseconds: 250));
       await _notifyChar!.setNotifyValue(true);
     }
 
     await _notifySub?.cancel();
-    // subscribe to incoming bytes and forward as string
     _notifySub = _notifyChar!.onValueReceived.listen((value) {
       if (value.isEmpty) return;
       final s = String.fromCharCodes(value);
-      if (kDebugMode) print('📨 noti: $s');
+      if (kDebugMode) print('📨 Notification: $s');
       _dataCtrl.add(s);
     });
 
-    // Small safety delay to allow peripheral to start notifications
     await Future.delayed(const Duration(milliseconds: 150));
     if (kDebugMode) print("✅ Notification subscription established");
   }
 
+  // ----------------- Write -----------------
   Future<void> write(String data, {int maxRetries = 3}) async {
-    // Guard against invalid state
     if (_device == null || !_isConnected) {
-      if (kDebugMode) print("⚠️ Write skipped — no active device connection");
+      if (kDebugMode) print("⚠️ Write skipped — not connected");
       return;
     }
     if (_writeChar == null) {
-      if (kDebugMode) print("⚠️ Write skipped — writeChar not initialized");
+      if (kDebugMode) print("⚠️ Write skipped — writeChar not ready");
       return;
     }
 
@@ -232,35 +251,12 @@ class UuidBluetoothManager {
 
     for (int attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        if (!_isConnected || _writeChar == null) {
-          if (kDebugMode)
-            print("⚠️ Write aborted — connection lost during retry");
-          return;
-        }
-
-        if (kDebugMode) {
-          print(
-            "📤 Writing attempt $attempt: '$data' (withoutResponse=$withoutResponse)",
-          );
-        }
-
         await _writeChar!.write(bytes, withoutResponse: withoutResponse);
         if (kDebugMode) print("✅ Write success");
         return;
       } catch (e) {
-        if (kDebugMode) print("⚠️ Write attempt $attempt failed: $e");
-
-        // If disconnected mid-retry, stop immediately
-        if (!_isConnected || _writeChar == null) {
-          if (kDebugMode) print("⚠️ Stopping retry — device disconnected");
-          return;
-        }
-
-        if (attempt >= maxRetries) {
-          if (kDebugMode) print("❌ Write failed after $maxRetries attempts");
-          return;
-        }
-
+        if (kDebugMode) print("⚠️ Write failed (attempt $attempt): $e");
+        if (attempt == maxRetries) return;
         await Future.delayed(Duration(milliseconds: 200 * attempt));
       }
     }
@@ -271,10 +267,10 @@ class UuidBluetoothManager {
     try {
       await _device?.disconnect();
     } catch (e) {
-      if (kDebugMode) print("⚠️ disconnect threw: $e");
+      if (kDebugMode) print("⚠️ disconnect() threw: $e");
     } finally {
       _isConnected = false;
-      _connCtrl.add(false);
+      if (!_connCtrl.isClosed) _connCtrl.add(false);
       _teardown();
     }
   }
@@ -297,11 +293,12 @@ class UuidBluetoothManager {
   }
 
   void dispose() {
+    _adapterStateSub?.cancel();
     _scanSub?.cancel();
     _notifySub?.cancel();
     _connSub?.cancel();
-    _connCtrl.close();
-    _dataCtrl.close();
-    _readyCtrl.close();
+    if (!_connCtrl.isClosed) _connCtrl.close();
+    if (!_dataCtrl.isClosed) _dataCtrl.close();
+    if (!_readyCtrl.isClosed) _readyCtrl.close();
   }
 }

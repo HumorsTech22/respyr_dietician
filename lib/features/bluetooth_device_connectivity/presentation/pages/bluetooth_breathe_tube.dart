@@ -26,25 +26,17 @@ class BluetoothBreatheTube extends StatelessWidget {
       child: BlocConsumer<BluetoothBreatheTubeCubit, BluetoothBreatheTubeState>(
         listener: (context, state) {
           final cubit = context.read<BluetoothBreatheTubeCubit>();
+
           if (state.isDialogShown) {
+            // Disconnection Dialog
             showDeviceDisconnectedBox(
               context: context,
               onButtonPressed: () {
                 cubit.dialogDismissed();
-                context.pop();
                 cubit.disconnect();
                 context.go(AppRoutes.dieitianDashboardPage);
               },
             );
-          } else if (state.hasTestCancelled) {
-            showCancelTestDialog(context, () {
-              cubit.dialogDismissed();
-              cubit.abortProcess();
-              context.pop();
-              context.go(AppRoutes.dieitianDashboardPage);
-            }).then((_) {
-              cubit.dialogDismissed();
-            });
           }
 
           if (state.isCompleted) {
@@ -52,6 +44,7 @@ class BluetoothBreatheTube extends StatelessWidget {
             context.push(AppRoutes.bluetoothCalibrationScreen);
           }
         },
+
         builder: (context, state) {
           return Scaffold(
             backgroundColor: Colors.white,
@@ -72,11 +65,13 @@ class BluetoothBreatheTube extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           IconButton(
-                            onPressed: () {
-                              context
-                                  .read<BluetoothBreatheTubeCubit>()
-                                  .cancelTest();
-                            },
+                            onPressed:
+                                () => showCancelTestDialog(context, () {
+                                  context.go(AppRoutes.dieitianDashboardPage);
+                                  context
+                                      .read<BluetoothBreatheTubeCubit>()
+                                      .dialogDismissed();
+                                }),
                             icon: SvgPicture.asset(
                               "assets/images/common/closeicon.svg",
                             ),

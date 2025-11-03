@@ -47,10 +47,13 @@ class BluetoothGeneratingResultScreen extends StatelessWidget {
           if (state.isDialogShown) {
             showDeviceDisconnectedBox(
               context: context,
-              onButtonPressed: () {
+              onButtonPressed: () async {
                 context
                     .read<BluetoothGeneratingResultCubit>()
                     .dialogDismissed();
+                await context
+                    .read<BluetoothGeneratingResultCubit>()
+                    .setCancelOrDisconnectFlag();
                 context.go(AppRoutes.dieitianDashboardPage);
               },
             );
@@ -76,10 +79,18 @@ class BluetoothGeneratingResultScreen extends StatelessWidget {
                     children: [
                       IconButton(
                         onPressed:
-                            () => showCancelTestDialog(
-                              context,
-                              () => context.go(AppRoutes.dieitianDashboardPage),
-                            ),
+                            () => showCancelTestDialog(context, () async {
+                              context
+                                  .read<BluetoothGeneratingResultCubit>()
+                                  .sendAbort();
+                              await context
+                                  .read<BluetoothGeneratingResultCubit>()
+                                  .setCancelOrDisconnectFlag();
+                              context.go(AppRoutes.dieitianDashboardPage);
+                              context
+                                  .read<BluetoothGeneratingResultCubit>()
+                                  .dialogDismissed();
+                            }),
                         icon: Container(
                           height: 20,
                           width: 20,

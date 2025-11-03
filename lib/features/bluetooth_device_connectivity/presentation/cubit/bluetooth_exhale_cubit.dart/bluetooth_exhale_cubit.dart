@@ -4,6 +4,7 @@ import 'package:respyr_dietitian/common/widgets/audio_helper.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/processor/bluetooth_blow_processor.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/repository/bluetooth_repository.dart';
 import 'package:respyr_dietitian/common/widgets/threshold.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'bluetooth_exhale_state.dart';
 
 class BluetoothExhaleCubit extends Cubit<BluetoothExhaleState> {
@@ -59,6 +60,16 @@ class BluetoothExhaleCubit extends Cubit<BluetoothExhaleState> {
         emit(state.copyWith(activeDialog: ActiveDialog.disconnect));
       }
     }
+  }
+
+  Future<void> setCancelOrDisconnectFlag() async {
+    final prefs = await SharedPreferences.getInstance();
+    final DateTime now = DateTime.now();
+    await prefs.setString('cancel_or_disconnect_time', now.toIso8601String());
+  }
+
+  void sendAbort() {
+    repo.sendData("&");
   }
 
   void dialogDismissed() {

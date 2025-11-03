@@ -2,6 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:respyr_dietitian/features/dietitian_result_screen/domain/dietitian_result_view_model.dart';
 import 'package:respyr_dietitian/features/dietitian_result_screen/presentation/cubit/dietitian_result_cubit.dart';
@@ -11,6 +12,7 @@ import 'package:respyr_dietitian/features/dietitian_result_screen/presentation/w
 import 'package:respyr_dietitian/features/dietitian_result_screen/presentation/widgets/section_widget.dart';
 import 'package:respyr_dietitian/features/dietitian_result_screen/presentation/widgets/sliver_tabbar_delegate.dart';
 import 'package:respyr_dietitian/features/dietitian_result_screen/presentation/widgets/tab_widget.dart';
+import 'package:respyr_dietitian/routes/app_routes.dart';
 
 // class DietitianResultCntent extends StatelessWidget {
 //   const DietitianResultCntent({super.key});
@@ -93,38 +95,63 @@ class _DietitianResultScreenState extends State<DietitianResultScreen> {
           body: CustomScrollView(
             controller: viewModel.scrollController,
             slivers: [
-              /// Sliver AppBar
               SliverAppBar(
                 pinned: true,
                 backgroundColor: const Color(0xFF308BF9),
                 expandedHeight: 50,
                 flexibleSpace: FlexibleSpaceBar(
-                  titlePadding: const EdgeInsets.only(left: 16, bottom: 8),
-                  title: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Text(
-                        'Shubham Deshmukh',
-                        style: GoogleFonts.poppins(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          height: 1.10,
-                          letterSpacing: -0.72,
-                        ),
+                  titlePadding: EdgeInsets.zero,
+                  title: SizedBox(
+                    height: kToolbarHeight,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          IconButton(
+                            padding: EdgeInsets.zero,
+                            onPressed: () {
+                              context.go(AppRoutes.dieitianDashboardPage);
+                            },
+                            icon: SvgPicture.asset(
+                              "assets/images/common/closeicon.svg",
+                              colorFilter: ColorFilter.mode(
+                                Colors.white,
+                                BlendMode.srcIn,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'Shubham Deshmukh',
+                                style: GoogleFonts.poppins(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                  height: 1.10,
+                                  letterSpacing: -0.72,
+                                ),
+                              ),
+                              Text(
+                                '25 June 2025, 12:00pm',
+                                style: GoogleFonts.poppins(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w400,
+                                  height: 1.10,
+                                  letterSpacing: -0.20,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const Spacer(),
+                        ],
                       ),
-                      Text(
-                        '25 June 2025, 12:00pm',
-                        style: GoogleFonts.poppins(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w400,
-                          height: 1.10,
-                          letterSpacing: -0.20,
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
                 actions: [

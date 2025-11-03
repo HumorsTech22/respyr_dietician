@@ -91,7 +91,6 @@ class __BluetoothDeviceConnectivityViewState
             leading: IconButton(
               onPressed: () {
                 context.pop();
-                context.read<BluetoothConnectionCubit>().sendAbort();
               },
               icon: SvgPicture.asset("assets/images/common/closeicon.svg"),
             ),

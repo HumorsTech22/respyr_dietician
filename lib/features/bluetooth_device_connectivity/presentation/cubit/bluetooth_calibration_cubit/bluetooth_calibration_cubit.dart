@@ -99,6 +99,19 @@ class BluetoothCalibrationCubit extends Cubit<BluetoothCalibrationState> {
     repo.sendData("&");
   }
 
+  Future<void> setCancelOrDisconnectFlag({bool isCancel = false}) async {
+    final prefs = await SharedPreferences.getInstance();
+    final DateTime now = DateTime.now();
+
+    final Duration offset = const Duration(minutes: 1);
+
+    final DateTime futureTime = now.add(offset);
+    await prefs.setString(
+      'cancel_or_disconnect_time',
+      futureTime.toIso8601String(),
+    );
+  }
+
   Future<void> _startCalibrationSequence() async {
     if (!_isRunningCalibration || _disposed) return;
 

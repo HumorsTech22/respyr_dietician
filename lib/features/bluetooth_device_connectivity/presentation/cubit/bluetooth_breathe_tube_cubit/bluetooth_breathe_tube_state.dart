@@ -3,7 +3,6 @@ import 'package:equatable/equatable.dart';
 class BluetoothBreatheTubeState extends Equatable {
   final String? textError;
   final bool isBluetoothConnected;
-  final bool hasTestCancelled;
   final bool hasInternet;
   final bool isCompleted;
   final double progress;
@@ -13,7 +12,6 @@ class BluetoothBreatheTubeState extends Equatable {
     this.textError,
     this.isBluetoothConnected = false,
     this.hasInternet = false,
-    this.hasTestCancelled = false,
     this.isCompleted = false,
     this.isDialogShown = false,
     this.progress = 0.0,
@@ -22,7 +20,6 @@ class BluetoothBreatheTubeState extends Equatable {
   BluetoothBreatheTubeState copyWith({
     String? textError,
     bool? isBluetoothConnected,
-    bool? hasTestCancelled,
     bool? hasInternet,
     bool? isCompleted,
     bool? isDialogShown,
@@ -32,7 +29,6 @@ class BluetoothBreatheTubeState extends Equatable {
       textError: textError ?? this.textError,
       isBluetoothConnected: isBluetoothConnected ?? this.isBluetoothConnected,
       hasInternet: hasInternet ?? this.hasInternet,
-      hasTestCancelled: hasTestCancelled ?? this.hasTestCancelled,
       isCompleted: isCompleted ?? this.isCompleted,
       isDialogShown: isDialogShown ?? this.isDialogShown,
       progress: progress ?? this.progress,
@@ -44,7 +40,6 @@ class BluetoothBreatheTubeState extends Equatable {
     textError,
     isBluetoothConnected,
     hasInternet,
-    hasTestCancelled,
     isDialogShown,
     isCompleted,
     progress,

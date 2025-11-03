@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:respyr_dietitian/common/widgets/audio_helper.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/repository/bluetooth_repository.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_inhale_cubit/bluetooth_inhale_state.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class BluetoothInhaleCubit extends Cubit<BluetoothInhaleState> {
   final BluetoothRepository repo;
@@ -40,7 +41,6 @@ class BluetoothInhaleCubit extends Cubit<BluetoothInhaleState> {
     if (connected) {
       print("✅ Bluetooth Connected");
 
-      // counter started
       _startTimer();
     } else {
       print("❌ Bluetooth Disconnected");
@@ -101,6 +101,16 @@ class BluetoothInhaleCubit extends Cubit<BluetoothInhaleState> {
         timer.cancel();
       }
     });
+  }
+
+  Future<void> setCancelOrDisconnectFlag() async {
+    final prefs = await SharedPreferences.getInstance();
+    final DateTime now = DateTime.now();
+    await prefs.setString('cancel_or_disconnect_time', now.toIso8601String());
+  }
+
+  void sendAbort() {
+    repo.sendData("&");
   }
 
   void stop() {

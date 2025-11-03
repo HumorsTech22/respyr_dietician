@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:respyr_dietitian/common/widgets/audio_helper.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/repository/bluetooth_repository.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_breathe_tube_cubit/bluetooth_breathe_tube_state.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class BluetoothBreatheTubeCubit extends Cubit<BluetoothBreatheTubeState> {
   final BluetoothRepository repo;
@@ -87,15 +88,8 @@ class BluetoothBreatheTubeCubit extends Cubit<BluetoothBreatheTubeState> {
 
   /// Called when any dialog (disconnect or cancel) is closed.
   void dialogDismissed() {
-    emit(state.copyWith(isDialogShown: false, hasTestCancelled: false));
+    emit(state.copyWith(isDialogShown: false));
     audioHelper.stopAudio();
-  }
-
-  /// Ensure cancel dialog triggers only once
-  void cancelTest() {
-    if (!state.hasTestCancelled) {
-      emit(state.copyWith(hasTestCancelled: true));
-    }
   }
 
   // ----------------- INTERNET HANDLER -----------------

@@ -69,10 +69,13 @@ class BluetoothExhaleScreen extends StatelessWidget {
             case ActiveDialog.disconnect:
               showDeviceDisconnectedBox(
                 context: context,
-                onButtonPressed: () {
+                onButtonPressed: () async {
                   context.read<BluetoothExhaleCubit>().stop();
                   context.read<BluetoothExhaleCubit>().dialogDismissed();
                   context.go(AppRoutes.dieitianDashboardPage);
+                  await context
+                      .read<BluetoothExhaleCubit>()
+                      .setCancelOrDisconnectFlag();
                 },
               ).then(
                 (_) => context.read<BluetoothExhaleCubit>().dialogDismissed(),
@@ -82,10 +85,13 @@ class BluetoothExhaleScreen extends StatelessWidget {
             case ActiveDialog.timeout:
               showExhaleSessionTimeOutDialog(
                 context: context,
-                onButtonPressed: () {
+                onButtonPressed: () async {
                   context.read<BluetoothExhaleCubit>().stop();
                   context.read<BluetoothExhaleCubit>().dialogDismissed();
                   context.go(AppRoutes.dieitianDashboardPage);
+                  await context
+                      .read<BluetoothExhaleCubit>()
+                      .setCancelOrDisconnectFlag();
                 },
               ).then(
                 (_) => context.read<BluetoothExhaleCubit>().dialogDismissed(),
@@ -95,10 +101,13 @@ class BluetoothExhaleScreen extends StatelessWidget {
             case ActiveDialog.improper:
               showImproperExhale(
                 context: context,
-                tryAgainButtonClicked: () {
+                tryAgainButtonClicked: () async {
                   context.read<BluetoothExhaleCubit>().abortBlow();
                   context.read<BluetoothExhaleCubit>().dialogDismissed();
                   context.go(AppRoutes.dieitianDashboardPage);
+                  await context
+                      .read<BluetoothExhaleCubit>()
+                      .setCancelOrDisconnectFlag();
                 },
                 needHelpButtonCancel: () {
                   Navigator.pop(context);
@@ -150,12 +159,22 @@ class BluetoothExhaleScreen extends StatelessWidget {
                             children: [
                               IconButton(
                                 onPressed:
-                                    () => showCancelTestDialog(
-                                      context,
-                                      () => context.go(
-                                        AppRoutes.dieitianDashboardPage,
-                                      ),
-                                    ),
+                                    () =>
+                                        showCancelTestDialog(context, () async {
+                                          context
+                                              .read<BluetoothExhaleCubit>()
+                                              .sendAbort();
+
+                                          context.go(
+                                            AppRoutes.dieitianDashboardPage,
+                                          );
+                                          context
+                                              .read<BluetoothExhaleCubit>()
+                                              .dialogDismissed();
+                                          await context
+                                              .read<BluetoothExhaleCubit>()
+                                              .setCancelOrDisconnectFlag();
+                                        }),
                                 icon: Container(
                                   height: 20,
                                   width: 20,

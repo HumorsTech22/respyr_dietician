@@ -15,10 +15,28 @@ class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
 
   BluetoothConnectionCubit(this.repo) : super(const BluetoothConnectionState());
 
-  void init() {
+  Future<void> init() async {
     _listenConnection();
     _listenData();
-    startScan();
+
+    // ✅ Check if already connected before scanning
+    final connectedDeviceId = await repo.getAlreadyConnectedDeviceId();
+
+    if (connectedDeviceId != null) {
+      emit(
+        state.copyWith(
+          isConnected: true,
+          connectingDeviceId: connectedDeviceId,
+          status: BluetoothConnectionStatus.connected,
+        ),
+      );
+
+      // Send "!" to reinitialize communication
+      await Future.delayed(const Duration(milliseconds: 300));
+      await sendCommand("!");
+    } else {
+      startScan();
+    }
   }
 
   void startScan({Duration timeout = const Duration(seconds: 15)}) {
@@ -92,19 +110,20 @@ class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
       if (connected) {
         print("✅ Bluetooth Connected");
 
-        emit(
-          state.copyWith(
-            isConnected: true,
-            status: BluetoothConnectionStatus.connected,
-          ),
-        );
+        if (!state.isConnected) {
+          emit(
+            state.copyWith(
+              isConnected: true,
+              status: BluetoothConnectionStatus.connected,
+            ),
+          );
 
-        // Wait until the device is fully ready before sending
-        await for (final ready in repo.deviceReadyStream()) {
-          if (ready) {
-            print("✅ Device Ready – Sending initial command '!' ...");
-            await sendCommand("!");
-            break;
+          await for (final ready in repo.deviceReadyStream()) {
+            if (ready) {
+              print("✅ Device Ready – Sending initial command '!'");
+              await sendCommand("!");
+              break;
+            }
           }
         }
       } else {

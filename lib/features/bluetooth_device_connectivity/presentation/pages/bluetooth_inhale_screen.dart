@@ -46,15 +46,19 @@ class _BluetoothInhaleView extends StatelessWidget {
               prev.isDialogShown != curr.isDialogShown ||
               prev.navigateToExhaleScreen != curr.navigateToExhaleScreen,
       listener: (context, state) {
+        final cubit = context.read<BluetoothInhaleCubit>();
         if (state.isDialogShown) {
           showDeviceDisconnectedBox(
             context: context,
-            onButtonPressed: () {
-              context.read<BluetoothInhaleCubit>().dialogDismissed();
+            onButtonPressed: () async {
+              context.pop();
+              await cubit.setCancelOrDisconnectFlag();
+              cubit.dialogDismissed();
+
               context.go(AppRoutes.dieitianDashboardPage);
             },
           ).then((_) {
-            context.read<BluetoothInhaleCubit>().dialogDismissed();
+            cubit.dialogDismissed();
           });
         }
 
@@ -95,12 +99,16 @@ class _BluetoothInhaleView extends StatelessWidget {
                       left: 20,
                       child: IconButton(
                         onPressed:
-                            () => showCancelTestDialog(
-                              context,
-                              () => context.pushReplacement(
-                                AppRoutes.dieitianDashboardPage,
-                              ),
-                            ),
+                            () => showCancelTestDialog(context, () async {
+                              context.read<BluetoothInhaleCubit>().sendAbort();
+                              await context
+                                  .read<BluetoothInhaleCubit>()
+                                  .setCancelOrDisconnectFlag();
+                              context.go(AppRoutes.dieitianDashboardPage);
+                              context
+                                  .read<BluetoothInhaleCubit>()
+                                  .dialogDismissed();
+                            }),
                         icon: Container(
                           height: 20,
                           width: 20,
