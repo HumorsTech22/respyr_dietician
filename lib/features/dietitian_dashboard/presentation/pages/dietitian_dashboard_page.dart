@@ -20,9 +20,7 @@ class DietitianDashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     context.read<DietitianDashboardCubit>().loadDietitianDashboard(
-      loginId: "USR123",
-      profileId: "PROF456",
-      day: "monday",
+      DateTime.now(),
     );
 
     return Scaffold(
@@ -101,39 +99,6 @@ class _DashboardMealViewState extends State<_DashboardMealView> {
         _titleColor = newTitleColor;
       });
     }
-  }
-
-  List<DietitianDashboardFoodItem> _getFilteredFoodItems() {
-    final hour = DateTime.now().hour;
-    String currentMealType;
-
-    if (hour >= 6 && hour < 12) {
-      currentMealType = 'breakfast';
-    } else if (hour >= 12 && hour < 19) {
-      currentMealType = 'lunch';
-    } else {
-      currentMealType = 'dinner';
-    }
-
-    // Match based on the 'time' field in your Meal model
-    final selectedMeal = widget.meal.meals.firstWhere(
-      (meal) => meal.time.toLowerCase().contains(currentMealType),
-      orElse:
-          () =>
-              widget.meal.meals.isNotEmpty
-                  ? widget.meal.meals.first
-                  : Meal(
-                    time: '',
-                    protein: 0,
-                    carbs: 0,
-                    fat: 0,
-                    calories: 0,
-                    items: [],
-                  ),
-    );
-
-    // Return its food items (from 'items' field)
-    return selectedMeal.items;
   }
 
   @override
@@ -228,7 +193,7 @@ class _DashboardMealViewState extends State<_DashboardMealView> {
                   const SizedBox(height: 26),
 
                   FoodContainerList(
-                    foodItems: _getFilteredFoodItems(),
+                    foodItems: widget.meal.foodItems,
                     iconColor: _iconTextColor,
                   ),
 

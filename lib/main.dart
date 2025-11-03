@@ -104,12 +104,9 @@ Future<void> main() async {
           ),
           BlocProvider(
             create:
-                (_) => DietitianDashboardCubit(dietitianDashboardRepository)
-                  ..loadDietitianDashboard(
-                    loginId: "USR123",
-                    profileId: "PROF456",
-                    day: "monday",
-                  ),
+                (_) =>
+                    DietitianDashboardCubit(dietitianDashboardRepository)
+                      ..loadDietitianDashboard(DateTime.now()),
           ),
         ],
         child: const MyApp(),

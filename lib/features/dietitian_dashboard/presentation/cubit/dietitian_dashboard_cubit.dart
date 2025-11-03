@@ -54,19 +54,11 @@ class DietitianDashboardCubit extends Cubit<DietitianDashboardState> {
     }
   }
 
-  Future<void> loadDietitianDashboard({
-    required String loginId,
-    required String profileId,
-    required String day,
-  }) async {
+  Future<void> loadDietitianDashboard(DateTime date) async {
     emit(DietitianDashboardLoading());
 
     try {
-      final meal = await repository.fetchDailyMealPlan(
-        loginId: loginId,
-        profileId: profileId,
-        day: day,
-      );
+      final meal = await repository.fetchDailyMealPlan(date);
       _lastTimeRange = CustomizedDashboardColorText.getTimeRange(
         DateTime.now().hour,
       );
