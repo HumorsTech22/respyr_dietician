@@ -14,6 +14,9 @@ class DietitianDashboardCubit extends Cubit<DietitianDashboardState> {
   final DietitianDashboardRepository repository;
   Timer? _timeCheckTimer;
   String? _lastTimeRange;
+
+  bool _hasSwiped = false;
+  bool get hasSwiped => _hasSwiped;
   DietitianDashboardCubit(this.repository)
     : super(DietitianDashboardInitial()) {
     _startTimeCheck();
@@ -66,6 +69,18 @@ class DietitianDashboardCubit extends Cubit<DietitianDashboardState> {
     } catch (e) {
       emit(DietitianDashboardError(message: e.toString()));
     }
+  }
+
+  void onSwipeComplete(BuildContext context) {
+    _hasSwiped = true;
+    emit(DietitianDashboardSwipeSuccess());
+
+    context.push(AppRoutes.bluetoothDeviceConnectivity);
+  }
+
+  void resetSwipe() {
+    _hasSwiped = false;
+    emit(DietitianDashboardSwipeReset());
   }
 
   @override

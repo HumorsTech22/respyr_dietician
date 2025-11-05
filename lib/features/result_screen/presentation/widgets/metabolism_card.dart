@@ -7,8 +7,8 @@ class MetaCard extends StatelessWidget {
   final String metabolismTitle;
   final String metaScoreSubtitleOne;
   final String metaScoreSubtitleTwo;
-  final double metabolismScoreOne;
-  final double metabolismScoreTwo;
+  final int metabolismScoreOne;
+  final int metabolismScoreTwo;
   const MetaCard({
     super.key,
     required this.imageString,

@@ -6,7 +6,23 @@ import 'package:respyr_dietitian/features/dietitian_result_screen/presentation/w
 
 class MetabolismTabCard extends StatelessWidget {
   final String metabolismSubtype;
-  const MetabolismTabCard({super.key, required this.metabolismSubtype});
+  final int score;
+  final String rating;
+  final Color ratingColor;
+  final String interpretation;
+  final String clientState;
+  final String ppmNote;
+
+  const MetabolismTabCard({
+    super.key,
+    required this.metabolismSubtype,
+    required this.score,
+    required this.rating,
+    required this.ratingColor,
+    required this.interpretation,
+    required this.clientState,
+    required this.ppmNote,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -16,13 +32,13 @@ class MetabolismTabCard extends StatelessWidget {
         color: Colors.white,
         shape: RoundedRectangleBorder(
           side: BorderSide(
-            width: 0.50,
-            color: ScoreColorHelper.getScoreColor(80.0),
+            width: 0.5,
+            color: ScoreColorHelper.getScoreColor(score.toDouble()),
           ),
           borderRadius: BorderRadius.circular(15),
         ),
       ),
-      padding: EdgeInsets.symmetric(horizontal: 13, vertical: 24),
+      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -36,19 +52,18 @@ class MetabolismTabCard extends StatelessWidget {
               letterSpacing: -0.72,
             ),
           ),
-          SizedBox(height: 5),
+          const SizedBox(height: 5),
           Text(
-            'Shows how well your gut absorbs nutrients. A high score means efficient absorption; a low score may suggest malabsorption or gut issues.',
-            style: TextStyle(
+            'Shows how well your metabolism performs for this subtype. Higher scores indicate better metabolic balance.',
+            style: GoogleFonts.poppins(
               color: const Color(0xFF535359),
               fontSize: 12,
-              fontFamily: 'Poppins',
               fontWeight: FontWeight.w400,
               height: 1.26,
               letterSpacing: -0.24,
             ),
           ),
-          SizedBox(height: 10),
+          const SizedBox(height: 10),
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
@@ -57,12 +72,12 @@ class MetabolismTabCard extends StatelessWidget {
                 "assets/images/common/dietitian_share.svg",
                 height: 20,
                 width: 20,
-                colorFilter: ColorFilter.mode(
+                colorFilter: const ColorFilter.mode(
                   Color(0xFF308BF9),
                   BlendMode.srcIn,
                 ),
               ),
-              SizedBox(width: 5),
+              const SizedBox(width: 5),
               Text(
                 'View trend',
                 style: GoogleFonts.poppins(
@@ -75,9 +90,9 @@ class MetabolismTabCard extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(height: 10),
-          Divider(),
-          SizedBox(height: 10),
+          const SizedBox(height: 10),
+          const Divider(),
+          const SizedBox(height: 10),
           Text(
             '25 June 2025, 12:00pm',
             style: GoogleFonts.poppins(
@@ -89,10 +104,10 @@ class MetabolismTabCard extends StatelessWidget {
             ),
           ),
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Text(
-                '80%',
+                '$score%',
                 style: GoogleFonts.poppins(
                   color: const Color(0xFF252525),
                   fontSize: 30,
@@ -100,11 +115,14 @@ class MetabolismTabCard extends StatelessWidget {
                   letterSpacing: -0.60,
                 ),
               ),
-              IntrinsicHeight(child: VerticalDivider()),
+              const SizedBox(width: 10),
+              Container(height: 25, width: 1, color: Colors.black),
+
+              const SizedBox(width: 10),
               Text(
-                'Good',
+                rating,
                 style: GoogleFonts.poppins(
-                  color: const Color(0xFF3EAF58),
+                  color: ratingColor,
                   fontSize: 30,
                   fontWeight: FontWeight.w600,
                   letterSpacing: -0.60,
@@ -112,8 +130,8 @@ class MetabolismTabCard extends StatelessWidget {
               ),
             ],
           ),
-          SegmentedScoreBar(score: 80.0),
-          SizedBox(height: 10),
+          SegmentedScoreBar(score: score.toDouble()),
+          const SizedBox(height: 10),
           Text(
             'Score Meaning',
             style: GoogleFonts.poppins(
@@ -124,9 +142,9 @@ class MetabolismTabCard extends StatelessWidget {
               letterSpacing: -0.24,
             ),
           ),
-          SizedBox(height: 5),
+          const SizedBox(height: 5),
           Text(
-            'Efficient nutrient absorption',
+            clientState,
             style: GoogleFonts.poppins(
               color: const Color(0xFF252525),
               fontSize: 12,
@@ -135,25 +153,23 @@ class MetabolismTabCard extends StatelessWidget {
               letterSpacing: -0.24,
             ),
           ),
-          SizedBox(height: 10),
+          const SizedBox(height: 10),
           Text(
             'Interpretation (Metabolic Insight)',
-            style: TextStyle(
+            style: GoogleFonts.poppins(
               color: const Color(0xFF252525),
               fontSize: 12,
-              fontFamily: 'Poppins',
               fontWeight: FontWeight.w600,
               height: 1.30,
               letterSpacing: -0.24,
             ),
           ),
-          SizedBox(height: 5),
+          const SizedBox(height: 5),
           Text(
-            'Your small intestine is absorbing nutrients well — no excess gas or fermentation.',
-            style: TextStyle(
+            interpretation,
+            style: GoogleFonts.poppins(
               color: const Color(0xFF252525),
               fontSize: 12,
-              fontFamily: 'Poppins',
               fontWeight: FontWeight.w400,
               height: 1.30,
               letterSpacing: -0.24,

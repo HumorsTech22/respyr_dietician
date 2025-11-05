@@ -17,12 +17,52 @@
 //   }
 // }
 
-import 'package:respyr_dietitian/features/dietitian_result_screen/data/model/dietitian_result_model.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import '../model/dietitian_result_model.dart';
 
 class DietitianResultRepository {
-  Future<DietitianResultModel> fetchResults() async {
-    await Future.delayed(Duration(seconds: 1));
+  Future<DietitianResultModel> fetchResults({
+    required int acetone,
+    required int ethanol,
+    required int hydrogen,
+    required bool diabetic,
+    required String goal,
+    int debug = 1,
+    required String dietitianId,
+    required String profileId,
+  }) async {
+    final url = Uri.parse(
+      'https://humorstech.com/dietitian/api/app/daily_result.php',
+    );
 
-    return DietitianResultModel.dummy();
+    final body = {
+      "acetone": acetone,
+      "ethanol": ethanol,
+      "hydrogen": hydrogen,
+      "diabetic": diabetic,
+      "goal": goal,
+      "debug": debug,
+      "dietitian_id": dietitianId,
+      "profile_id": profileId,
+    };
+
+    final response = await http.post(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode(body),
+    );
+
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> data = jsonDecode(response.body);
+
+      if (data['success'] == true) {
+        return DietitianResultModel.fromJson(data);
+      } else {
+        throw Exception("API Error: ${data['message']}");
+      }
+    } else {
+      throw Exception("Network Error: ${response.statusCode}");
+    }
   }
 }

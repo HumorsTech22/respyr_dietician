@@ -10,7 +10,7 @@ class ScoreInfo {
 }
 
 /// Determines score level and provides label & color
-ScoreInfo getScoreLevel(double score) {
+ScoreInfo getScoreLevel(int score) {
   if (score >= 0 && score <= 60) {
     return const ScoreInfo(label: 'Poor', color: Color(0xFFEA5455)); // Red
   } else if (score >= 61 && score <= 79) {

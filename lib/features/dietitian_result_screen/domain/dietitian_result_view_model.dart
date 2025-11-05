@@ -21,10 +21,17 @@ class DietitianResultViewModel {
     if (ctx != null) {
       final box = ctx.findRenderObject() as RenderBox;
       final viewport = RenderAbstractViewport.of(box);
-      final offset = viewport.getOffsetToReveal(box, 0.5).offset;
+      final offset = viewport.getOffsetToReveal(box, 0).offset;
+
+      const double appBarHeight = kToolbarHeight;
+
+      final targetOffset = offset - (appBarHeight);
 
       await scrollController.animateTo(
-        offset - 10,
+        targetOffset.clamp(
+          scrollController.position.minScrollExtent,
+          scrollController.position.maxScrollExtent,
+        ),
         duration: const Duration(milliseconds: 400),
         curve: Curves.easeInOut,
       );

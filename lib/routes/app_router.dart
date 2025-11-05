@@ -36,7 +36,7 @@ import 'package:respyr_dietitian/features/test_result_screen/presentation/pages/
 import 'package:respyr_dietitian/routes/app_routes.dart';
 
 final GoRouter appRouter = GoRouter(
-  initialLocation: AppRoutes.dieitianDashboardPage,
+  initialLocation: AppRoutes.dietitianResultScreen,
   debugLogDiagnostics: true,
   routes: [
     GoRoute(

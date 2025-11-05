@@ -38,6 +38,16 @@ class _DietitianResultScreenState extends State<DietitianResultScreen> {
     super.initState();
 
     viewModel.scrollController.addListener(_onVerticalScroll);
+    final cubit = context.read<DietitianResultCubit>();
+    cubit.fetchDietitianResult(
+      acetone: 22,
+      ethanol: 3,
+      hydrogen: 12,
+      diabetic: false,
+      goal: "fat_loss",
+      dietitianId: "do01",
+      profileId: "p01",
+    );
   }
 
   void _onVerticalScroll() {
@@ -90,6 +100,35 @@ class _DietitianResultScreenState extends State<DietitianResultScreen> {
   Widget build(BuildContext context) {
     return BlocBuilder<DietitianResultCubit, DietitianResultState>(
       builder: (context, state) {
+        if (state.isLoading) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (state.errorMessage != null) {
+          return Center(child: Text("Error: ${state.errorMessage}"));
+        }
+
+        final result = state.dietitianResult;
+        if (result == null) {
+          return const Center(child: Text("No data available"));
+        }
+
+        // final metabolism = result.respyrResponse.metabolismScoreAnalysis;
+
+        // print("Metabolism absorption score: ${metabolism.absorption.score}");
+        // print(
+        //   "Metabolism fermentation score: ${metabolism.fermentation.score}",
+        // );
+        // print("Fat metabolism score: ${metabolism.fatMetabolism.score}");
+        // print(
+        //   "fat glucose metabolism score: ${metabolism.glucoseMetabolism.score}",
+        // );
+        // print(
+        //   "hepaticStress metabolism score: ${metabolism.hepaticStress.score}",
+        // );
+        // print(
+        //   "detoxification metabolism score: ${metabolism.detoxification.score}",
+        // );
         return Scaffold(
           backgroundColor: Colors.white,
           body: CustomScrollView(
@@ -164,7 +203,6 @@ class _DietitianResultScreenState extends State<DietitianResultScreen> {
                 ],
               ),
 
-              /// Content above sticky tabs
               SliverToBoxAdapter(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -210,13 +248,22 @@ class _DietitianResultScreenState extends State<DietitianResultScreen> {
                             padding: const EdgeInsets.symmetric(horizontal: 10),
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: const [
+                              children: [
                                 SizedBox(height: 15),
-                                MetabolismCard(metabolismType: 'Liver'),
+                                MetabolismCard(
+                                  metabolismType: 'Liver',
+                                  state: state,
+                                ),
                                 SizedBox(height: 25),
-                                MetabolismCard(metabolismType: 'Fat'),
+                                MetabolismCard(
+                                  metabolismType: 'Fat',
+                                  state: state,
+                                ),
                                 SizedBox(height: 25),
-                                MetabolismCard(metabolismType: 'Gut'),
+                                MetabolismCard(
+                                  metabolismType: 'Gut',
+                                  state: state,
+                                ),
                               ],
                             ),
                           ),
@@ -300,7 +347,8 @@ class _DietitianResultScreenState extends State<DietitianResultScreen> {
                   padding: const EdgeInsets.all(16),
                   child: SectionWidget(
                     sectionKey: viewModel.gutKey,
-                    sectionType: 'Gut',
+                    metabolismType: 'Gut',
+                    state: state,
                   ),
                 ),
               ),
@@ -309,7 +357,8 @@ class _DietitianResultScreenState extends State<DietitianResultScreen> {
                   padding: const EdgeInsets.all(16),
                   child: SectionWidget(
                     sectionKey: viewModel.fatKey,
-                    sectionType: 'Fat',
+                    metabolismType: 'Fat',
+                    state: state,
                   ),
                 ),
               ),
@@ -318,7 +367,8 @@ class _DietitianResultScreenState extends State<DietitianResultScreen> {
                   padding: const EdgeInsets.all(16),
                   child: SectionWidget(
                     sectionKey: viewModel.liverKey,
-                    sectionType: 'Liver',
+                    metabolismType: 'Liver',
+                    state: state,
                   ),
                 ),
               ),

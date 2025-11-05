@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:respyr_dietitian/features/dietitian_dashboard/presentation/cubit/dietitian_dashboard_cubit.dart';
+import 'package:respyr_dietitian/features/dietitian_dashboard/presentation/widgets/swipe_button_widget.dart';
 import 'package:respyr_dietitian/features/dietitian_result_screen/presentation/widgets/organ_tab_selector.dart';
 import 'package:respyr_dietitian/features/test_result_screen/presentation/cubit/test_result_cubit.dart';
 
@@ -205,6 +207,14 @@ class DietitianDashboardResult extends StatelessWidget {
                 icon: SvgPicture.asset("assets/images/common/right_button.svg"),
               ),
             ],
+          ),
+
+          SizedBox(height: 30),
+          Center(
+            child: BlocProvider.value(
+              value: context.read<DietitianDashboardCubit>(),
+              child: const SwipeButtonWidget(),
+            ),
           ),
         ],
       ),

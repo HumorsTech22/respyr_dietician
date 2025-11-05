@@ -17,6 +17,7 @@ import 'package:respyr_dietitian/features/diet_log/data/diet_log_repository.dart
 import 'package:respyr_dietitian/features/diet_log/presentation/cubit/diet_log_cubit.dart';
 import 'package:respyr_dietitian/features/dietitian_dashboard/data/repository/dietitian_dashboard_repository.dart';
 import 'package:respyr_dietitian/features/dietitian_dashboard/presentation/cubit/dietitian_dashboard_cubit.dart';
+import 'package:respyr_dietitian/features/dietitian_result_screen/data/repository/dietitian_result_repository.dart';
 import 'package:respyr_dietitian/features/dietitian_result_screen/presentation/cubit/dietitian_result_cubit.dart';
 import 'package:respyr_dietitian/features/help_center/presentation/cubit/help_center_cubit.dart';
 import 'package:respyr_dietitian/features/log_food/data/repository/log_food_repository.dart';
@@ -85,7 +86,9 @@ Future<void> main() async {
                 ),
           ),
           BlocProvider(create: (_) => TestResultCubit()),
-          BlocProvider(create: (_) => DietitianResultCubit()),
+          BlocProvider(
+            create: (_) => DietitianResultCubit(DietitianResultRepository()),
+          ),
           BlocProvider(
             create: (_) => UsbCubit(usbRepository, deviceCheckUsecase),
           ),

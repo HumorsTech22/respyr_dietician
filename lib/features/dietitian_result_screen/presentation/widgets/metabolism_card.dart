@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:respyr_dietitian/features/dietitian_result_screen/presentation/cubit/dietitian_result_state.dart';
 
 class MetabolismCard extends StatelessWidget {
   final String metabolismType;
-  const MetabolismCard({super.key, required this.metabolismType});
+  final DietitianResultState state;
+
+  const MetabolismCard({
+    super.key,
+    required this.metabolismType,
+    required this.state,
+  });
 
   static final Map<String, String> _metabolismIcon = {
     "Gut": "assets/images/result_screen/dietitian_gut_outline.svg",
@@ -30,8 +37,64 @@ class MetabolismCard extends StatelessWidget {
     "Liver": "Detoxification Metabolism Score",
   };
 
+  Map<String, int> _getScores() {
+    final result = state.dietitianResult;
+    if (result == null) return {"one": 0, "two": 0};
+
+    final metabolism = result.respyrResponse.metabolismScoreAnalysis;
+
+    int toInt(num? value) => (value ?? 0).toInt();
+
+    switch (metabolismType) {
+      case "Gut":
+        return {
+          "one": toInt(metabolism.absorption.score),
+          "two": toInt(metabolism.fermentation.score),
+        };
+      case "Fat":
+        return {
+          "one": toInt(metabolism.fatMetabolism.score),
+          "two": toInt(metabolism.glucoseMetabolism.score),
+        };
+      case "Liver":
+        return {
+          "one": toInt(metabolism.hepaticStress.score),
+          "two": toInt(metabolism.detoxification.score),
+        };
+      default:
+        return {"one": 0, "two": 0};
+    }
+  }
+
+  String _getRating(int score) {
+    if (score >= 80) return "Good";
+    if (score >= 60) return "Fair";
+    if (score >= 40) return "Poor";
+    return "Poor";
+  }
+
+  Color _getRatingColor(String rating) {
+    switch (rating) {
+      case "Good":
+        return const Color(0xFF3EAF58);
+      case "Fair":
+        return const Color(0xFFFFA500);
+      case "Poor":
+        return const Color(0xFFE74C3C);
+      default:
+        return const Color(0xFFE74C3C);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final scores = _getScores();
+    final score1 = scores["one"] ?? 0;
+    final score2 = scores["two"] ?? 0;
+
+    final rating1 = _getRating(score1);
+    final rating2 = _getRating(score2);
+
     return Container(
       width: MediaQuery.of(context).size.width * 0.55,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
@@ -57,7 +120,7 @@ class MetabolismCard extends StatelessWidget {
                 _metabolismIcon[metabolismType] ?? "",
                 height: 24,
                 width: 24,
-                colorFilter: ColorFilter.mode(
+                colorFilter: const ColorFilter.mode(
                   Color(0xFF308BF9),
                   BlendMode.srcIn,
                 ),
@@ -82,13 +145,14 @@ class MetabolismCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              /// Absorptive Metabolism Score
+              /// Left (SubTypeOne)
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Text(
                       _metabolismSubTypeOne[metabolismType] ?? "",
+                      textAlign: TextAlign.center,
                       style: GoogleFonts.poppins(
                         color: const Color(0xFF252525),
                         fontSize: 8,
@@ -102,25 +166,22 @@ class MetabolismCard extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          '97%',
+                          '${score1.toStringAsFixed(0)}%',
                           style: GoogleFonts.poppins(
                             color: const Color(0xFF252525),
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
                             height: 1.10,
-                            letterSpacing: -0.24,
                           ),
                         ),
                         Container(height: 10, width: 1, color: Colors.black),
-
                         Text(
-                          'Good',
+                          rating1,
                           style: GoogleFonts.poppins(
-                            color: const Color(0xFF3EAF58),
+                            color: _getRatingColor(rating1),
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
                             height: 1.10,
-                            letterSpacing: -0.24,
                           ),
                         ),
                       ],
@@ -128,19 +189,20 @@ class MetabolismCard extends StatelessWidget {
                   ],
                 ),
               ),
-              SizedBox(width: 10),
+              const SizedBox(width: 10),
 
-              /// Proper Divider
+              /// Divider
               Container(height: 40, width: 1, color: Colors.black),
-              SizedBox(width: 10),
+              const SizedBox(width: 10),
 
-              /// Fermentative Metabolism Score
+              /// Right (SubTypeTwo)
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Text(
                       _metabolismSubTypeTwo[metabolismType] ?? "",
+                      textAlign: TextAlign.center,
                       style: GoogleFonts.poppins(
                         color: const Color(0xFF252525),
                         fontSize: 8,
@@ -154,24 +216,22 @@ class MetabolismCard extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          '7%',
+                          '${score2.toStringAsFixed(0)}%',
                           style: GoogleFonts.poppins(
                             color: const Color(0xFF252525),
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
                             height: 1.10,
-                            letterSpacing: -0.24,
                           ),
                         ),
                         Container(height: 10, width: 1, color: Colors.black),
                         Text(
-                          'Good',
+                          rating2,
                           style: GoogleFonts.poppins(
-                            color: const Color(0xFF3EAF58),
+                            color: _getRatingColor(rating2),
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
                             height: 1.10,
-                            letterSpacing: -0.24,
                           ),
                         ),
                       ],
