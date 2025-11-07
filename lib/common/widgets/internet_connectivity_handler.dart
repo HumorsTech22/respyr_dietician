@@ -85,7 +85,7 @@ class _InternetConnectivityHandlerState
               mainAxisSize: MainAxisSize.min,
               children: [
                 SvgPicture.asset(
-                  "assets/sagar/undraw_server-down_lxs9.svg",
+                  "assets/images/device_connection/undraw_server-down_lxs9.svg",
                   height: 100,
                 ),
                 const SizedBox(height: 20),

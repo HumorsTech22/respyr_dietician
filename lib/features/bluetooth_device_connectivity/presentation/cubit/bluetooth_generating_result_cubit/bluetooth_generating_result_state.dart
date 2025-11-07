@@ -6,6 +6,7 @@ class BluetoothGeneratingResultState extends Equatable {
   final bool isBluetoothConnected;
   final bool isDialogShown;
   final bool navigateToResultScreen;
+
   final int completedSteps;
 
   const BluetoothGeneratingResultState({
@@ -14,6 +15,7 @@ class BluetoothGeneratingResultState extends Equatable {
     this.isBluetoothConnected = false,
     this.isDialogShown = false,
     this.navigateToResultScreen = false,
+
     this.completedSteps = 0,
   });
 
@@ -23,9 +25,8 @@ class BluetoothGeneratingResultState extends Equatable {
     bool? isBluetoothConnected,
     bool? isDialogShown,
     bool? navigateToResultScreen,
-    bool? isMuted,
+
     int? completedSteps,
-    bool? waitForInhaleCmd,
   }) {
     return BluetoothGeneratingResultState(
       textError: textError ?? this.textError,
@@ -34,6 +35,7 @@ class BluetoothGeneratingResultState extends Equatable {
       isDialogShown: isDialogShown ?? this.isDialogShown,
       navigateToResultScreen:
           navigateToResultScreen ?? this.navigateToResultScreen,
+
       completedSteps: completedSteps ?? this.completedSteps,
     );
   }
@@ -45,6 +47,7 @@ class BluetoothGeneratingResultState extends Equatable {
     isBluetoothConnected,
     isDialogShown,
     navigateToResultScreen,
+
     completedSteps,
   ];
 }

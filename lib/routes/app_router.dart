@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/params/generating_result_params.dart';
@@ -18,6 +19,8 @@ import 'package:respyr_dietitian/features/device_connectivity/presentation/pages
 import 'package:respyr_dietitian/features/device_connectivity/presentation/pages/issue_with_connection_screen.dart';
 import 'package:respyr_dietitian/features/diet_log/presentation/pages/diet_log_pages.dart';
 import 'package:respyr_dietitian/features/dietitian_dashboard/presentation/pages/dietitian_dashboard_page.dart';
+import 'package:respyr_dietitian/features/dietitian_result_screen/data/repository/dietitian_result_repository.dart';
+import 'package:respyr_dietitian/features/dietitian_result_screen/presentation/cubit/dietitian_result_cubit.dart';
 import 'package:respyr_dietitian/features/dietitian_result_screen/presentation/pages/dietitian_result_screen.dart';
 import 'package:respyr_dietitian/features/help_center/presentation/pages/help_center_page.dart';
 import 'package:respyr_dietitian/features/log_food/presentation/pages/log_food_pages.dart';
@@ -36,7 +39,7 @@ import 'package:respyr_dietitian/features/test_result_screen/presentation/pages/
 import 'package:respyr_dietitian/routes/app_routes.dart';
 
 final GoRouter appRouter = GoRouter(
-  initialLocation: AppRoutes.dietitianResultScreen,
+  initialLocation: AppRoutes.dieitianDashboardPage,
   debugLogDiagnostics: true,
   routes: [
     GoRoute(
@@ -125,9 +128,17 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.dietitianResultScreen,
       builder: (context, state) {
-        return DietitianResultScreen();
+        final args = state.extra as Map<String, dynamic>?;
+        return BlocProvider(
+          create:
+              (context) => DietitianResultCubit(
+                context.read<DietitianResultRepository>(),
+              ),
+          child: DietitianResultScreen(args: args),
+        );
       },
     ),
+
     GoRoute(
       path: AppRoutes.usbDeviceConnectivity,
       builder: (context, state) {
@@ -212,9 +223,16 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.dieitianDashboardPage,
       builder: (context, state) {
-        return DietitianDashboardScreen();
+        return BlocProvider(
+          create:
+              (context) => DietitianResultCubit(
+                context.read<DietitianResultRepository>(),
+              ),
+          child: const DietitianDashboardScreen(),
+        );
       },
     ),
+
     GoRoute(
       path: AppRoutes.issueWithConnectionScreen,
       builder: (context, state) {

@@ -8,6 +8,7 @@ import 'package:respyr_dietitian/common/dialogs/disconnection_dialog.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/repository/bluetooth_repository.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_generating_result_cubit/bluetooth_generating_result_cubit.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_generating_result_cubit/bluetooth_generating_result_state.dart';
+import 'package:respyr_dietitian/features/dietitian_result_screen/presentation/cubit/dietitian_result_cubit.dart';
 import 'package:respyr_dietitian/routes/app_routes.dart';
 
 class BluetoothGeneratingResultScreen extends StatelessWidget {
@@ -43,7 +44,7 @@ class BluetoothGeneratingResultScreen extends StatelessWidget {
         BluetoothGeneratingResultCubit,
         BluetoothGeneratingResultState
       >(
-        listener: (context, state) {
+        listener: (context, state) async {
           if (state.isDialogShown) {
             showDeviceDisconnectedBox(
               context: context,
@@ -60,7 +61,26 @@ class BluetoothGeneratingResultScreen extends StatelessWidget {
           }
 
           if (state.navigateToResultScreen) {
-            context.pushReplacement(AppRoutes.dietitianResultScreen);
+            final acetone = 22;
+            final ethanol = 3;
+            final hydrogen = 12;
+            final diabetic = false;
+            final goal = "fat_loss";
+            final dietitianId = "do01";
+            final profileId = "p01";
+
+            context.push(
+              AppRoutes.dietitianResultScreen,
+              extra: {
+                'acetone': acetone,
+                'ethanol': ethanol,
+                'hydrogen': hydrogen,
+                'diabetic': diabetic,
+                'goal': goal,
+                'dietitianId': dietitianId,
+                'profileId': profileId,
+              },
+            );
           }
         },
         builder: (context, state) {

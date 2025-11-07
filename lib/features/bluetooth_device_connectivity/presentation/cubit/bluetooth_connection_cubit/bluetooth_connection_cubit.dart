@@ -110,32 +110,34 @@ class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
       if (connected) {
         print("✅ Bluetooth Connected");
 
-        if (!state.isConnected) {
-          emit(
-            state.copyWith(
-              isConnected: true,
-              status: BluetoothConnectionStatus.connected,
-            ),
-          );
+        emit(
+          state.copyWith(
+            isConnected: true,
+            status: BluetoothConnectionStatus.connected,
+          ),
+        );
 
-          await for (final ready in repo.deviceReadyStream()) {
-            if (ready) {
-              print("✅ Device Ready – Sending initial command '!'");
-              await sendCommand("!");
-              break;
-            }
+        await for (final ready in repo.deviceReadyStream()) {
+          if (ready) {
+            print("✅ Device Ready – Sending initial command '!'");
+            await sendCommand("!");
+            break;
           }
         }
       } else {
-        print("❌ Disconnected");
+        print("❌ Disconnected – restarting scan...");
         emit(
           state.copyWith(
             isConnected: false,
+
             connectingDeviceId: null,
             status: BluetoothConnectionStatus.disconnected,
             devices: [],
           ),
         );
+
+        // Wait a short delay before scanning to avoid overlap
+        await Future.delayed(const Duration(seconds: 1));
         startScan();
       }
     });

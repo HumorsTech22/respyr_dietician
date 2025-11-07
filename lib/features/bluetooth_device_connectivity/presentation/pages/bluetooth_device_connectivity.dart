@@ -185,29 +185,34 @@ class __BluetoothDeviceConnectivityViewState
                             ),
                           ),
                           const SizedBox(height: 10),
-                          GestureDetector(
-                            onTap: () {
-                              context.push(AppRoutes.issueWithConnectionScreen);
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 8,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(25.5),
-                                border: Border.all(
-                                  width: 1,
-                                  color: const Color(0xFFC7C6CE),
+                          Visibility(
+                            visible: false,
+                            child: GestureDetector(
+                              onTap: () {
+                                context.push(
+                                  AppRoutes.issueWithConnectionScreen,
+                                );
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 8,
                                 ),
-                              ),
-                              child: Text(
-                                'issue with connection?',
-                                style: GoogleFonts.poppins(
-                                  color: const Color(0xFF252525),
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(25.5),
+                                  border: Border.all(
+                                    width: 1,
+                                    color: const Color(0xFFC7C6CE),
+                                  ),
+                                ),
+                                child: Text(
+                                  'issue with connection?',
+                                  style: GoogleFonts.poppins(
+                                    color: const Color(0xFF252525),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ),
                             ),

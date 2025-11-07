@@ -30,7 +30,9 @@ void showUsbReconnectionDialogBox({
               mainAxisSize: MainAxisSize.min, // Adjust height based on content
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                SvgPicture.asset("assets/not_connected.svg"),
+                SvgPicture.asset(
+                  "assets/images/device_connection/bluetooth_device_disconnection.svg",
+                ),
                 const SizedBox(height: 20),
                 Text(
                   "Usb Device Disconnected",

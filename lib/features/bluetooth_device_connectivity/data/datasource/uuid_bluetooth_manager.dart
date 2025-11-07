@@ -288,6 +288,7 @@ class UuidBluetoothManager {
     _device = null;
     _isConnected = false;
 
+    // Always emit fresh states
     if (!_connCtrl.isClosed) _connCtrl.add(false);
     if (!_readyCtrl.isClosed) _readyCtrl.add(false);
   }

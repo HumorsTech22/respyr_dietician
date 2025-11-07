@@ -30,19 +30,21 @@ class BluetoothGeneratingResultCubit
     required this.blowDuration,
     required this.blowValuesList,
   }) : super(const BluetoothGeneratingResultState()) {
-    init();
+    _init();
   }
 
-  void init() {
-    _connSub = repo.connectionStatusStream().listen(handleBluetoothConnection);
-    _dataSub = repo.receivedDataStream().listen(onBluetoothDataReceived);
+  /// Initializes the listeners for Bluetooth data and connection changes.
+  void _init() {
+    _connSub = repo.connectionStatusStream().listen(_handleBluetoothConnection);
+    _dataSub = repo.receivedDataStream().listen(_onBluetoothDataReceived);
 
     if (repo.isConnected) {
-      handleBluetoothConnection(true);
+      _handleBluetoothConnection(true);
     }
   }
 
-  Future<void> handleBluetoothConnection(bool connected) async {
+  /// Handles Bluetooth connection updates.
+  Future<void> _handleBluetoothConnection(bool connected) async {
     if (_disposed) return;
 
     emit(state.copyWith(isBluetoothConnected: connected));
@@ -50,71 +52,68 @@ class BluetoothGeneratingResultCubit
     if (connected && !_isGeneratingResult) {
       _isGeneratingResult = true;
       emit(state.copyWith(completedSteps: 1));
-      triggerAnalysis();
+      _triggerAnalysis();
     } else if (!connected && !state.isDialogShown) {
-      showDisconnectedDialog();
+      _showDisconnectedDialog();
     }
   }
 
-  void triggerAnalysis() {
+  /// Sends the trigger signal to BLE device for result generation.
+  void _triggerAnalysis() {
     if (_disposed) return;
 
     try {
       repo.sendData("/");
-      if (kDebugMode) {
-        print("📤 Sent '/' to BLE for triggering analysis");
-      }
+      if (kDebugMode) print("📤 Sent '/' to BLE for triggering analysis");
     } catch (e) {
-      if (kDebugMode) {
-        print("⚠️ Error sending trigger to BLE: $e");
-      }
+      if (kDebugMode) print("⚠️ Error sending trigger to BLE: $e");
     }
   }
 
-  void onBluetoothDataReceived(String data) {
+  /// Handles incoming Bluetooth data stream.
+  void _onBluetoothDataReceived(String data) {
     if (data.isEmpty || _disposed) return;
 
     _rawBuffer.write(data);
     _rawData += data;
 
     if (kDebugMode) {
-      print("📥 USB Received Fragment: $data");
+      print("📥 BLE Received Fragment: $data");
       print("🔎 Accumulated Raw Data: $_rawData");
     }
 
-    // When full response ends with '*'
+    // Detect message completion
     if (_rawData.contains("*")) {
       final cleaned = _rawBuffer.toString().replaceFirst(
         RegExp(r'^analize'),
         '',
       );
-
-      processFinalData(cleaned.trim());
+      _processFinalData(cleaned.trim());
       _rawBuffer.clear();
       _rawData = "";
     }
   }
 
-  Future<void> processFinalData(String rawData) async {
+  /// Processes final BLE data, triggers result generation API, and navigates.
+  Future<void> _processFinalData(String rawData) async {
     if (_isProcessing || _disposed) return;
     _isProcessing = true;
 
-    emit(state.copyWith(completedSteps: 2));
-    await Future.delayed(const Duration(seconds: 1));
-
-    emit(state.copyWith(completedSteps: 3));
-    await Future.delayed(const Duration(seconds: 1));
-
     try {
+      // Step progression visuals
+      emit(state.copyWith(completedSteps: 2));
+      await Future.delayed(const Duration(seconds: 1));
+
+      emit(state.copyWith(completedSteps: 3));
+      await Future.delayed(const Duration(seconds: 1));
+
+      // Replace BLE placeholders with real values
       final replaced = rawData
           .replaceAll("Best_pr", bestPressure.toStringAsFixed(0))
           .replaceAll("MAXPR", maxPressure.toStringAsFixed(0))
           .replaceAll("BDur", blowDuration.toString());
 
-      if (kDebugMode) {
-        print("🎯 Final Clean Data Ready: $replaced");
-      }
-
+      if (kDebugMode) print("🎯 Final BLE Clean Data Ready: $replaced");
       emit(state.copyWith(navigateToResultScreen: true));
     } catch (e) {
       emit(state.copyWith(textError: "Error while processing results: $e"));
@@ -123,26 +122,31 @@ class BluetoothGeneratingResultCubit
     }
   }
 
-  void showDisconnectedDialog() {
+  /// Displays disconnected dialog.
+  void _showDisconnectedDialog() {
     emit(state.copyWith(isDialogShown: true));
   }
 
+  /// Called when disconnection dialog is dismissed.
   void dialogDismissed() {
     if (_disposed) return;
     emit(state.copyWith(isDialogShown: false));
   }
 
+  /// Sends abort command to BLE device.
   void sendAbort() {
     repo.sendData("&");
   }
 
+  /// Records the cancel/disconnect timestamp locally.
   Future<void> setCancelOrDisconnectFlag() async {
     final prefs = await SharedPreferences.getInstance();
-    final DateTime now = DateTime.now();
+    final now = DateTime.now();
     await prefs.setString('cancel_or_disconnect_time', now.toIso8601String());
   }
 
-  void stop() {
+  /// Cancels all subscriptions safely.
+  void _stop() {
     _disposed = true;
     _connSub?.cancel();
     _dataSub?.cancel();
@@ -152,7 +156,7 @@ class BluetoothGeneratingResultCubit
 
   @override
   Future<void> close() {
-    stop();
+    _stop();
     return super.close();
   }
 }

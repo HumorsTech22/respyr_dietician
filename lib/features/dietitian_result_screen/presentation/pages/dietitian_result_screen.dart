@@ -24,7 +24,8 @@ import 'package:respyr_dietitian/routes/app_routes.dart';
 // }
 
 class DietitianResultScreen extends StatefulWidget {
-  const DietitianResultScreen({super.key});
+  final Map<String, dynamic>? args;
+  const DietitianResultScreen({super.key, this.args});
 
   @override
   State<DietitianResultScreen> createState() => _DietitianResultScreenState();
@@ -38,15 +39,23 @@ class _DietitianResultScreenState extends State<DietitianResultScreen> {
     super.initState();
 
     viewModel.scrollController.addListener(_onVerticalScroll);
-    final cubit = context.read<DietitianResultCubit>();
-    cubit.fetchDietitianResult(
-      acetone: 22,
-      ethanol: 3,
-      hydrogen: 12,
-      diabetic: false,
-      goal: "fat_loss",
-      dietitianId: "do01",
-      profileId: "p01",
+    final args = widget.args ?? {};
+    final acetone = args['acetone'] ?? 22;
+    final ethanol = args['ethanol'] ?? 3;
+    final hydrogen = args['hydrogen'] ?? 12;
+    final diabetic = args['diabetic'] ?? false;
+    final goal = args['goal'] ?? "fat_loss";
+    final dietitianId = args['dietitianId'] ?? "do01";
+    final profileId = args['profileId'] ?? "p01";
+
+    context.read<DietitianResultCubit>().fetchDietitianResult(
+      acetone: acetone,
+      ethanol: ethanol,
+      hydrogen: hydrogen,
+      diabetic: diabetic,
+      goal: goal,
+      dietitianId: dietitianId,
+      profileId: profileId,
     );
   }
 
@@ -136,6 +145,7 @@ class _DietitianResultScreenState extends State<DietitianResultScreen> {
             slivers: [
               SliverAppBar(
                 pinned: true,
+                automaticallyImplyLeading: false,
                 backgroundColor: const Color(0xFF308BF9),
                 expandedHeight: 50,
                 flexibleSpace: FlexibleSpaceBar(

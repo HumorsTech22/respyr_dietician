@@ -74,6 +74,9 @@ Future<void> main() async {
         RepositoryProvider<BluetoothRepository>(
           create: (_) => BluetoothRepositoryImpl(UuidBluetoothManager()),
         ),
+        RepositoryProvider<DietitianResultRepository>(
+          create: (_) => DietitianResultRepository(),
+        ),
       ],
       child: MultiBlocProvider(
         providers: [
@@ -86,9 +89,9 @@ Future<void> main() async {
                 ),
           ),
           BlocProvider(create: (_) => TestResultCubit()),
-          BlocProvider(
-            create: (_) => DietitianResultCubit(DietitianResultRepository()),
-          ),
+          // BlocProvider(
+          //   create: (_) => DietitianResultCubit(DietitianResultRepository()),
+          // ),
           BlocProvider(
             create: (_) => UsbCubit(usbRepository, deviceCheckUsecase),
           ),
