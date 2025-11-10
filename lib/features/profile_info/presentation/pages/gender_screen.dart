@@ -4,11 +4,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:respyr_dietician/features/profile_info/presentation/cubit/profile_cubit.dart';
-import 'package:respyr_dietician/features/profile_info/presentation/cubit/profile_state.dart';
-import 'package:respyr_dietician/features/profile_info/presentation/widgets/profile_bottom_navigation.dart';
-import 'package:respyr_dietician/features/profile_info/presentation/widgets/profile_progress_bar.dart';
-import 'package:respyr_dietician/routes/app_routes.dart';
+import 'package:respyr_dietitian/features/profile_info/presentation/cubit/profile_cubit.dart';
+import 'package:respyr_dietitian/features/profile_info/presentation/cubit/profile_state.dart';
+import 'package:respyr_dietitian/features/profile_info/presentation/widgets/profile_bottom_navigation.dart';
+import 'package:respyr_dietitian/features/profile_info/presentation/widgets/profile_progress_bar.dart';
+import 'package:respyr_dietitian/routes/app_routes.dart';
 
 class GenderScreen extends StatelessWidget {
   final int stepCompleted;
@@ -90,25 +90,27 @@ class GenderScreen extends StatelessWidget {
       ),
 
       /// Bottom Navigation
-      bottomNavigationBar: BlocBuilder<ProfileCubit, ProfileState>(
-        builder: (context, state) {
-          return ProfileBottomNavigation(
-            onBack: () {
-              context.pop();
-            },
-            onNext: () {
-              if (state.gender.isNotEmpty) {
-                // Proceed to next screen
-                // Navigator.push(...);
-                context.push(AppRoutes.ageScreen, extra: stepCompleted + 1);
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Please select your gender')),
-                );
-              }
-            },
-          );
-        },
+      bottomNavigationBar: SafeArea(
+        child: BlocBuilder<ProfileCubit, ProfileState>(
+          builder: (context, state) {
+            return ProfileBottomNavigation(
+              onBack: () {
+                context.pop();
+              },
+              onNext: () {
+                if (state.gender.isNotEmpty) {
+                  // Proceed to next screen
+                  // Navigator.push(...);
+                  context.push(AppRoutes.ageScreen, extra: stepCompleted + 1);
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please select your gender')),
+                  );
+                }
+              },
+            );
+          },
+        ),
       ),
     );
   }

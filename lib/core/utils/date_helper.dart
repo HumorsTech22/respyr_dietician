@@ -1,29 +1,50 @@
-String formatToDayMonth(DateTime date) {
-  return "${date.day} ${_monthName(date.month)}";
-}
+class DateHelper{
+  String formatToDayMonth(DateTime date) {
+    return "${date.day} ${_monthName(date.month)}";
+  }
 
-String formatToDateTimeString(DateTime date) {
-  final day = date.day.toString().padLeft(2, '0');
-  final month = _monthShort(date.month);
-  final hour = date.hour > 12 ? date.hour - 12 : date.hour == 0 ? 12 : date.hour;
-  final minute = date.minute.toString().padLeft(2, '0');
-  final ampm = date.hour >= 12 ? "pm" : "am";
-  return "$day $month, $hour:$minute$ampm";
-}
+  String formatToDateTimeString(DateTime date) {
+    final day = date.day.toString().padLeft(2, '0');
+    final month = _monthShort(date.month);
+    final hour = date.hour > 12 ? date.hour - 12 : date.hour == 0 ? 12 : date.hour;
+    final minute = date.minute.toString().padLeft(2, '0');
+    final ampm = date.hour >= 12 ? "pm" : "am";
+    return "$day $month, $hour:$minute$ampm";
+  }
 
 // Helper methods
-String _monthName(int month) {
-  const months = [
-    '', 'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ];
-  return months[month];
-}
+  String _monthName(int month) {
+    const months = [
+      '', 'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    return months[month];
+  }
 
-String _monthShort(int month) {
-  const months = [
-    '', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-  ];
-  return months[month];
+  String _monthShort(int month) {
+    const months = [
+      '', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    return months[month];
+  }
+
+
+  bool isNewNotification(DateTime input) {
+    final now = DateTime.now();
+    final difference = now.difference(input).inHours;
+    return difference.abs() <= 5;
+  }
+
+  String getGreeting() {
+    final hour = DateTime.now().hour;
+
+    if (hour >= 5 && hour < 12) {
+      return 'Good Morning';
+    } else if (hour >= 12 && hour < 17) {
+      return 'Good Afternoon';
+    } else {
+      return 'Good Evening';
+    }
+  }
 }

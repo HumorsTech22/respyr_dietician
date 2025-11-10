@@ -202,8 +202,9 @@ class _DashboardMealViewState extends State<_DashboardMealView> {
                   const SizedBox(height: 40),
                   GestureDetector(
                     onTap:
-                        () =>
-                            context.push(AppRoutes.bluetoothDeviceConnectivity),
+                        () => context
+                            .read<DietitianDashboardCubit>()
+                            .checkDeviceAbortStatus(context),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [

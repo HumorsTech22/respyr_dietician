@@ -15,6 +15,7 @@ class TestDataRecord {
   final double? ethanolPpm;
 
   final DateTime dateTime;
+  final bool? isTakenTest;
 
   TestDataRecord({
     required this.testId,
@@ -29,9 +30,10 @@ class TestDataRecord {
     this.acetonePpm,
     this.h2Ppm,
     this.ethanolPpm,
+    this.isTakenTest,
   });
 
-  factory TestDataRecord.fromJson(Map<String, dynamic> json) {
+  factory TestDataRecord.fromJson(Map<String, dynamic> json, bool? isTakenTest) {
     return TestDataRecord(
       testId: int.parse(json['test_id'].toString()),
       profileId: json['profile_id'] as String,
@@ -45,6 +47,7 @@ class TestDataRecord {
       h2Ppm: _toDouble(json['h2_ppm']),
       ethanolPpm: _toDouble(json['ethanol_ppm']),
       dateTime: DateTime.parse(json['date_time']),
+      isTakenTest: isTakenTest,
     );
   }
 
@@ -52,5 +55,24 @@ class TestDataRecord {
     if (v == null) return null;
     if (v is num) return v.toDouble();
     return double.tryParse(v.toString());
+  }
+
+
+  factory TestDataRecord.dummy({required String profileId}) {
+    return TestDataRecord(
+      testId: 0,
+      profileId: profileId,
+      dateTime: DateTime.now(),
+      absorptiveScore: null,
+      fermentativeScore: null,
+      fatScore: null,
+      glucoseScore: null,
+      hepaticStressScore: null,
+      detoxScore: null,
+      acetonePpm: null,
+      h2Ppm: null,
+      ethanolPpm: null,
+      isTakenTest: false
+    );
   }
 }

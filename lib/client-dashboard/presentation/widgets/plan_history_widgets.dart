@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../data/model/diet_plan_strategy_model.dart';
-import '../extras/date_helper.dart';
+import '../../data/model/diet_plan_strategy_model.dart';
+import '../../extras/date_helper.dart';
+
 
 class PlanHistoryWidgets {
   Widget planHistoryItem({

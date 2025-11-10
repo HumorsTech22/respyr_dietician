@@ -1,4 +1,4 @@
-package com.example.respyr_dietician
+package com.humorstech.dietitian
 
 import io.flutter.embedding.android.FlutterActivity
 

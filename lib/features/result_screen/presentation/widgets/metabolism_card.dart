@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:respyr_dietician/core/utils/score_utils.dart';
+import 'package:respyr_dietitian/core/utils/score_utils.dart';
 
 class MetaCard extends StatelessWidget {
   final String imageString;
@@ -21,8 +21,8 @@ class MetaCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scoreInfoOne = getScoreLevel(metabolismScoreOne);
-    final scoreInfoTwo = getScoreLevel(metabolismScoreTwo);
+    final scoreInfoOne = getScoreLevel(metabolismScoreOne as int);
+    final scoreInfoTwo = getScoreLevel(metabolismScoreTwo as int);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10),
       child: Column(

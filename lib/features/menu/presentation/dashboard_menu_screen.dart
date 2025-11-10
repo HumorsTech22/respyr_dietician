@@ -5,6 +5,7 @@ import 'package:respyr_dietitian/client-dashboard/extras/logout.dart';
 import '../../../client-dashboard/data/model/client_profile_model.dart';
 import '../../../common/widgets/client_profile_avatar.dart';
 import '../../client_profile/presentation/pages/client_profile.dart';
+import '../../diet_plan/data/diet_plan_model.dart';
 import '../../diet_plan/presentation/pages/diet_plan_screen.dart';
 
 class DashboardMenuScreen extends StatefulWidget {
@@ -120,12 +121,17 @@ class _DashboardMenuScreenState extends State<DashboardMenuScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
                 child: GestureDetector(
                   onTap: (){
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => DietPlanScreen(),
-                      ),
+                    final weekFuture = DietApi.fetchWeekFromServer(
+                      Uri.parse('https://humorstech.com/dietitian/api/app/get_diet.php'),
+                      form: {'login_id':'USR123','profile_id':'PROF456'},
                     );
+
+                    // Navigator.push(
+                    //   context,
+                    //   MaterialPageRoute(
+                    //     builder: (context) => DietWeekPage(futureWeek: weekFuture,),
+                    //   ),
+                    // );
                   },
                   child: Row(
                     children: [

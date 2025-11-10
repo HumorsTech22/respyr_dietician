@@ -4,15 +4,20 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart' as fbp;
 import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:respyr_dietitian/client-dashboard/data/model/client_profile_model.dart';
 import 'package:respyr_dietitian/common/dialogs/bluetooth_enable_dialog.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/repository/bluetooth_repository.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_connection_cubit/bluetooth_connection_cubit.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_connection_cubit/bluetooth_connection_state.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/widgets/device_section.dart';
-import 'package:respyr_dietitian/routes/app_routes.dart';
+
+
+import 'bluetooth_breathe_tube.dart';
 
 class BluetoothDeviceConnectivity extends StatelessWidget {
-  const BluetoothDeviceConnectivity({super.key});
+
+  final ClientProfileModel clientProfileModel;
+  const BluetoothDeviceConnectivity({super.key, required this.clientProfileModel});
 
   @override
   Widget build(BuildContext context) {
@@ -20,13 +25,14 @@ class BluetoothDeviceConnectivity extends StatelessWidget {
       create:
           (ctx) =>
               BluetoothConnectionCubit(ctx.read<BluetoothRepository>())..init(),
-      child: const _BluetoothDeviceConnectivityView(),
+      child:  _BluetoothDeviceConnectivityView(clientProfileModel:clientProfileModel,),
     );
   }
 }
 
 class _BluetoothDeviceConnectivityView extends StatefulWidget {
-  const _BluetoothDeviceConnectivityView();
+  final ClientProfileModel clientProfileModel;
+  const _BluetoothDeviceConnectivityView({required this.clientProfileModel});
 
   @override
   State<_BluetoothDeviceConnectivityView> createState() =>
@@ -154,10 +160,17 @@ class __BluetoothDeviceConnectivityViewState
                                   (state.isConnected &&
                                           state.connectingDeviceId != null)
                                       ? () {
-                                        context.push(
-                                          AppRoutes.bluetoothBreatheTube,
-                                        );
-                                      }
+
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (_) => RepositoryProvider<BluetoothRepository>.value(
+                                          value: context.read<BluetoothRepository>(), // or create(...) if none above
+                                          child:  BluetoothBreatheTube(clientProfileModel: widget.clientProfileModel,),
+                                        ),
+                                      ),
+                                    );
+
+                                  }
                                       : null,
                               style: ElevatedButton.styleFrom(
                                 padding: const EdgeInsets.symmetric(
@@ -189,9 +202,9 @@ class __BluetoothDeviceConnectivityViewState
                             visible: false,
                             child: GestureDetector(
                               onTap: () {
-                                context.push(
-                                  AppRoutes.issueWithConnectionScreen,
-                                );
+                                // context.push(
+                                //   AppRoutes.issueWithConnectionScreen,
+                                // );
                               },
                               child: Container(
                                 padding: const EdgeInsets.symmetric(

@@ -1,6 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:respyr_dietician/features/result_screen/data/repository/result_repository.dart';
-import 'package:respyr_dietician/features/result_screen/presentation/cubit/result_state.dart';
+import 'package:respyr_dietitian/features/result_screen/data/repository/result_repository.dart';
+import 'package:respyr_dietitian/features/result_screen/presentation/cubit/result_state.dart';
 
 class ResultCubit extends Cubit<ResultState> {
   final ResultRepository repository;

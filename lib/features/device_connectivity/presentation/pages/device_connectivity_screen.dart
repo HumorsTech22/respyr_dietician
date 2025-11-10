@@ -4,9 +4,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:respyr_dietician/features/device_connectivity/presentation/cubit/usb_connection_cubit.dart';
-import 'package:respyr_dietician/features/device_connectivity/presentation/cubit/usb_connection_state.dart';
-import 'package:respyr_dietician/features/profile_info/presentation/pages/profile_info_screen.dart';
+import 'package:respyr_dietitian/features/device_connectivity/presentation/cubit/usb_connection_cubit.dart';
+import 'package:respyr_dietitian/features/device_connectivity/presentation/cubit/usb_connection_state.dart';
+import 'package:respyr_dietitian/features/profile_info/presentation/pages/profile_info_screen.dart';
 
 class UsbDeviceConnectivity extends StatelessWidget {
   final int stepCompleted;

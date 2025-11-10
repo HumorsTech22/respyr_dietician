@@ -1,5 +1,5 @@
 import 'package:intl/intl.dart';
-import 'package:respyr_dietitian/client-dashboard/todays_result/today_test_data_api_service.dart';
+import 'package:respyr_dietitian/client-dashboard/today_result/today_test_data_api_service.dart';
 
 import '../../features/test_history/test_history_by_date/data/models/test_data_record.dart';
 
@@ -12,6 +12,7 @@ class TodayTestDataRepository {
   /// If [date] is null, the API should return “today” (per your PHP).
   Future<List<TestDataRecord>> fetchDay({
     required String profileId,
+    required String dietitianId,
     DateTime? date, // pass when you want a specific day
   }) async {
     String? day;
@@ -20,7 +21,7 @@ class TodayTestDataRepository {
       day = DateFormat('yyyy-MM-dd').format(date);
     }
 
-    final jsonMap = await api.fetchForDay(profileId: profileId, dateYYYYMMDD: day);
+    final jsonMap = await api.fetchForDay(profileId: profileId, dateYYYYMMDD: day!, dietitianId: dietitianId);
     final data = (jsonMap['data'] as List?) ?? [];
 
     // If data is empty, you might still want to return a dummy record

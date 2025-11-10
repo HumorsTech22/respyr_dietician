@@ -1,11 +1,11 @@
-// lib/features/metabolism_test/data/repositories/test_data_repository.dart
 import 'package:intl/intl.dart';
 import '../models/test_data_record.dart';
 import '../sources/test_data_api.dart';
 
 class TestDataRepository {
   final TestDataApi api;
-  TestDataRepository({required this.api});
+  final bool? isTakenTest;
+  TestDataRepository(this.isTakenTest, {required this.api});
 
   /// Accepts either a DateTime or a preformatted "YYYY-MM-DD" string
   Future<List<TestDataRecord>> getForProfileOnDate({
@@ -19,7 +19,7 @@ class TestDataRepository {
     );
 
     final list = (jsonMap['data'] as List<dynamic>? ?? [])
-        .map((e) => TestDataRecord.fromJson(e as Map<String, dynamic>))
+        .map((e) => TestDataRecord.fromJson(e as Map<String, dynamic>,isTakenTest))
         .toList();
 
     // API already returns latest first, but we can enforce just in case.

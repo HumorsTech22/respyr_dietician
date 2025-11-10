@@ -19,6 +19,10 @@ class DietitianDashboardLoaded extends DietitianDashboardState {
   List<Object?> get props => [meal];
 }
 
+class DietitianDashboardSwipeSuccess extends DietitianDashboardState {}
+
+class DietitianDashboardSwipeReset extends DietitianDashboardState {}
+
 class DietitianDashboardError extends DietitianDashboardState {
   final String message;
 

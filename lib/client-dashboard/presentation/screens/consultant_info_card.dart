@@ -1,14 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:respyr_dietitian/client-dashboard/data/model/client_profile_model.dart';
+import 'package:respyr_dietitian/features/profile_info/data/model/dietician_detail_model.dart';
 
-import '../model/dietitian_model.dart';
+import '../../../features/chat_manger/presentation/screen/chat_screen.dart';
+import '../../data/model/dietitian_model.dart';
+
+
 
 
 
 class ConsultantInfoCard extends StatefulWidget {
-  final DietitianModel dietitianModel;
-  const ConsultantInfoCard({super.key, required this.dietitianModel});
+  final DietitianDetailModel dietitianModel;
+  final ClientProfileModel clientProfileModel;
+  const ConsultantInfoCard({super.key, required this.dietitianModel, required this.clientProfileModel});
 
   @override
   State<ConsultantInfoCard> createState() => _ConsultantInfoCardState();
@@ -18,8 +25,17 @@ class _ConsultantInfoCardState extends State<ConsultantInfoCard>
     with TickerProviderStateMixin {
   bool isExpanded = false;
 
+
+
+
   @override
   Widget build(BuildContext context) {
+
+    if(widget.clientProfileModel.dietitianId=="NA"){
+      return SizedBox.shrink();
+    }
+
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
@@ -51,7 +67,7 @@ class _ConsultantInfoCardState extends State<ConsultantInfoCard>
                 });
               },
 
-              tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              tilePadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 4),
               collapsedBackgroundColor: Colors.transparent,
               backgroundColor: Colors.transparent,
               collapsedShape: const RoundedRectangleBorder(),
@@ -60,19 +76,20 @@ class _ConsultantInfoCardState extends State<ConsultantInfoCard>
 
               title: Row(
                 children: [
+
                   CircleAvatar(
-                    backgroundColor: Colors.grey.shade100,
-                    child: Image.network(
-                      height: 80,
-                      width: 80,
-                      widget.dietitianModel.logo,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Image.asset(
+                    radius: 40,
+                    backgroundColor: Colors.grey.shade200,
+                    child: ClipOval(
+                      child: Image.network(
+                        widget.dietitianModel.logoUrl,
+                        width: 80, height: 80,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Image.asset(
                           'assets/images/icons/default2.png',
-                          fit: BoxFit.cover,
-                        );
-                      },
+                          width: 80, height: 80, fit: BoxFit.cover,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 20),
@@ -186,7 +203,26 @@ class _ConsultantInfoCardState extends State<ConsultantInfoCard>
           ),
           SizedBox(height: 0,),
           ElevatedButton(
-              onPressed: (){},
+              onPressed: (){
+
+                // Navigator.pushReplacement(
+                //   context,
+                //   MaterialPageRoute(
+                //     builder: (_) => ChatScreen(
+                //       dietitianModel: widget.dietitianModel!, clientProfileModel: widget.clientProfileModel,
+                //     ),
+                //   ),
+                // );
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => ChatScreen(
+                      dietitianModel: widget.dietitianModel,
+                      clientProfileModel: widget.clientProfileModel,
+                    ),
+                  ),
+                );
+
+              },
               style: ElevatedButton.styleFrom(
                 elevation: 0,
                 shadowColor: Colors.transparent,

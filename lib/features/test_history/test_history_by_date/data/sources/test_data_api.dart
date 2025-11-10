@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 
 class TestDataApi {
   // Change this to your actual endpoint
-  static const String baseUrl = 'https://your-domain.com/api/fetch_test_data_by_date.php';
+  static const String baseUrl = 'https://humorstech.com/humors_app/app_final/dieticianapp/api/fetch_test_data_by_date.php';
 
   final http.Client _client;
   TestDataApi({http.Client? client}) : _client = client ?? http.Client();
@@ -23,6 +23,9 @@ class TestDataApi {
         'date': dateYMD,
       },
     );
+
+
+    print(resp.body.toString());
 
     if (resp.statusCode != 200) {
       throw Exception('HTTP ${resp.statusCode}: ${resp.body}');

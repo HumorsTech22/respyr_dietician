@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:respyr_dietitian/features/dietitian_dashboard/presentation/cubit/dietitian_dashboard_cubit.dart';
-import 'package:respyr_dietitian/features/dietitian_dashboard/presentation/cubit/dietitian_dashboard_state.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class SwipeButtonWidget extends StatefulWidget {
-  const SwipeButtonWidget({super.key});
+  /// Called when user completes the swipe.
+  final VoidCallback? onSwiped;
+
+  const SwipeButtonWidget({super.key, this.onSwiped});
 
   @override
   State<SwipeButtonWidget> createState() => _SwipeButtonWidgetState();
@@ -12,7 +13,6 @@ class SwipeButtonWidget extends StatefulWidget {
 
 class _SwipeButtonWidgetState extends State<SwipeButtonWidget> {
   double _dragPosition = 0.0;
-  bool _swiped = false;
   bool _isDisposed = false;
 
   @override
@@ -24,108 +24,109 @@ class _SwipeButtonWidgetState extends State<SwipeButtonWidget> {
   @override
   Widget build(BuildContext context) {
     const double height = 65.0;
-    const double width = 206.0;
+    const double width = 220.0;
     const double padding = 7.0;
+    const double dragThreshold = 0.50; // 50% of the track
 
-    const dragThreshold = 0.50;
+    final maxDrag = width - height - (padding * 1.5);
 
-    return BlocListener<DietitianDashboardCubit, DietitianDashboardState>(
-      listener: (context, state) {
-        if (state is DietitianDashboardSwipeSuccess) {
-          Future.delayed(const Duration(milliseconds: 500), () {
-            if (!_isDisposed && mounted) {
-              setState(() {
-                _dragPosition = 0.0;
-                _swiped = false;
-              });
-            }
-            if (context.mounted) {
-              context.read<DietitianDashboardCubit>().resetSwipe();
-            }
-          });
-        }
-      },
-      child: Container(
-        width: width,
-        height: height,
-        decoration: BoxDecoration(
-          color: Colors.grey.shade100,
-          borderRadius: BorderRadius.circular(60),
-        ),
-        child: Stack(
-          alignment: Alignment.centerLeft,
-          children: [
-            Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(60),
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Colors.white54, Colors.grey.shade300],
-                ),
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(60),
+      ),
+      child: Stack(
+        alignment: Alignment.centerLeft,
+        children: [
+          // background gradient
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(60),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Colors.white54, Colors.grey.shade300],
               ),
             ),
-            Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(60),
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.topRight,
-                  colors: [
-                    Colors.grey.shade300,
-                    Color(0xFFD0D0D0),
-                    Colors.grey.shade300,
+          ),
+          // subtle overlay gradient
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(60),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.topRight,
+                colors: [Colors.grey.shade300, const Color(0xFFD0D0D0), Colors.grey.shade300],
+              ),
+            ),
+            padding: EdgeInsets.symmetric(horizontal: 20),
+            child: Align(
+              alignment: Alignment.centerRight,
+                child: Text("Slide to start test",
+                  style: GoogleFonts.poppins(
+                    color: const Color(0xFF535359),
+                    fontSize: 15,
+                    fontWeight: FontWeight.w400,
+                    height: 1.10,
+                    letterSpacing: -0.30,
+                  ),
+                )
+            ),
+          ),
+
+          // draggable knob
+          Positioned(
+            left: padding + _dragPosition,
+            child: GestureDetector(
+              onHorizontalDragUpdate: (details) {
+                if (!mounted) return;
+                setState(() {
+                  _dragPosition += details.delta.dx;
+                  _dragPosition = _dragPosition.clamp(0.0, maxDrag);
+                });
+              },
+              onHorizontalDragEnd: (_) {
+                final passed = _dragPosition > (maxDrag * dragThreshold);
+                if (passed) {
+                  // ✅ "Return" on swiped
+                  if (widget.onSwiped != null) {
+                    widget.onSwiped!();
+                  } else {
+                    // Try to pop this route with a true result (safe in dialogs/screens)
+                    Navigator.of(context).maybePop(true);
+                  }
+                  // (Optional) reset after a short delay for visual polish when staying on the same page
+                  Future.delayed(const Duration(milliseconds: 300), () {
+                    if (!_isDisposed && mounted) {
+                      setState(() => _dragPosition = 0.0);
+                    }
+                  });
+                } else {
+                  if (!mounted) return;
+                  setState(() => _dragPosition = 0.0);
+                }
+              },
+              child: Container(
+                width: height - 8,
+                height: height - 8,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF308BF9),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black38,
+                      offset: Offset(0, 2),
+                      blurRadius: 4,
+                    ),
                   ],
                 ),
+                child: const Icon(Icons.arrow_forward, color: Colors.white),
               ),
             ),
-
-            Positioned(
-              left: padding + _dragPosition,
-              child: GestureDetector(
-                onHorizontalDragUpdate: (details) {
-                  if (!mounted) return;
-                  setState(() {
-                    _dragPosition += details.delta.dx;
-                    _dragPosition = _dragPosition.clamp(
-                      0.0,
-                      width - height - (padding * 1.5),
-                    );
-                  });
-                },
-                onHorizontalDragEnd: (_) {
-                  if (_dragPosition >
-                      (width - height - (padding * 1.5)) * dragThreshold) {
-                    if (!mounted) return;
-                    setState(() => _swiped = true);
-                    context.read<DietitianDashboardCubit>().onSwipeComplete(
-                      context,
-                    );
-                  } else {
-                    if (!mounted) return;
-                    setState(() => _dragPosition = 0.0);
-                  }
-                },
-                child: Container(
-                  width: height - 8,
-                  height: height - 8,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF308BF9),
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black38,
-                        offset: Offset(0, 2),
-                        blurRadius: 4,
-                      ),
-                    ],
-                  ),
-                  child: const Icon(Icons.arrow_forward, color: Colors.white),
-                ),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

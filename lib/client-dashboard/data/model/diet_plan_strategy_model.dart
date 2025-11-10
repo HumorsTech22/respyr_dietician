@@ -1,5 +1,5 @@
 import 'dart:convert';
-import '../../features/client_profile/data/model/goals_model.dart';
+import '../../../features/client_profile/data/model/goals_model.dart';
 import 'dietitian_model.dart';
 
 class DietPlanStrategyModel {

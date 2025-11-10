@@ -1,18 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
-class CommonAppbar extends StatefulWidget {
-  final VoidCallback onBackButtonPress;
-  const CommonAppbar({super.key, required this.onBackButtonPress});
-
-  @override
-  State<CommonAppbar> createState() => _CommonAppbarState();
-}
-
-class _CommonAppbarState extends State<CommonAppbar> {
-  @override
-  Widget build(BuildContext context) {
-    return AppBar(
-
-    );
-  }
+AppBar commonAppbar({required String title, required VoidCallback onBackButtonPress}){
+  return AppBar(
+    automaticallyImplyLeading:false,
+    backgroundColor: Color(0xFFF5F7FA),
+    surfaceTintColor: Color(0xFFF5F7FA),
+    title: Row(
+      children: [
+        InkWell(onTap: (){onBackButtonPress;}, child: Icon(Icons.arrow_back_outlined), ),
+        SizedBox(width: 20,),
+        Text(title,
+          style: GoogleFonts.poppins(
+            color: const Color(0xFF252525),
+            fontSize: 15,
+            fontWeight: FontWeight.w400,
+            letterSpacing: -0.30,
+          ),
+        )
+      ],
+    ),
+  );
 }

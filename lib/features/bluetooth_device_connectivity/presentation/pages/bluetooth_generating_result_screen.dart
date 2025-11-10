@@ -3,15 +3,16 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:respyr_dietitian/client-dashboard/data/model/client_profile_model.dart';
 import 'package:respyr_dietitian/common/dialogs/cancel_Test_dialog.dart';
 import 'package:respyr_dietitian/common/dialogs/disconnection_dialog.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/repository/bluetooth_repository.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_generating_result_cubit/bluetooth_generating_result_cubit.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_generating_result_cubit/bluetooth_generating_result_state.dart';
-import 'package:respyr_dietitian/features/dietitian_result_screen/presentation/cubit/dietitian_result_cubit.dart';
 import 'package:respyr_dietitian/routes/app_routes.dart';
 
 class BluetoothGeneratingResultScreen extends StatelessWidget {
+  final ClientProfileModel clientProfileModel;
   final double maxPressure;
   final double bestPressure;
   final int blowDuration;
@@ -23,6 +24,7 @@ class BluetoothGeneratingResultScreen extends StatelessWidget {
     required this.bestPressure,
     required this.blowDuration,
     required this.blowValuesList,
+    required this.clientProfileModel,
   });
 
   @override
@@ -55,7 +57,14 @@ class BluetoothGeneratingResultScreen extends StatelessWidget {
                 await context
                     .read<BluetoothGeneratingResultCubit>()
                     .setCancelOrDisconnectFlag();
-                context.go(AppRoutes.dieitianDashboardPage);
+
+
+                context.go(
+                  AppRoutes.clientDashboard,
+                  extra: clientProfileModel,
+                );
+
+
               },
             );
           }
@@ -66,8 +75,8 @@ class BluetoothGeneratingResultScreen extends StatelessWidget {
             final hydrogen = 12;
             final diabetic = false;
             final goal = "fat_loss";
-            final dietitianId = "do01";
-            final profileId = "p01";
+            final dietitianId = clientProfileModel.dietitianId;
+            final profileId = clientProfileModel.profileId;
 
             context.push(
               AppRoutes.dietitianResultScreen,
@@ -106,7 +115,11 @@ class BluetoothGeneratingResultScreen extends StatelessWidget {
                               await context
                                   .read<BluetoothGeneratingResultCubit>()
                                   .setCancelOrDisconnectFlag();
-                              context.go(AppRoutes.dieitianDashboardPage);
+
+                              context.go(
+                                AppRoutes.clientDashboard,
+                                extra: clientProfileModel,
+                              );
                               context
                                   .read<BluetoothGeneratingResultCubit>()
                                   .dialogDismissed();

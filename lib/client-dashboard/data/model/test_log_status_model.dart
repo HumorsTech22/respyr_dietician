@@ -1,4 +1,4 @@
-import 'package:respyr_dietitian/client-dashboard/model/test_log_model.dart';
+import 'package:respyr_dietitian/client-dashboard/data/model/test_log_model.dart';
 
 class TestLogStatus {
   final bool success;

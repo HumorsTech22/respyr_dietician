@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
-import '../data/repositories/diet_plan_repository.dart';
+
+import '../repositories/diet_plan_repository.dart';
 
 enum LoadStatus { initial, loading, success, failure }
 

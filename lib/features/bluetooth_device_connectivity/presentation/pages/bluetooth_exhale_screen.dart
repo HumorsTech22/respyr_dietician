@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:respyr_dietitian/client-dashboard/data/model/client_profile_model.dart';
 import 'package:respyr_dietitian/common/dialogs/cancel_Test_dialog.dart';
 import 'package:respyr_dietitian/common/dialogs/disconnection_dialog.dart';
 import 'package:respyr_dietitian/common/dialogs/exhale_timeout_dialog.dart';
@@ -15,10 +16,12 @@ import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presenta
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_exhale_cubit.dart/bluetooth_exhale_state.dart';
 import 'package:respyr_dietitian/routes/app_routes.dart';
 
+import 'bluetooth_generating_result_screen.dart';
+
 class BluetoothExhaleScreen extends StatelessWidget {
   final String baseValue;
-
-  const BluetoothExhaleScreen({super.key, required this.baseValue});
+  final ClientProfileModel clientProfileModel;
+  const BluetoothExhaleScreen({super.key, required this.baseValue, required this.clientProfileModel});
 
   @override
   Widget build(BuildContext context) {
@@ -59,10 +62,20 @@ class BluetoothExhaleScreen extends StatelessWidget {
               blowValuesList: allValues,
             );
 
-            context.pushReplacement(
-              AppRoutes.bluetoothGeneratingResultScreen,
-              extra: params,
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (_) => RepositoryProvider<BluetoothRepository>.value(
+                  value: context.read<BluetoothRepository>(), // or create(...) if none above
+                  child: BluetoothGeneratingResultScreen(
+                    maxPressure: maxPR,
+                    bestPressure: bestPR,
+                    blowDuration: duration,
+                    blowValuesList: allValues, clientProfileModel: clientProfileModel,
+                  ),
+                ),
+              ),
             );
+
           }
 
           switch (state.activeDialog) {
@@ -72,7 +85,12 @@ class BluetoothExhaleScreen extends StatelessWidget {
                 onButtonPressed: () async {
                   context.read<BluetoothExhaleCubit>().stop();
                   context.read<BluetoothExhaleCubit>().dialogDismissed();
-                  context.go(AppRoutes.dieitianDashboardPage);
+
+                  context.go(
+                    AppRoutes.clientDashboard,
+                    extra: clientProfileModel,
+                  );
+
                   await context
                       .read<BluetoothExhaleCubit>()
                       .setCancelOrDisconnectFlag();
@@ -88,7 +106,12 @@ class BluetoothExhaleScreen extends StatelessWidget {
                 onButtonPressed: () async {
                   context.read<BluetoothExhaleCubit>().stop();
                   context.read<BluetoothExhaleCubit>().dialogDismissed();
-                  context.go(AppRoutes.dieitianDashboardPage);
+
+                  context.go(
+                    AppRoutes.clientDashboard,
+                    extra: clientProfileModel,
+                  );
+
                   await context
                       .read<BluetoothExhaleCubit>()
                       .setCancelOrDisconnectFlag();
@@ -104,7 +127,12 @@ class BluetoothExhaleScreen extends StatelessWidget {
                 tryAgainButtonClicked: () async {
                   context.read<BluetoothExhaleCubit>().abortBlow();
                   context.read<BluetoothExhaleCubit>().dialogDismissed();
-                  context.go(AppRoutes.dieitianDashboardPage);
+
+                  context.go(
+                    AppRoutes.clientDashboard,
+                    extra: clientProfileModel,
+                  );
+
                   await context
                       .read<BluetoothExhaleCubit>()
                       .setCancelOrDisconnectFlag();
@@ -166,8 +194,10 @@ class BluetoothExhaleScreen extends StatelessWidget {
                                               .sendAbort();
 
                                           context.go(
-                                            AppRoutes.dieitianDashboardPage,
+                                            AppRoutes.clientDashboard,
+                                            extra: clientProfileModel,
                                           );
+
                                           context
                                               .read<BluetoothExhaleCubit>()
                                               .dialogDismissed();

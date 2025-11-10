@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:respyr_dietician/common/widgets/text_input_decoration.dart';
-import 'package:respyr_dietician/features/account_setting_screen/presentation/cubit/change_password_cubit.dart';
-import 'package:respyr_dietician/features/account_setting_screen/presentation/cubit/change_password_state.dart';
+import 'package:respyr_dietitian/common/widgets/text_input_decoration.dart';
+import 'package:respyr_dietitian/features/account_setting_screen/presentation/cubit/change_password_cubit.dart';
+import 'package:respyr_dietitian/features/account_setting_screen/presentation/cubit/change_password_state.dart';
 
 class ChangePasswordScreen extends StatelessWidget {
   const ChangePasswordScreen({super.key});
@@ -65,7 +65,7 @@ class _ChangePasswordViewState extends State<_ChangePasswordView> {
                             ? 'Password must meet all criteria'
                             : null,
                     obscure: !_isNewPasswordVisible,
-                    showSuffixIcon: true,
+                   // showSuffixIcon: true,
                     onSuffixTap: () {
                       setState(() {
                         _isNewPasswordVisible = !_isNewPasswordVisible;
@@ -115,7 +115,7 @@ class _ChangePasswordViewState extends State<_ChangePasswordView> {
                             ? 'Passwords do not match'
                             : null,
                     obscure: !_isConfirmPasswordVisible,
-                    showSuffixIcon: true,
+                   // showSuffixIcon: true,
                     onSuffixTap: () {
                       setState(() {
                         _isConfirmPasswordVisible = !_isConfirmPasswordVisible;

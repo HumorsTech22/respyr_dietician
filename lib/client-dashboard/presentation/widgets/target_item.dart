@@ -25,7 +25,7 @@ Widget targetItem({
           const SizedBox(height: 20),
           // kept toString() to avoid UI change; format if you want later
           Text(
-            targetValue.toString(),
+            targetValue ==0 ? "-" : targetValue.toString(),
             style: GoogleFonts.poppins(
               color: const Color(0xFF252525),
               fontSize: 25,

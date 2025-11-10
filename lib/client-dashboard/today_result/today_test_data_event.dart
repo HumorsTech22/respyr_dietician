@@ -8,9 +8,10 @@ abstract class TodayTestDataEvent extends Equatable {
 
 class LoadTestDataForDay extends TodayTestDataEvent {
   final String profileId;
+  final String dietitianId;
   final DateTime? date; // optional specific day
 
-  const LoadTestDataForDay({required this.profileId, this.date});
+  const LoadTestDataForDay({required this.dietitianId,required this.profileId, this.date});
 
   @override
   List<Object?> get props => [profileId, date];

@@ -5,8 +5,35 @@ abstract class AppRoutes {
   static const ageScreen = '/age-screen';
   static const heightScreen = '/height-screen';
   static const weightScreen = '/weight-screen';
-  static const dieticianScreen = '/dietician-screen';
+  static const dietitianScreen = '/dietician-screen';
   static const profileWelcomeScreen = '/profile-welcome-screen';
   static const fullScreenImageView = '/full-screen-image-view';
   static const resultScreen = '/result-screen';
+  static const clientMenu = '/client-menu';
+  static const clientDashboard = '/client-dashboard';
+  static const splashScreen = '/';
+  static const clientLoginWithPhoneNo = '/client-login-with-phone-no';
+  static const selectCountryCode = '/country-code';
+  static const signInOptions = '/sign-in-option';
+  static const signInWithEmail = '/sign-in-with-email';
+  static const dietitianDetailScreen = '/dietician-detail-screen';
+  static const chatScreen = '/chat';
+
+
+  static const bluetoothDeviceConnectivity = '/bluetooth-device-connectivity';
+  static const bluetoothBreatheTube = '/bluetooth-breathe-tube';
+  static const bluetoothCalibrationScreen = '/bluetooth-calibration-screen';
+  static const bluetoothInhaleScreen = '/bluetooth-inhale-screen';
+  static const bluetoothExhaleScreen = '/bluetooth-exhale-screen';
+  static const bluetoothGeneratingResultScreen =
+      '/bluetooth-generating-result-screen';
+
+  static const logFoodPage = "/log-food-page";
+  static const helpCenterPage = "/help-center-page";
+  static const dietLogPage = "/diet-log-page";
+  static const dieitianDashboardPage = "/dietitian-dashboard-page";
+  static const issueWithConnectionScreen = "/issue-with-connection-screem";
+
+  static const dietitianResultScreen = '/dietitian-result-screen';
+
 }

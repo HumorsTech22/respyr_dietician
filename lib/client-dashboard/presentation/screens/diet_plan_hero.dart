@@ -1,107 +1,58 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:respyr_dietitian/client-dashboard/model/dietitian_model.dart';
-import 'package:respyr_dietitian/features/dashboard_menu/peresentation/dashboard_menu_screen.dart';
 
-import '../../features/chat_manger/presentation/screen/chat_screen.dart';
-import '../extras/meal_type_helper.dart';
-import '../model/client_profile_model.dart';
+import 'package:respyr_dietitian/features/profile_info/data/model/dietician_detail_model.dart';
+import '../../../features/diet_plan/presentation/pages/diet_plan_screen.dart';
+import '../../data/model/client_profile_model.dart';
+import '../../data/model/diet_plan_strategy_model.dart';
+import '../../extras/meal_time_helper.dart';
+import '../../extras/meal_type_helper.dart';
+import '../../extras/pick_current_meal.dart';
+import '../widgets/dashboard_appbar.dart';
 import '../widgets/diet_food_item_card.dart';
 
 class DietPlanHero extends StatelessWidget {
   final ClientProfileModel clientProfileModel;
-  final DietitianModel dietitianModel;
+  final DietitianDetailModel dietitianDetailModel;
+  final DietPlanStrategyModel dietPlanStrategyModel;
+
+  /// plain map passed from FutureBuilder (NOT an AsyncSnapshot)
+  final Map<String, dynamic> todayData;
+
   const DietPlanHero({
     super.key,
     required this.clientProfileModel,
-    required this.dietitianModel,
+    required this.dietitianDetailModel,
+    required this.dietPlanStrategyModel,
+    required this.todayData,
   });
 
   @override
   Widget build(BuildContext context) {
+    final dayKey = (todayData['dayKey'] ?? '').toString();
+    final totals = (todayData['totals'] ?? {}) as Map<String, dynamic>;
+    final meals = (todayData['meals'] ?? const []) as List;
+
+
+    Map<String, dynamic>? picked = CurrentMeal().pickCurrentMeal(meals);
+    final time = (picked?['time'] ?? '').toString();
+    final mTotals = (picked?['totals'] ?? {}) as Map<String, dynamic>;
+    final items = (picked!['items'] ?? const []) as List;
+
     return Container(
       decoration: BoxDecoration(
         gradient: ThemeHelper().getHeroGradient(),
       ),
       child: Column(
         children: [
-          const SizedBox(height: 10),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 13),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      clientProfileModel.profileName,
-                      style: GoogleFonts.poppins(
-                        color: ThemeHelper().getGreetingTextColor(),
-                        fontSize: 15,
-                        fontWeight: FontWeight.w400,
-                        letterSpacing: -0.30,
-                        height: 1.2,
-                      ),
-                    ),
-                    Text(
-                      ThemeHelper().getGreetingMessage(),
-                      style: GoogleFonts.poppins(
-                        color: ThemeHelper().getGreetingTextColor(),
-                        fontSize: 25,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: -1,
-                        height: 1.2,
-                      ),
-                    )
-                  ],
-                ),
-                const Spacer(),
-                IconButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ChatScreen(
-                          dietitianModel: dietitianModel,
-                        ),
-                      ),
-                    );
-                  },
-                  style: IconButton.styleFrom(
-                    backgroundColor: ThemeHelper().getThemeDarkColor(),
-                  ),
-                  icon: SvgPicture.asset("assets/images/icons/ic_message.svg"),
-                ),
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => DashboardMenuScreen(clientProfileModel: clientProfileModel,
-                         
-                        ),
-                      ),
-                    );
-                  },
-                  child: Hero(
-                    tag: "client-image",
-                    child: CircleAvatar(
-                      radius: 20,
-                      backgroundImage: NetworkImage(clientProfileModel.profileImage),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 41),
+          DashboardAppbar(clientProfileModel: clientProfileModel,isDefaultColor: true, dietitianDetailModel: dietitianDetailModel,),
+          SizedBox(height: 80,),
           SizedBox(
             width: double.infinity,
             child: Center(
               child: Text(
-                "It’s after lunch time!",
+                MealTimeHelper().getMealName(time),
                 textAlign: TextAlign.center,
                 style: GoogleFonts.poppins(
                   color: ThemeHelper().getThemeDarkColor(),
@@ -125,7 +76,7 @@ class DietPlanHero extends StatelessWidget {
                   ),
                 ),
                 TextSpan(
-                  text: " diet plan",
+                  text: "diet plan",
                   style: GoogleFonts.poppins(
                     color: ThemeHelper().getThemeDarkColor(),
                     fontSize: 15,
@@ -146,7 +97,7 @@ class DietPlanHero extends StatelessWidget {
             ),
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
             child: Text(
-              "8:00–9:00 AM",
+              MealTimeHelper().getMealTime(time),
               style: GoogleFonts.poppins(
                 color: ThemeHelper().getThemeDarkColor(),
                 fontSize: 15,
@@ -157,11 +108,15 @@ class DietPlanHero extends StatelessWidget {
           ),
           const SizedBox(height: 33),
           ListView.builder(
-            itemCount: 3,
+            itemCount: items.length,
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemBuilder: (context, index) {
-              return DietPlanWidgets().dietFoodItemCard(index: index + 1);
+              return DietPlanWidgets().dietFoodItemCard(
+                index: index + 1,
+                foodName: items[index]['name'] ?? '',
+                foodPortion:  items[index]['portion'],
+                foodCalories:"${items[index]['calories_kcal']} Kcal" , );
             },
           ),
           Padding(
@@ -216,7 +171,7 @@ class DietPlanHero extends StatelessWidget {
                                     ),
                                   ),
                                   Text(
-                                    "3 items",
+                                    "${items.length} items",
                                     style: GoogleFonts.poppins(
                                       color: Colors.white,
                                       fontSize: 15,
@@ -228,7 +183,7 @@ class DietPlanHero extends StatelessWidget {
                                 ],
                               ),
                               Text(
-                                "291 kcal\nCalories",
+                                "${mTotals["calories_kcal"]} Kcal",
                                 style: GoogleFonts.poppins(
                                   color: Colors.white,
                                   fontSize: 20,
@@ -241,19 +196,32 @@ class DietPlanHero extends StatelessWidget {
                           ),
                           Container(height: 0.5, width: double.infinity, color: Colors.white),
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              ElevatedButton(
-                                onPressed: () {},
+                              TextButton(
+                                onPressed: () {
+
+
+
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (context) => DietPlanScreen(
+                                      dieticianId: dietitianDetailModel.dietitianId,
+                                      profileId: clientProfileModel.profileId,
+                                      dietPlanId: dietPlanStrategyModel.id.toString(),)),
+                                  );
+
+
+                                },
                                 style: ElevatedButton.styleFrom(
                                   elevation: 0,
                                   backgroundColor: Colors.transparent,
                                   padding: EdgeInsets.zero,
                                 ),
                                 child: Row(
+                                  spacing: 5,
                                   children: [
-                                    SvgPicture.asset("assets/images/icons/ic_diet_plan.svg"),
-                                    const SizedBox(width: 5),
+                                    SvgPicture.asset("assets/images/icons/ic_diet_plan.svg", width: 20,),
                                     Text(
                                       "View full plan",
                                       style: GoogleFonts.poppins(
@@ -263,32 +231,37 @@ class DietPlanHero extends StatelessWidget {
                                         height: 1.10,
                                         letterSpacing: -0.24,
                                       ),
-                                    )
+                                    ),
+                                    Icon(Icons.keyboard_arrow_right_outlined, color: Colors.white,size: 15,)
                                   ],
                                 ),
                               ),
-                              ElevatedButton(
-                                onPressed: () {},
-                                style: ElevatedButton.styleFrom(
-                                  elevation: 0,
-                                  backgroundColor: Colors.transparent,
-                                  padding: EdgeInsets.zero,
-                                ),
-                                child: Row(
-                                  children: [
-                                    SvgPicture.asset("assets/images/icons/ic_food.svg"),
-                                    const SizedBox(width: 5),
-                                    Text(
-                                      "Log this meal",
-                                      style: GoogleFonts.poppins(
-                                        color: Colors.white,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        height: 1.10,
-                                        letterSpacing: -0.24,
+                              Visibility(
+                                visible: false,
+                                child: TextButton(
+                                  onPressed: () {},
+                                  style: ElevatedButton.styleFrom(
+                                    elevation: 0,
+                                    backgroundColor: Colors.transparent,
+                                    padding: EdgeInsets.zero,
+                                  ),
+                                  child: Row(
+                                    spacing: 5,
+                                    children: [
+                                      SvgPicture.asset("assets/images/icons/ic_food.svg", width: 20,),
+                                      Text(
+                                        "Log this meal",
+                                        style: GoogleFonts.poppins(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          height: 1.10,
+                                          letterSpacing: -0.24,
+                                        ),
                                       ),
-                                    )
-                                  ],
+                                      Icon(Icons.keyboard_arrow_right_outlined, color: Colors.white,size: 15,)
+                                    ],
+                                  ),
                                 ),
                               ),
                             ],
@@ -305,5 +278,7 @@ class DietPlanHero extends StatelessWidget {
         ],
       ),
     );
+
   }
+
 }

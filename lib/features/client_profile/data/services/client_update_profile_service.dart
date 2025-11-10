@@ -1,10 +1,10 @@
-// lib/services/client_service.dart
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
-import '../../../../client-dashboard/model/client_profile_model.dart';
+import '../../../../client-dashboard/data/model/client_profile_model.dart';
 
-class ClientService {
+
+class ClientUpdateProfileService {
   static const _url = 'https://humorstech.com/humors_app/app_final/dieticianapp/api/update_client.php';
 
   static Future<ClientProfileModel?> updateProfile({

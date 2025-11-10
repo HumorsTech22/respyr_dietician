@@ -11,13 +11,14 @@ class TestDataList extends StatelessWidget {
   Widget build(BuildContext context) {
     final timeFmt = DateFormat('HH:mm:ss');
     return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      padding: EdgeInsets.symmetric(horizontal: 10),
       itemCount: records.length,
       separatorBuilder: (_, __) => const SizedBox(height: 8),
       itemBuilder: (context, i) {
         final r = records[i];
         return Card(
-          elevation: 1.5,
+          elevation: 0,
+          color: Colors.white,
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: Column(
@@ -70,7 +71,7 @@ class TestDataList extends StatelessWidget {
       builder: (context, c) {
         final isWide = c.maxWidth > 480;
         return GridView.count(
-          crossAxisCount: isWide ? 3 : 2,
+          crossAxisCount:  1 ,
           shrinkWrap: true,
           childAspectRatio: 3.4,
           physics: const NeverScrollableScrollPhysics(),

@@ -1,30 +1,20 @@
-import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:respyr_dietitian/client-dashboard/model/client_profile_model.dart';
-import 'package:respyr_dietitian/client-dashboard/repository/test_log_manager.dart';
-import 'package:respyr_dietitian/client-dashboard/screens/test_history_card.dart';
-import '../../app-permission-manager/notification_permission_request.dart';
-import '../../common/widgets/inner_shadow.dart';
-import '../../common/widgets/slide_to_confirm.dart';
-import '../../fcm-manager/fcm_token_service.dart';
-import '../../notification-manager/screens/notification_screen.dart';
-import '../../routes/route_observer.dart';
-import '../../settings-manager/app_settings.dart';
-import '../bloc/diet_plan_bloc.dart';
-import '../bloc/diet_plan_event.dart';
-import '../bloc/diet_plan_state.dart';
-import '../data/repositories/diet_plan_repository.dart';
-import '../data/services/diet_plan_service.dart';
-import '../extras/meal_type_helper.dart';
-import '../model/diet_plan_strategy_model.dart';
-import '../model/dietitian_model.dart';
-import '../widgets/bottom-sheets/test_reminder_sheet.dart';
-import 'consultant_info_card.dart';
-import 'diet_plan_card.dart';
-import 'diet_plan_hero.dart';
 
+import 'package:respyr_dietitian/client-dashboard/today_result/today_test_data_api_service.dart';
+import 'package:respyr_dietitian/common/widgets/loading_widget.dart';
+
+import '../../../features/gifting/dashboard/presentation/pages/dashboard.dart';
+import '../../../features/profile_info/data/repository/dietician_repository.dart';
+import '../../../features/profile_info/data/model/dietician_detail_model.dart';
+import '../../data/model/client_profile_model.dart';
+
+import '../../data/bloc/client_bloc.dart';
+import '../../data/bloc/client_event.dart';
+import '../../data/bloc/client_state.dart';
+import '../../data/repository/client_repository.dart';
+
+import 'client_with_dietitian_screen.dart';
 
 class ClientDashboard extends StatefulWidget {
   final ClientProfileModel clientProfileModel;
@@ -34,242 +24,135 @@ class ClientDashboard extends StatefulWidget {
   State<ClientDashboard> createState() => _ClientDashboardState();
 }
 
-class _ClientDashboardState extends State<ClientDashboard> with WidgetsBindingObserver, RouteAware {
-  late DietPlanStrategyModel dummyDietPlan;
-  late DietitianModel dietitianModel;
+class _ClientDashboardState extends State<ClientDashboard>
+    with WidgetsBindingObserver {
+  final _dietitianRepo = DietitianRepository();
+  final _clientRepo = ClientRepository();
 
+  late final ClientBloc _clientBloc;
+  bool _isFirstLoad = true;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-
-
-
-    askPermission();
-    saveFCMToken();
-    checkTestLog();
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    routeObserver.subscribe(this, ModalRoute.of(context)!);
+    _clientBloc = ClientBloc(_clientRepo);
+    _fetchData();
   }
 
   @override
   void dispose() {
+    _clientBloc.close();
     WidgetsBinding.instance.removeObserver(this);
-    routeObserver.unsubscribe(this);
     super.dispose();
   }
 
-  void saveFCMToken() async {
-    FCMService.saveTokenToServer(widget.clientProfileModel.profileId, await getDeviceId());
-  }
-
-  void askPermission() async {
-    await askNotificationPermission();
-  }
-
-
-
-  Future<String> getDeviceId() async {
-    final deviceInfo = DeviceInfoPlugin();
-    final androidInfo = await deviceInfo.androidInfo;
-    return androidInfo.id;
-  }
-
-  void showTestReminder() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true, // lets the sheet grow as needed (with scroll)
-      builder: (_) => const TestReminderSheet(),
-    );
-  }
-
-
-  void checkTestLog() async {
-    final now = DateTime.now();
-    if (now.isBefore(AppSettings().testReminderEndTime)) {
-      final dateYmd = "${now.year.toString().padLeft(4, '0')}-"
-          "${now.month.toString().padLeft(2, '0')}-"
-          "${now.day.toString().padLeft(2, '0')}";
-
-      final status = await TestLogService().getTestLogStatus(
-        clientId: widget.clientProfileModel.profileId,
-        dateYmd: dateYmd,
-        dietPlanId: "RespyrD01",
-      );
-      if (!status.hasLog) {
-        showTestReminder();
-      }
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Refresh data when the app resumes from background
+    if (state == AppLifecycleState.resumed) {
+      _fetchData();
     }
   }
 
+  @override
+  void didPopNext() {
+    // Called when returning to this screen from another screen
+    _fetchData();
+  }
+
+  void _fetchData() {
+    _clientBloc.add(FetchClientProfile(
+      profileId: widget.clientProfileModel.profileId,
+    ));
+  }
 
   @override
   Widget build(BuildContext context) {
-
-
-
-    dietitianModel = DietitianModel(
-      id: 1,
-      dietitianId: 'diet001',
-      name: 'Dt. John',
-      phoneNo: '9988776655',
-      email: 'manoranjan@example.com',
-      location: 'Bhubaneswar',
-      logo:
-      'https://humorstech.com/humors_app/app_final/dieticianapp/api/get_dietician_logo.php?dietician_id=RespyrD01',
-      dttm: '2025-08-03 12:34:56',
-      password: 'secret123',
-    );
-
-
-    late Color  statusBarColor = ThemeHelper().getStatusBarColor();
-
-    SystemChrome.setSystemUIOverlayStyle(
-      SystemUiOverlayStyle(
-        statusBarColor: statusBarColor,
-        statusBarIconBrightness: Brightness.light,
-      ),
-    );
-
-
-
-    return BlocProvider(
-      create: (_) => DietPlanBloc(DietPlanRepository(DietPlanService()))
-        ..add(FetchPlans(dietitianId: widget.clientProfileModel.dieticianId, clientId:  widget.clientProfileModel.profileId)),
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        body: BlocBuilder<DietPlanBloc, DietPlanState>(
+    return BlocProvider.value(
+      value: _clientBloc,
+      child: BlocListener<ClientBloc, ClientState>(
+        listener: (context, state) {
+          if (state is ClientLoaded) {
+            _isFirstLoad = false;
+          }
+        },
+        child: BlocBuilder<ClientBloc, ClientState>(
           builder: (context, state) {
-            if (state.status == LoadStatus.loading) {
-              return const Center(child: CircularProgressIndicator());
+            if ((state is ClientLoading && _isFirstLoad) ||
+                state is ClientInitial) {
+              return const Scaffold(
+                backgroundColor: Colors.white,
+                body: LoadingWidget(loadingMessage: "Loading client"),
+              );
             }
 
-            if (state.status == LoadStatus.failure) {
-              return Center(
-                child: Text(
-                  "Error: ${state.error}",
-                  style: const TextStyle(color: Colors.red),
+            if (state is ClientError) {
+              return Scaffold(
+                body: Center(
+                  child: Text(state.message),
                 ),
               );
             }
 
-            if (state.status == LoadStatus.success) {
-              final categorized = state.data;
-              if (categorized == null ||
-                  (categorized.active.isEmpty &&
-                      categorized.completed.isEmpty &&
-                      categorized.cancelled.isEmpty &&
-                      categorized.other.isEmpty)) {
-                return const Center(child: Text("No diet plans found"));
+            if (state is ClientLoaded) {
+              final client = state.client;
+
+              if (client.dietitianId == "NA") {
+                return GiftingDashboard(
+                  clientProfileModel: widget.clientProfileModel,
+                );
               }
 
-              return SafeArea(
-                child: Stack(
-                  children: [
+              return FutureBuilder<DietitianDetailModel?>(
+                future: _dietitianRepo.fetchDietitian(client.dietitianId),
+                builder: (context, snap) {
+                  if (snap.connectionState != ConnectionState.done) {
+                    return const Scaffold(
+                      backgroundColor: Colors.white,
+                      body: LoadingWidget(loadingMessage: ''),
+                    );
+                  }
 
+                  if (snap.hasError || snap.data == null) {
+                    return GiftingDashboard(
+                      clientProfileModel: client,
+                    );
+                  }
 
-                    SingleChildScrollView(
-                      child: DashboardContent(
-                        dietitianModel: dietitianModel,
-                        clientProfileModel:widget.clientProfileModel,
-                        categorizedPlans: state.data!,
-                      ),
-                    ),
-
-                    Positioned(
-                      bottom: 20,
-                      left: 0,
-                      right: 0,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            decoration: ShapeDecoration(
-
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(25),
-                              ),
-                              shadows: [
-                                BoxShadow(
-                                  color: Color(0x3F000000),
-                                  blurRadius: 8.40,
-                                  offset: Offset(0, 0),
-                                  spreadRadius: 0,
-                                )
-                              ],
-                            ),
-                            child: ConfirmationSlider(
-                              onConfirmation: () {
-
-                              },
-                              backgroundColor: const Color(0xFFF0F0F0),
-                              height: 61,
-                              width: 209,
-                              text: "Slide to start test",
-
-
-                            ),
-                          ),
-
-
-                        ],
-                      ),
-                    )
-                  ],
-                ),
+                  final dietitian = snap.data!;
+                  return ClientWithDietitianScreen(
+                    clientProfileModel:client,
+                    dietitianModel: dietitian,
+                    todayTestDataApiService: TodayTestDataApiService(),
+                  );
+                },
               );
+            }
+
+            // If we're in a loading state but it's not the first load,
+            // show the current content while refreshing in background
+            if (state is ClientLoading) {
+              // You might want to show a refresh indicator here
+              // while keeping the current content visible
+              return _buildContentWithRefreshIndicator(context);
             }
 
             return const SizedBox.shrink();
           },
         ),
       ),
-
     );
-
-
   }
-}
 
-class DashboardContent extends StatelessWidget {
-
-  final DietitianModel dietitianModel;
-  final ClientProfileModel clientProfileModel;
-  final CategorizedPlans categorizedPlans;
-  const DashboardContent({super.key, required this.dietitianModel, required this.clientProfileModel, required this.categorizedPlans});
-
-  @override
-  Widget build(BuildContext context) {
-    return  Column(
-      children: [
-        DietPlanHero(dietitianModel: dietitianModel, clientProfileModel: clientProfileModel),
-        const SizedBox(height: 20),
-        TestHistoryCard(),
-        const SizedBox(height: 20),
-        DietPlanCard(activeData: categorizedPlans.active, completedData:  categorizedPlans.completed, canceledData:  categorizedPlans.cancelled,),
-        const SizedBox(height: 40),
-        ConsultantInfoCard(dietitianModel: dietitianModel),
-        const SizedBox(height: 100),
-        ElevatedButton(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) =>  NotificationScreen(targetId: clientProfileModel.profileId),
-              ),
-            );
-          },
-          child: const Text("Notification"),
-        )
-        ,const SizedBox(height: 100),
-      ],
+  // Helper method to show refresh indicator when refreshing data
+  Widget _buildContentWithRefreshIndicator(BuildContext context) {
+    // You'll need to implement this based on your current state
+    // For now, just return a simple loading screen
+    return const Scaffold(
+      body: Center(
+        child: CircularProgressIndicator(),
+      ),
     );
   }
 }

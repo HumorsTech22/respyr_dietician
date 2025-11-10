@@ -1,80 +1,86 @@
-import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:respyr_dietician/core/utils/validators.dart';
-import 'package:respyr_dietician/features/profile_info/presentation/cubit/profile_cubit.dart';
-import 'package:respyr_dietician/features/profile_info/presentation/cubit/profile_state.dart';
-import 'package:respyr_dietician/features/profile_info/presentation/widgets/profile_bottom_navigation.dart';
-import 'package:respyr_dietician/features/profile_info/presentation/widgets/profile_progress_bar.dart';
-import 'package:respyr_dietician/routes/app_routes.dart';
+import 'package:respyr_dietitian/core/utils/validators.dart';
+import 'package:respyr_dietitian/features/profile_info/presentation/cubit/profile_cubit.dart';
+import 'package:respyr_dietitian/features/profile_info/presentation/cubit/profile_state.dart';
+import 'package:respyr_dietitian/features/profile_info/presentation/widgets/profile_bottom_navigation.dart';
+import 'package:respyr_dietitian/routes/app_routes.dart';
 
-class DieticianScreen extends StatefulWidget {
-  final int stepCompleted;
+class DietitianScreen extends StatefulWidget {
+  final String enteredEmail;
+  final String imageUrlPath;
+  final String profileName;
 
-  const DieticianScreen({super.key, required this.stepCompleted});
+  const DietitianScreen({super.key,  this.enteredEmail="NA",  this.imageUrlPath="NA",  this.profileName="NA"});
 
   @override
-  State<DieticianScreen> createState() => _DieticianScreenState();
+  State<DietitianScreen> createState() => _DietitianScreenState();
 }
 
-class _DieticianScreenState extends State<DieticianScreen> {
-  final TextEditingController dieticianController = TextEditingController();
+class _DietitianScreenState extends State<DietitianScreen> {
+  final TextEditingController dietitianController = TextEditingController();
   String? errorText;
-  Timer? _debounce;
-  final FocusNode _dieticianFocusNode = FocusNode();
+  final FocusNode _dietitianFocusNode = FocusNode();
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      FocusScope.of(context).requestFocus(_dieticianFocusNode);
+      FocusScope.of(context).requestFocus(_dietitianFocusNode);
     });
   }
 
   @override
   void dispose() {
-    _debounce?.cancel();
-    dieticianController.dispose();
-    _dieticianFocusNode.dispose();
+    dietitianController.dispose();
+    _dietitianFocusNode.dispose();
     super.dispose();
   }
 
-  void _validateAndProceed(BuildContext context, ProfileState state) {
+  void _validateAndProceed(ProfileState state) async {
     final cubit = context.read<ProfileCubit>();
-    final input = dieticianController.text.trim();
+    final input = dietitianController.text.trim();
 
     final error = Validators.validateDieticianId(input);
-    final isChecked = state.isCheckboxChecked;
-    final isDieticianIdFound = state.dieticianName;
     setState(() => errorText = error);
 
     if (error != null) return;
 
-    if (!isChecked) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            "Please confirm your Dietician ID by checking the box.",
-          ),
-          backgroundColor: Color(0xFF308BF9),
-        ),
-      );
+    // Fetch asynchronously
+    await cubit.fetchDietitianName(input);
+
+    // ✅ Check if widget is still mounted
+    if (!mounted) return;
+
+    final updatedState = context.read<ProfileCubit>().state;
+
+    // Show error if not found or failed
+    if (updatedState.dietitianId == 'NotFound' ||
+        updatedState.dietitianName == 'Error' ||
+        updatedState.dietitianImageUrl.trim().isEmpty) {
+      setState(() {
+        errorText = "Dietitian not found";
+      });
       return;
     }
-    if (isDieticianIdFound == 'NotFound') return;
 
-    final dieticianId = int.parse(input);
-    cubit.updateDietician(dieticianId);
+    cubit.updateDietitian(input);
 
-    context.push(AppRoutes.profileWelcomeScreen);
+    context.go(AppRoutes.dietitianDetailScreen ,extra: {
+    "stepCompleted": 1,
+    "enteredEmail": widget.enteredEmail,
+    "profileImage": widget.imageUrlPath,
+    "profileName":  widget.profileName,
+    },);
   }
 
   bool _validateInput(ProfileState state) {
-    final input = dieticianController.text.trim();
+    final input = dietitianController.text.trim();
     final error = Validators.validateDieticianId(input);
     setState(() => errorText = error);
     return error == null;
@@ -100,37 +106,58 @@ class _DieticianScreenState extends State<DieticianScreen> {
       },
       child: Scaffold(
         backgroundColor: Colors.white,
+        resizeToAvoidBottomInset: true,
         body: SafeArea(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ProfileProgressBar(stepCompleted: widget.stepCompleted),
-              Expanded(
+              Flexible(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 25),
                   child: BlocBuilder<ProfileCubit, ProfileState>(
                     builder: (context, state) {
-                      final cubit = context.read<ProfileCubit>();
-
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'Almost there!',
-                            style: GoogleFonts.poppins(
-                              color: const Color(0xFF535359),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w400,
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 7),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                SvgPicture.asset("assets/images/icons/ic_logo_blue.svg"),
+                                InkWell(
+                                  onTap: (){
+                                    context.push(AppRoutes.profileInfoScreen, extra: {
+                                      "stepCompleted": 1,
+                                      "enteredEmail": widget.enteredEmail,
+                                      "profileImage": widget.imageUrlPath,
+                                      "profileName":  widget.profileName,
+                                    },);
+                                  },
+                                  child: Text("Skip",
+                                    style: GoogleFonts.poppins(
+                                      color: const Color(0xFF252525),
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w700,
+                                      height: 1.10,
+                                      letterSpacing: 0.30,
+                                    ),
+                                  ),
+                                )
+                              ],
                             ),
                           ),
-                          const SizedBox(height: 24),
-                          Text(
-                            'Your Dietician ID?',
-                            style: GoogleFonts.poppins(
-                              color: const Color(0xFF252525),
-                              fontSize: 34,
-                              fontWeight: FontWeight.w400,
-                              letterSpacing: -2.04,
+                          const SizedBox(height: 18),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 7),
+                            child: Text(
+                              'Your Dietitian ID?',
+                              style: GoogleFonts.poppins(
+                                color: const Color(0xFF252525),
+                                fontSize: 34,
+                                fontWeight: FontWeight.w400,
+                                letterSpacing: -2.04,
+                              ),
                             ),
                           ),
                           const SizedBox(height: 32),
@@ -144,23 +171,21 @@ class _DieticianScreenState extends State<DieticianScreen> {
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(
                                 color:
-                                    errorText != null
-                                        ? Colors.red
-                                        : Colors.transparent,
+                                errorText != null
+                                    ? Colors.red
+                                    : Colors.transparent,
                                 width: 1.5,
                               ),
                             ),
                             child: TextFormField(
-                              focusNode: _dieticianFocusNode,
-                              controller: dieticianController,
-                              keyboardType: TextInputType.numberWithOptions(
-                                decimal: true,
-                              ),
+                              focusNode: _dietitianFocusNode,
+                              controller: dietitianController,
+
                               autovalidateMode:
-                                  AutovalidateMode.onUserInteraction,
+                              AutovalidateMode.onUserInteraction,
                               maxLength: 9,
                               decoration: InputDecoration(
-                                hintText: "Enter your dietician ID",
+                                hintText: "Enter your dietitian ID",
                                 hintStyle: GoogleFonts.poppins(
                                   color: const Color(0xFF535359),
                                   fontSize: 15,
@@ -175,30 +200,15 @@ class _DieticianScreenState extends State<DieticianScreen> {
                                 focusedBorder: noBorder,
                               ),
                               onChanged: (value) {
+                                final trimmed = value.trim();
                                 _validateInput(state);
 
-                                if (_debounce?.isActive ?? false) {
-                                  _debounce?.cancel();
-                                }
+                                final cubit = context.read<ProfileCubit>();
 
-                                // Clear clinical name when input is empty
-                                if (value.trim().isEmpty ||
-                                    value.trim().length <= 7) {
-                                  context
-                                      .read<ProfileCubit>()
-                                      .clearDieticianName();
+                                if (trimmed.isEmpty || trimmed.length <= 7) {
+                                  cubit.clearDieticianName();
                                   return;
                                 }
-                                _debounce = Timer(
-                                  const Duration(milliseconds: 300),
-                                  () {
-                                    if (value.trim().length >= 9) {
-                                      context
-                                          .read<ProfileCubit>()
-                                          .fetchDieticianName(value.trim());
-                                    }
-                                  },
-                                );
                               },
                             ),
                           ),
@@ -217,79 +227,8 @@ class _DieticianScreenState extends State<DieticianScreen> {
                                 ),
                               ),
                             ),
-                          if (state.dieticianName.isNotEmpty &&
-                              state.dieticianName != 'NotFound')
-                            SizedBox(height: 20),
-                          if (state.dieticianName.isNotEmpty &&
-                              state.dieticianName != 'NotFound')
-                            Center(
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 5,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFF0F0F0),
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(
-                                    width: 1,
-                                    strokeAlign: BorderSide.strokeAlignCenter,
-                                    color: const Color(0xFFB9B9B9),
-                                  ),
-                                ),
-                                child: Text(
-                                  "Clinical Name: ${state.dieticianName}",
-                                  textAlign: TextAlign.center,
-                                  style: GoogleFonts.poppins(
-                                    color: const Color(0xFF535359),
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w400,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          if (state.dieticianName == 'NotFound')
-                            Padding(
-                              padding: const EdgeInsets.only(
-                                top: 8.0,
-                                left: 10,
-                              ),
-                              child: Text(
-                                "Clinical Name not found",
-                                style: GoogleFonts.poppins(
-                                  color: Colors.red,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w400,
-                                ),
-                              ),
-                            ),
-                          Spacer(),
-                          Row(
-                            children: [
-                              BlocBuilder<ProfileCubit, ProfileState>(
-                                builder: (context, state) {
-                                  return Checkbox(
-                                    value: state.isCheckboxChecked,
-                                    onChanged: (value) {
-                                      cubit.toggleCheckbox(value ?? false);
-                                    },
 
-                                    activeColor: Color(0xFF308BF9),
-                                  );
-                                },
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  "I confirm my Clinical Name is correct.",
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w400,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
+                          Spacer(),
 
                           SizedBox(height: 30),
                         ],
@@ -301,23 +240,29 @@ class _DieticianScreenState extends State<DieticianScreen> {
             ],
           ),
         ),
-        bottomNavigationBar: BlocBuilder<ProfileCubit, ProfileState>(
-          builder: (context, state) {
-            return ProfileBottomNavigation(
-              onBack: () {
-                context.pop();
-              },
-              onNext: () {
-                FocusScope.of(context).unfocus();
-                _validateAndProceed(
-                  context,
-                  context.read<ProfileCubit>().state,
-                );
-              },
-              nextLabel: "Finished Up",
-            );
-          },
+        bottomNavigationBar: SafeArea(
+          child: ProfileBottomNavigation(
+            onBack: () => Navigator.pop(context),
+            onNext: (){
+                      FocusScope.of(context).unfocus();
+                      _validateAndProceed(context.read<ProfileCubit>().state);
+            },
+          ),
         ),
+        // bottomNavigationBar: BlocBuilder<ProfileCubit, ProfileState>(
+        //   builder: (context, state) {
+        //     return ProfileBottomNavigation(
+        //       onBack: () {
+        //         context.pop();
+        //       },
+        //       onNext: () {
+        //         FocusScope.of(context).unfocus();
+        //         _validateAndProceed(context.read<ProfileCubit>().state);
+        //       },
+        //       nextLabel: "Finished Up",
+        //     );
+        //   },
+        // ),
       ),
     );
   }

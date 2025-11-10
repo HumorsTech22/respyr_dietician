@@ -7,12 +7,25 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:265394397027:android:f77e11822bb0daca233d56",
+        "mobilesdk_app_id": "1:265394397027:android:19acd5f04c552c37233d56",
         "android_client_info": {
-          "package_name": "com.humorstech.respyr_dietitian"
+          "package_name": "com.humorstech.dietitian"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "265394397027-t5nhjobn5bm4f4d3k2dh13bpiepf4a80.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.humorstech.dietitian",
+            "certificate_hash": "561375ce8db32298224693c7732573808ca31e9b"
+          }
+        },
+        {
+          "client_id": "265394397027-7n0ciru6mpihpg8hmvnq9m2nflklf538.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDoyLbE5CohE0plFXv-Xmwbyr_fV-FUhgU"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "265394397027-7n0ciru6mpihpg8hmvnq9m2nflklf538.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
