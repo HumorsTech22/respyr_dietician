@@ -1,12 +1,15 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:respyr_dietitian/client-dashboard/todays_result/today_test_data_event.dart';
-import 'package:respyr_dietitian/client-dashboard/todays_result/today_test_data_repository.dart';
-import 'package:respyr_dietitian/client-dashboard/todays_result/today_test_data_state.dart';
+import 'package:respyr_dietitian/client-dashboard/today_result/today_test_data_event.dart';
+import 'package:respyr_dietitian/client-dashboard/today_result/today_test_data_repository.dart';
+import 'package:respyr_dietitian/client-dashboard/today_result/today_test_data_state.dart';
+
+
 
 
 class TodayTestDataBloc extends Bloc<TodayTestDataEvent, TestDataState> {
   final TodayTestDataRepository repo;
 
+  String? _dietitianId;
   String? _lastProfileId;
   DateTime? _lastDate;
 
@@ -22,10 +25,12 @@ class TodayTestDataBloc extends Bloc<TodayTestDataEvent, TestDataState> {
     emit(state.copyWith(status: TestDataStatus.loading, errorMessage: null));
     try {
       _lastProfileId = event.profileId;
+      _dietitianId = event.dietitianId;
       _lastDate = event.date;
 
       final list = await repo.fetchDay(
         profileId: event.profileId,
+        dietitianId: event.dietitianId,
         date: event.date,
       );
 
@@ -44,7 +49,8 @@ class TodayTestDataBloc extends Bloc<TodayTestDataEvent, TestDataState> {
       Emitter<TestDataState> emit,
       ) async {
     final profileId = _lastProfileId;
-    if (profileId == null) return;
-    add(LoadTestDataForDay(profileId: profileId, date: _lastDate));
+    final dietitianId = _dietitianId;
+    if (profileId == null || dietitianId==null) return;
+    add(LoadTestDataForDay(profileId: profileId, date: _lastDate, dietitianId: dietitianId));
   }
 }

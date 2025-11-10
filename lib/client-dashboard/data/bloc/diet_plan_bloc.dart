@@ -1,7 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../repositories/diet_plan_repository.dart';
 import 'diet_plan_event.dart';
 import 'diet_plan_state.dart';
-import '../data/repositories/diet_plan_repository.dart';
 
 class DietPlanBloc extends Bloc<DietPlanEvent, DietPlanState> {
   final DietPlanRepository repo;

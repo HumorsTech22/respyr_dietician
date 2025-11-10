@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
-import '../../../client-dashboard/model/client_profile_model.dart';
+import '../../../../client-dashboard/data/model/client_profile_model.dart';
+
+
 
 class ClientProfileRepository {
   Future<ClientProfileModel> checkClientProfile({

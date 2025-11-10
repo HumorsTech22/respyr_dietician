@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 enum PillVariant { filled, outline, soft }
 
@@ -9,6 +10,12 @@ class Pill extends StatelessWidget {
   final VoidCallback? onTap;
   final EdgeInsets padding;
   final double radius;
+  final double fontSize;
+
+  /// Custom overrides
+  final Color? backgroundColor;
+  final Color? textColor;
+  final Color? borderColor;
 
   const Pill({
     super.key,
@@ -16,31 +23,35 @@ class Pill extends StatelessWidget {
     this.variant = PillVariant.filled,
     this.icon,
     this.onTap,
-    this.padding = const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-    this.radius = 999, // big radius = pill
+    this.padding = const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+    this.radius = 999, // pill shape
+    this.fontSize = 12,
+    this.backgroundColor,
+    this.textColor,
+    this.borderColor,
   });
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
-    // Colors per variant
-    final Color bg, fg, border;
+    // Defaults per variant
+    Color bg, fg, border;
     switch (variant) {
       case PillVariant.filled:
-        bg = cs.primary;
-        fg = cs.onPrimary;
-        border = Colors.transparent;
+        bg = backgroundColor ?? cs.primary;
+        fg = textColor ?? cs.onPrimary;
+        border = borderColor ?? Colors.transparent;
         break;
       case PillVariant.outline:
-        bg = Colors.transparent;
-        fg = cs.primary;
-        border = cs.primary.withOpacity(0.4);
+        bg = backgroundColor ?? Colors.transparent;
+        fg = textColor ?? cs.primary;
+        border = borderColor ?? cs.primary.withOpacity(0.5);
         break;
       case PillVariant.soft:
-        bg = cs.primary.withOpacity(0.1);
-        fg = cs.primary;
-        border = Colors.transparent;
+        bg = backgroundColor ?? cs.primary.withOpacity(0.1);
+        fg = textColor ?? cs.primary;
+        border = borderColor ?? Colors.transparent;
         break;
     }
 
@@ -48,20 +59,20 @@ class Pill extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (icon != null) ...[
-          Icon(icon, size: 16, color: fg),
-          const SizedBox(width: 6),
+          Icon(icon, size: fontSize + 4, color: fg),
+          const SizedBox(width: 4),
         ],
         Flexible(
           child: Text(
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(
+            style: GoogleFonts.poppins(
               color: fg,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              letterSpacing: -0.1,
-              height: 1.1,
+              fontSize: 10,
+              fontWeight: FontWeight.w400,
+              letterSpacing: -0.20,
+              height: 1.2
             ),
           ),
         ),
@@ -78,7 +89,6 @@ class Pill extends StatelessWidget {
       child: child,
     );
 
-    // Ripple if tappable
     return Material(
       color: Colors.transparent,
       child: InkWell(

@@ -1,6 +1,8 @@
 
 
-import '../../../../client-dashboard/model/client_profile_model.dart';
+
+
+import '../../../../../client-dashboard/data/model/client_profile_model.dart';
 
 abstract class CheckClientState {}
 

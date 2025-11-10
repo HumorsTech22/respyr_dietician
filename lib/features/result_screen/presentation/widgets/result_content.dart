@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:respyr_dietician/features/result_screen/data/models/result_model.dart';
-import 'package:respyr_dietician/features/result_screen/presentation/widgets/metabolism_list.dart';
+import 'package:respyr_dietitian/features/result_screen/data/models/result_model.dart';
+import 'package:respyr_dietitian/features/result_screen/presentation/widgets/metabolism_list.dart';
 
 class ResultContent extends StatelessWidget {
   final ResultModel result;

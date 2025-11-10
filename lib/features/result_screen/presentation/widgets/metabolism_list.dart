@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:respyr_dietician/features/result_screen/data/models/result_model.dart';
-import 'package:respyr_dietician/features/result_screen/presentation/widgets/metabolism_card.dart';
+import 'package:respyr_dietitian/features/result_screen/data/models/result_model.dart';
+import 'package:respyr_dietitian/features/result_screen/presentation/widgets/metabolism_card.dart';
 
 class MetabolismList extends StatelessWidget {
   final ResultModel result;

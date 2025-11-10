@@ -160,7 +160,7 @@ class _DietitianResultScreenState extends State<DietitianResultScreen> {
                           IconButton(
                             padding: EdgeInsets.zero,
                             onPressed: () {
-                              context.go(AppRoutes.dieitianDashboardPage);
+                             // context.go(AppRoutes.dieitianDashboardPage);
                             },
                             icon: SvgPicture.asset(
                               "assets/images/common/closeicon.svg",

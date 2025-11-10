@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../../settings-manager/app_settings.dart';
+import '../../../../settings-manager/app_settings.dart';
 import '../widget_test_countdown.dart';
 
 class TestReminderSheet extends StatelessWidget {

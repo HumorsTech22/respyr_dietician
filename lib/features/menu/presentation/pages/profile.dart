@@ -167,6 +167,57 @@ class _ProfileState extends State<Profile> {
                     ),
                   ),
                 ),
+                SizedBox(height: 10,),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: Container(
+                    decoration: ShapeDecoration(
+                      color: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                    ),
+                    padding: EdgeInsets.only(left: 20, right: 20, top: 24, bottom: 20),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text("This account is linked with a consultant. Only your consultant can update the profile settings.",
+                          style: GoogleFonts.poppins(
+                            color: const Color(0xFF535359),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w400,
+                            letterSpacing: -0.24,
+                          ),
+                        ),
+                        SizedBox(height: 20,),
+                        ElevatedButton(
+                            onPressed: (){},
+                            style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF308BF9),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+                                elevation: 0
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text("Ask your consultant",
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    height: 1.10,
+                                    letterSpacing: -0.24,
+                                  ),
+                                ),
+                                Icon(Icons.keyboard_arrow_right_outlined, color: Colors.white,)
+                              ],
+                            )
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
                 SizedBox(height: 54,),
                 Center(
                   child: Text("Respyr Dietician 1.0",

@@ -1,5 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:respyr_dietician/features/account_setting_screen/presentation/cubit/otp_state.dart';
+import 'package:respyr_dietitian/features/account_setting_screen/presentation/cubit/otp_state.dart';
 
 class OtpCubit extends Cubit<OtpState> {
   OtpCubit() : super(OtpState());

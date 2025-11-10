@@ -3,38 +3,54 @@ import 'package:http/http.dart' as http;
 
 class TodayTestDataApiService {
   final String baseUrl;
+
   TodayTestDataApiService({
-    this.baseUrl = "https://humorstech.com/humors_app/app_final/dieticianapp/api",
+    this.baseUrl = "https://humorstech.com/dietitian/api/app",
   });
 
-
+  /// Fetch test data for a given date (YYYY-MM-DD) and profile/dietitian.
   Future<Map<String, dynamic>> fetchForDay({
+    required String dietitianId,
     required String profileId,
-    String? dateYYYYMMDD,
+    required String dateYYYYMMDD,
   }) async {
-    final uri = Uri.parse("$baseUrl/get_todays_result.php");
+    final uri = Uri.parse("$baseUrl/get_test_data_by_date1.php");
 
-    final body = <String, String>{
+    // Prepare JSON body
+    final body = jsonEncode({
+      "dietitian_id": dietitianId,
       "profile_id": profileId,
-      if (dateYYYYMMDD != null && dateYYYYMMDD.isNotEmpty) "date": dateYYYYMMDD,
-    };
+      "date": dateYYYYMMDD,
+    });
 
+    // Send as raw JSON (PHP reads php://input)
     final resp = await http.post(
       uri,
-      headers: {"Content-Type": "application/x-www-form-urlencoded"},
+      headers: {"Content-Type": "application/json"},
       body: body,
     );
 
+
+    print(resp.body);
+    print(dietitianId);
+    print(resp.body);
+
+    // Basic HTTP error check
     if (resp.statusCode != 200) {
       throw Exception("HTTP ${resp.statusCode}: ${resp.reasonPhrase}");
     }
-    final decoded = json.decode(resp.body);
+
+    // Decode JSON
+    final decoded = jsonDecode(resp.body);
     if (decoded is! Map<String, dynamic>) {
       throw Exception("Invalid JSON structure");
     }
+
+    // Validate success field
     if (decoded['success'] != true) {
       throw Exception(decoded['error']?.toString() ?? "API returned success=false");
     }
+
     return decoded;
   }
 }

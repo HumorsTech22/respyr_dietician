@@ -1,5 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:respyr_dietician/features/create_password_screen/presentation/cubit/create_password_state.dart';
+import 'package:respyr_dietitian/features/create_password_screen/presentation/cubit/create_password_state.dart';
 
 class CreatePasswordCubit extends Cubit<CreatePasswordState> {
   CreatePasswordCubit() : super(const CreatePasswordState());

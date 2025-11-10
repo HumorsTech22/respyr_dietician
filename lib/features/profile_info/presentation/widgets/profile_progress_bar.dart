@@ -7,7 +7,7 @@ class ProfileProgressBar extends StatelessWidget {
   const ProfileProgressBar({
     super.key,
     required this.stepCompleted,
-    this.totalStep = 6,
+    this.totalStep = 5,
   });
 
   @override

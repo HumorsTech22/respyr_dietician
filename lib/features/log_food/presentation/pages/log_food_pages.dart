@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
+
 import 'package:respyr_dietitian/features/log_food/domain/entities/food_item.dart';
 import 'package:respyr_dietitian/features/log_food/domain/entities/meal_category.dart';
 import 'package:respyr_dietitian/features/log_food/presentation/cubit/log_food_cubit.dart';
@@ -15,7 +16,11 @@ import 'package:respyr_dietitian/features/log_food/presentation/widgets/log_food
 import 'package:respyr_dietitian/features/log_food/presentation/widgets/nutrients_progess.dart';
 
 class LogFoodPage extends StatelessWidget {
-  const LogFoodPage({super.key});
+  /// Optional map you can pass from DietPlanScreen:
+  /// { MealCategory.breakfast: "08:00–09:00 AM", ... }
+  final Map<MealCategory, String>? categoryTitles;
+
+  const LogFoodPage({super.key, this.categoryTitles});
 
   @override
   Widget build(BuildContext context) {
@@ -25,6 +30,15 @@ class LogFoodPage extends StatelessWidget {
         statusBarIconBrightness: Brightness.dark,
       ),
     );
+
+    // Also allow arguments via Navigator if you prefer:
+    final navArgs = ModalRoute.of(context)?.settings.arguments;
+    final Map<MealCategory, String>? incoming =
+    (navArgs is Map<MealCategory, String>) ? navArgs : null;
+
+    // Priority: constructor > navigator args
+    final Map<MealCategory, String> titles =
+        categoryTitles ?? incoming ?? const {};
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
@@ -44,7 +58,7 @@ class LogFoodPage extends StatelessWidget {
                       Row(
                         children: [
                           IconButton(
-                            onPressed: () {},
+                            onPressed: () => Navigator.of(context).maybePop(),
                             icon: const Icon(Icons.arrow_back_sharp),
                           ),
                           Column(
@@ -108,9 +122,11 @@ class LogFoodPage extends StatelessWidget {
                       ),
                       const SizedBox(height: 10),
 
+                      // -------- LEFT (Categories) + RIGHT (Food list) --------
                       Expanded(
                         child: Row(
                           children: [
+                            // LEFT: categories (dynamic; shows actual time/dietTitle)
                             Expanded(
                               flex: 2,
                               child: Container(
@@ -124,53 +140,13 @@ class LogFoodPage extends StatelessWidget {
                                   padding: const EdgeInsets.symmetric(
                                     vertical: 16,
                                   ),
-                                  children: [
-                                    _buildCategoryCard(
-                                      context,
-                                      MealCategory.wakeUp,
-                                      "Wake Up",
-                                      "05:30-06:30 AM",
-                                    ),
-                                    const Divider(),
-                                    _buildCategoryCard(
-                                      context,
-                                      MealCategory.breakfast,
-                                      "Breakfast",
-                                      "08:00-09:00 AM",
-                                    ),
-                                    const Divider(),
-                                    _buildCategoryCard(
-                                      context,
-                                      MealCategory.lunch,
-                                      "Lunch",
-                                      "12:00-01:00 PM",
-                                    ),
-                                    const Divider(),
-                                    _buildCategoryCard(
-                                      context,
-                                      MealCategory.snacks,
-                                      "Snacks",
-                                      "04:00-05:00 PM",
-                                    ),
-                                    const Divider(),
-                                    _buildCategoryCard(
-                                      context,
-                                      MealCategory.dinner,
-                                      "Dinner",
-                                      "08:30-09:30 PM",
-                                    ),
-                                    const Divider(),
-                                    _buildCategoryCard(
-                                      context,
-                                      MealCategory.sleep,
-                                      "Sleep",
-                                      "11:30-05:30 AM",
-                                    ),
-                                  ],
+                                  children: _buildDynamicCategories(context, titles),
                                 ),
                               ),
                             ),
                             const SizedBox(width: 7),
+
+                            // RIGHT: items for selected category
                             Expanded(
                               flex: 3,
                               child: _buildFoodList(context, state),
@@ -182,11 +158,11 @@ class LogFoodPage extends StatelessWidget {
                   ),
                 ),
 
+                // -------- Bottom sheet blur + sheet --------
                 if (state.isBottomSheetOpen)
                   Positioned.fill(
                     child: GestureDetector(
-                      onTap:
-                          () => context.read<LogFoodCubit>().closeBottomSheet(),
+                      onTap: () => context.read<LogFoodCubit>().closeBottomSheet(),
                       child: BackdropFilter(
                         filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
                         child: Container(
@@ -204,8 +180,8 @@ class LogFoodPage extends StatelessWidget {
                       return BackdropFilter(
                         filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
                         child: Container(
-                          margin: EdgeInsets.symmetric(horizontal: 10),
-                          decoration: BoxDecoration(
+                          margin: const EdgeInsets.symmetric(horizontal: 10),
+                          decoration: const BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.vertical(
                               top: Radius.circular(20),
@@ -239,8 +215,7 @@ class LogFoodPage extends StatelessWidget {
                                   ),
                                   const SizedBox(width: 12),
                                   Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         'Calories',
@@ -271,7 +246,7 @@ class LogFoodPage extends StatelessWidget {
                                             letterSpacing: -0.20,
                                           ),
                                           children: [
-                                            TextSpan(text: 'out of '),
+                                            const TextSpan(text: 'out of '),
                                             TextSpan(
                                               text: '1800kcal',
                                               style: GoogleFonts.poppins(
@@ -287,7 +262,7 @@ class LogFoodPage extends StatelessWidget {
                               ),
                               const SizedBox(height: 20),
                               Row(
-                                children: [
+                                children: const [
                                   Expanded(
                                     child: NutrientsProgessWidget(
                                       name: "Protein",
@@ -310,7 +285,7 @@ class LogFoodPage extends StatelessWidget {
                                 ],
                               ),
                               Row(
-                                children: [
+                                children: const [
                                   Expanded(
                                     child: NutrientsProgessWidget(
                                       name: "Protein",
@@ -350,6 +325,68 @@ class LogFoodPage extends StatelessWidget {
       ),
     );
   }
+
+  // -------------------- LEFT PANE: dynamic categories --------------------
+
+  List<Widget> _buildDynamicCategories(
+      BuildContext context,
+      Map<MealCategory, String> categoryTitles,
+      ) {
+    final cubit = context.read<LogFoodCubit>();
+    final allItems = cubit.state.items;
+
+    // Group items by category (only categories that actually have items)
+    final Map<MealCategory, List<FoodItem>> grouped = {};
+    for (final item in allItems) {
+      grouped.putIfAbsent(item.category, () => []).add(item);
+    }
+
+    // Keep a consistent visual order
+    const ordered = [
+      MealCategory.wakeUp,
+      MealCategory.breakfast,
+      MealCategory.lunch,
+      MealCategory.snacks,
+      MealCategory.dinner,
+      MealCategory.sleep,
+    ];
+
+    final widgets = <Widget>[];
+    for (final category in ordered) {
+      final items = grouped[category];
+      if (items == null || items.isEmpty) continue;
+
+      final title = _categoryDisplayName(category);
+      // Show the actual dietTitle/time if provided for this category
+      final timeText = categoryTitles[category] ?? '—';
+
+      widgets.addAll([
+        _buildCategoryCard(context, category, title, timeText),
+        const Divider(),
+      ]);
+    }
+
+    return widgets;
+  }
+
+  String _categoryDisplayName(MealCategory c) {
+    switch (c) {
+      case MealCategory.wakeUp:
+        return "Wake Up";
+      case MealCategory.breakfast:
+        return "Breakfast";
+      case MealCategory.lunch:
+        return "Lunch";
+      case MealCategory.snacks:
+        return "Snacks";
+      case MealCategory.dinner:
+        return "Dinner";
+      case MealCategory.sleep:
+        return "Sleep";
+    }
+  }
+
+  // -------------------- RIGHT PANE: items list --------------------
 
   Widget _bottomNavigation(BuildContext context, LogFoodState state) {
     return Container(
@@ -441,16 +478,14 @@ class LogFoodPage extends StatelessWidget {
             Expanded(
               child: ListView.builder(
                 controller: scrollController,
-                itemCount:
-                    context
-                        .read<LogFoodCubit>()
-                        .itemsForSelectedCategory
-                        .length,
+                itemCount: context
+                    .read<LogFoodCubit>()
+                    .itemsForSelectedCategory
+                    .length,
                 itemBuilder: (context, index) {
-                  final item =
-                      context
-                          .read<LogFoodCubit>()
-                          .itemsForSelectedCategory[index];
+                  final item = context
+                      .read<LogFoodCubit>()
+                      .itemsForSelectedCategory[index];
                   return Column(
                     children: [
                       LogFoodItemList(
@@ -477,10 +512,10 @@ class LogFoodPage extends StatelessWidget {
   }
 
   Widget _buildSelectAllRow(
-    BuildContext context,
-    List<FoodItem> items,
-    MealCategory category,
-  ) {
+      BuildContext context,
+      List<FoodItem> items,
+      MealCategory category,
+      ) {
     final allSelected = items.every((item) => item.isSelected);
     return Row(
       children: [
@@ -488,7 +523,7 @@ class LogFoodPage extends StatelessWidget {
           checkColor: const Color(0xFF308BF9),
           activeColor: Colors.white,
           side: WidgetStateBorderSide.resolveWith(
-            (states) => const BorderSide(color: Color(0xFFA1A1A1), width: 2),
+                (states) => const BorderSide(color: Color(0xFFA1A1A1), width: 2),
           ),
           value: allSelected,
           onChanged: (_) {
@@ -512,11 +547,11 @@ class LogFoodPage extends StatelessWidget {
   }
 
   Widget _buildCategoryCard(
-    BuildContext context,
-    MealCategory category,
-    String title,
-    String time,
-  ) {
+      BuildContext context,
+      MealCategory category,
+      String title,
+      String time,
+      ) {
     final cubit = context.watch<LogFoodCubit>();
     final selected = cubit.selectedCount(category);
     final total = cubit.totalCount(category);
@@ -546,6 +581,7 @@ class LogFoodPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Title + status pill
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -566,7 +602,6 @@ class LogFoodPage extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 6),
-
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 8,
@@ -594,7 +629,7 @@ class LogFoodPage extends StatelessWidget {
                 ),
               ],
             ),
-
+            // Gray small time/dietTitle line (unchanged UI)
             Text(
               time,
               style: GoogleFonts.poppins(
@@ -619,14 +654,10 @@ class TestBottomSheet extends StatelessWidget {
     return BlocBuilder<TestTimerCubit, TestTimerState>(
       builder: (context, state) {
         if (state is TestTimerInProgress) {
-          final hours = state.remainingTime.inHours
-              .remainder(60)
-              .toString()
-              .padLeft(2, '0');
-          final days = state.remainingTime.inDays
-              .remainder(60)
-              .toString()
-              .padLeft(2, '0');
+          final hours =
+          state.remainingTime.inHours.remainder(60).toString().padLeft(2, '0');
+          final days =
+          state.remainingTime.inDays.remainder(60).toString().padLeft(2, '0');
           final minutes = state.remainingTime.inMinutes
               .remainder(60)
               .toString()
@@ -719,7 +750,6 @@ class TestBottomSheet extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
-
                 Text(
                   'Your dietician uses these results to understand your daily progress and provide the right guidance.',
                   textAlign: TextAlign.center,
@@ -731,8 +761,7 @@ class TestBottomSheet extends StatelessWidget {
                   ),
                 ),
                 ElevatedButton(
-                  onPressed:
-                      () => context.read<TestTimerCubit>().completeTest(),
+                  onPressed: () => context.read<TestTimerCubit>().completeTest(),
                   child: const Text("Slide to start test"),
                 ),
               ],

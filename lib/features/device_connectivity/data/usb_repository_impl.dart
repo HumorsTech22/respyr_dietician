@@ -1,5 +1,5 @@
-import 'package:respyr_dietician/core/services/usb_communication_service.dart';
-import 'package:respyr_dietician/features/device_connectivity/domain/usb_repository.dart';
+import 'package:respyr_dietitian/core/services/usb_communication_service.dart';
+import 'package:respyr_dietitian/features/device_connectivity/domain/usb_repository.dart';
 import 'package:usb_serial/usb_serial.dart';
 
 class UsbRepositoryImpl implements UsbRepository {

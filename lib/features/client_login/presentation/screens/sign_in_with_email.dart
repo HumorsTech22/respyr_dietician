@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../profile_info/presentation/widgets/profile_bottom_navigation.dart';
+import '../../../profile_info/presentation/widgets/profile_bottom_navigation.dart';
 import 'email_otp.dart';
 
 class SignInWithEmail extends StatefulWidget {
@@ -52,7 +53,12 @@ class _SignInWithEmailState extends State<SignInWithEmail> {
             enteredEmail: email,
           ),
         ),
-      );
+      ).whenComplete(() {
+        setState(() {
+          isOtpSending=false;
+        });
+      });
+
     }
   }
 
@@ -68,6 +74,15 @@ class _SignInWithEmailState extends State<SignInWithEmail> {
 
   @override
   Widget build(BuildContext context) {
+
+
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle(
+        statusBarColor: Colors.white,
+        statusBarIconBrightness: Brightness.dark,
+      ),
+    );
+
     final noBorder = OutlineInputBorder(
       borderRadius: BorderRadius.circular(10),
       borderSide: BorderSide.none,
@@ -104,19 +119,25 @@ class _SignInWithEmailState extends State<SignInWithEmail> {
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 25),
+          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 25),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SvgPicture.asset("assets/images/icons/ic_logo_blue.svg"),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: SvgPicture.asset("assets/images/icons/ic_logo_blue.svg"),
+              ),
               const SizedBox(height: 18),
-              Text(
-                "Email",
-                style: GoogleFonts.poppins(
-                  color: const Color(0xFF252525),
-                  fontSize: 34,
-                  fontWeight: FontWeight.w400,
-                  letterSpacing: -2.04,
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Text(
+                  "Email",
+                  style: GoogleFonts.poppins(
+                    color: const Color(0xFF252525),
+                    fontSize: 34,
+                    fontWeight: FontWeight.w400,
+                    letterSpacing: -2.04,
+                  ),
                 ),
               ),
               const SizedBox(height: 25),
@@ -187,9 +208,11 @@ class _SignInWithEmailState extends State<SignInWithEmail> {
           ),
         ),
       ),
-      bottomNavigationBar: ProfileBottomNavigation(
-        onBack: () => Navigator.pop(context),
-        onNext: _validateInput,
+      bottomNavigationBar: SafeArea(
+        child: ProfileBottomNavigation(
+          onBack: () => Navigator.pop(context),
+          onNext: _validateInput,
+        ),
       ),
     );
   }

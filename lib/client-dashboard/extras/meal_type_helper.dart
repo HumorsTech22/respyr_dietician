@@ -1,5 +1,5 @@
-import 'package:diaapp/client-dashboard/extras/theme.dart';
 import 'package:flutter/material.dart';
+import 'package:respyr_dietitian/client-dashboard/extras/theme.dart';
 
 class ThemeHelper{
   String getCurrentMealType() {

@@ -81,8 +81,8 @@ class SectionWidget extends StatelessWidget {
     final metab1Score = metab1.score;
     final metab2Score = metab2.score;
 
-    final metab1Level = getScoreLevel(metab1Score);
-    final metab2Level = getScoreLevel(metab2Score);
+    final metab1Level = getScoreLevel(metab1Score );
+    final metab2Level = getScoreLevel(metab2Score );
 
     return Container(
       key: sectionKey,

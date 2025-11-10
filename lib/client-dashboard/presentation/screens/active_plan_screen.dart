@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../extras/date_helper.dart';
-import '../model/diet_plan_strategy_model.dart';
+
+import '../../data/model/diet_plan_strategy_model.dart';
+import '../../extras/date_helper.dart';
 import '../widgets/goal_item.dart';
+
 
 class DietPlanOverview extends StatefulWidget {
   final List<DietPlanStrategyModel> activeData;
@@ -83,7 +85,7 @@ class _DietPlanOverviewState extends State<DietPlanOverview> {
                                   height: 29,
                                 ),
                                 Text(
-                                  "Updated  ${formatToDateTimeString(dietPlanStrategyModel.updatedAt)}",
+                                  "'Updated at ${formatToDateTimeString(dietPlanStrategyModel.updatedAt)}'",
                                   style: GoogleFonts.poppins(
                                     color: const Color(0xFF252525),
                                     fontSize: 12,
@@ -170,8 +172,7 @@ class _DietPlanOverviewState extends State<DietPlanOverview> {
                                                 horizontal: 10),
                                             child: ListView.builder(
                                               shrinkWrap: true,
-                                              physics:
-                                              NeverScrollableScrollPhysics(),
+                                              physics: NeverScrollableScrollPhysics(),
                                               itemCount: dietPlanStrategyModel
                                                   .goals.length,
                                               itemBuilder: (context, index) {

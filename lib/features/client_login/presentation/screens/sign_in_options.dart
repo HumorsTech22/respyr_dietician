@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:respyr_dietitian/features/client_login/screens/sign_in_with_email.dart';
+import 'package:respyr_dietitian/features/client_login/presentation/screens/sign_in_with_email.dart';
+import '../../../../client_login_manager/client_login_manager.dart';
+import '../../../../routes/app_routes.dart';
+import '../../../profile_info/presentation/cubit/profile_cubit.dart';
+import '../../data/services/check_profile_client.dart';
+import '../../data/services/download_network_image_service.dart';
+import '../../data/services/sign_in_with_google_service.dart';
 
-import '../../../client_login_manager/client_login_manager.dart';
-import '../../../routes/app_routes.dart';
-import '../../profile_info/presentation/cubit/profile_cubit.dart';
-import '../services/check_profile_client.dart';
-import '../services/sign_in_with_google_service.dart';
+
 
 class SignInOptions extends StatefulWidget {
   const SignInOptions({super.key});
@@ -20,7 +24,7 @@ class SignInOptions extends StatefulWidget {
 class _SignInOptionsState extends State<SignInOptions> {
   bool _isLoading = false;
 
-  static const _horizontalPadding = EdgeInsets.symmetric(horizontal: 13, vertical: 18);
+  static const _horizontalPadding = EdgeInsets.symmetric(horizontal: 10, vertical: 25);
   static const _googleButtonColor = Color(0xFF252525);
   static const _emailBorderColor = Color(0xFFC7C6CE);
   static const _titleColor = Color(0xFF252525);
@@ -28,12 +32,10 @@ class _SignInOptionsState extends State<SignInOptions> {
   @override
   void initState() {
     super.initState();
-    // Clear any previous profile data on entering this screen
     context.read<ProfileCubit>().clearProfileData();
   }
 
   Future<void> _handleEmailSignIn() async {
-    // Navigate to email sign-in screen
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const SignInWithEmail()),
@@ -58,7 +60,7 @@ class _SignInOptionsState extends State<SignInOptions> {
 
       if (clientProfile != null) {
         bool isSaved = await ClientLoginManager().saveClientProfile(clientProfile);
-        if (isSaved) {
+        if (isSaved && mounted) {
           context.go(
             AppRoutes.clientDashboard,
             extra: clientProfile,
@@ -67,17 +69,21 @@ class _SignInOptionsState extends State<SignInOptions> {
           _showSnackBar('Failed to save client profile.');
         }
       } else {
-        context.push(
-          AppRoutes.profileInfoScreen,
-          extra: {
-            "stepCompleted": 1,
-            "enteredEmail": user.email,
-          },
-        );
+
+        String localPath = await downloadAndCacheImage(user.photoUrl??"assets/images/icons/default2.png");
+        if(mounted){
+          context.push(
+            AppRoutes.dietitianScreen,
+            extra: {
+              "enteredEmail": user.email,
+              "profileImage": localPath,
+              "profileName": user.displayName,
+            },
+          );
+        }
       }
     } catch (e) {
       _showSnackBar('Google sign-in failed. Please try again.');
-      debugPrint('Google sign-in failed: $e');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -104,6 +110,8 @@ class _SignInOptionsState extends State<SignInOptions> {
         style: ElevatedButton.styleFrom(
           elevation: 0,
           backgroundColor: backgroundColor,
+          surfaceTintColor: Colors.transparent,
+          shadowColor: Colors.transparent,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(50),
             side: borderSide ?? BorderSide.none,
@@ -136,22 +144,37 @@ class _SignInOptionsState extends State<SignInOptions> {
 
   @override
   Widget build(BuildContext context) {
+
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle(
+        statusBarColor: Colors.white,
+        statusBarIconBrightness: Brightness.dark,
+      ),
+    );
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Padding(
-          padding: _horizontalPadding,
+          padding: EdgeInsets.symmetric(horizontal: 13, vertical: 25),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 30),
-              Text(
-                "Sign in",
-                style: GoogleFonts.poppins(
-                  color: _titleColor,
-                  fontSize: 34,
-                  fontWeight: FontWeight.w400,
-                  letterSpacing: -2.04,
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: SvgPicture.asset("assets/images/icons/ic_logo_blue.svg"),
+              ),
+              const SizedBox(height: 18),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Text(
+                  "Sign in",
+                  style: GoogleFonts.poppins(
+                    color: _titleColor,
+                    fontSize: 34,
+                    fontWeight: FontWeight.w400,
+                    letterSpacing: -2.04,
+                  ),
                 ),
               ),
               const SizedBox(height: 30),

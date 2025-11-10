@@ -1,10 +1,9 @@
-import 'dart:typed_data';
 import 'package:equatable/equatable.dart';
-import 'package:respyr_dietician/features/profile_info/domain/usecases/height_unit.dart';
-import 'package:respyr_dietician/features/profile_info/domain/usecases/weight_unit.dart';
+import 'package:respyr_dietitian/features/profile_info/domain/usecases/height_unit.dart';
+import 'package:respyr_dietitian/features/profile_info/domain/usecases/weight_unit.dart';
 
 class ProfileState extends Equatable {
-  final Uint8List? profileImage;
+  final String? profileImagePath; // <-- file path only
   final String name;
   final String email;
   final String location;
@@ -12,15 +11,20 @@ class ProfileState extends Equatable {
   final int? age;
   final double? height;
   final double? weight;
-  final int? dieticianId;
+  final String? dietitianId;
   final HeightUnit heightUnit;
   final WeightUnit weightUnit;
-  final bool isCheckboxChecked;
-  final String dieticianName;
-  final String dieticianImageUrl;
+  final String dietitianName;
+  final String dietitianImageUrl;
+  final String dietitianPhoneNo;
+  final String dietitianEmail;
+  final String dietitianClinicName;
+  final String phoneNo;
+  final bool? isLoading;
+  final String? errorMessage;
 
   const ProfileState({
-    this.profileImage,
+    this.profileImagePath,
     this.name = '',
     this.email = '',
     this.location = '',
@@ -28,16 +32,21 @@ class ProfileState extends Equatable {
     this.age,
     this.height,
     this.weight,
-    this.dieticianId,
+    this.dietitianId,
     this.heightUnit = HeightUnit.cm,
     this.weightUnit = WeightUnit.kg,
-    this.isCheckboxChecked = false,
-    this.dieticianName = '',
-    this.dieticianImageUrl = '',
+    this.dietitianName = '',
+    this.dietitianImageUrl = '',
+    this.dietitianPhoneNo = '',
+    this.dietitianEmail = '',
+    this.dietitianClinicName = '',
+    this.phoneNo = '',
+    this.isLoading,
+    this.errorMessage,
   });
 
   ProfileState copyWith({
-    Uint8List? profileImage,
+    String? profileImagePath,
     String? name,
     String? email,
     String? location,
@@ -47,13 +56,18 @@ class ProfileState extends Equatable {
     double? weight,
     HeightUnit? heightUnit,
     WeightUnit? weightUnit,
-    int? dieticianId,
-    bool? isCheckboxChecked,
-    String? dieticianName,
-    String? dieticianImageUrl,
+    String? dietitianId,
+    String? dietitianName,
+    String? dietitianImageUrl,
+    String? dietitianPhoneNo,
+    String? dietitianEmail,
+    String? dietitianClinicName,
+    String? phoneNo,
+    bool? isLoading,
+    String? errorMessage,
   }) {
     return ProfileState(
-      profileImage: profileImage ?? this.profileImage,
+      profileImagePath: profileImagePath ?? this.profileImagePath,
       name: name ?? this.name,
       email: email ?? this.email,
       location: location ?? this.location,
@@ -63,16 +77,21 @@ class ProfileState extends Equatable {
       weight: weight ?? this.weight,
       heightUnit: heightUnit ?? this.heightUnit,
       weightUnit: weightUnit ?? this.weightUnit,
-      dieticianId: dieticianId ?? this.dieticianId,
-      isCheckboxChecked: isCheckboxChecked ?? this.isCheckboxChecked,
-      dieticianName: dieticianName ?? this.dieticianName,
-      dieticianImageUrl: dieticianImageUrl ?? this.dieticianImageUrl,
+      dietitianId: dietitianId ?? this.dietitianId,
+      dietitianName: dietitianId ?? this.dietitianName,
+      dietitianImageUrl: dietitianImageUrl ?? this.dietitianImageUrl,
+      dietitianPhoneNo: dietitianPhoneNo ?? this.dietitianPhoneNo,
+      dietitianEmail: dietitianEmail ?? this.dietitianEmail,
+      dietitianClinicName: dietitianClinicName ?? this.dietitianClinicName,
+      phoneNo: phoneNo ?? this.phoneNo,
+      isLoading: isLoading ?? this.isLoading,
+      errorMessage: errorMessage ?? this.errorMessage,
     );
   }
 
   @override
   List<Object?> get props => [
-    profileImage,
+    profileImagePath,
     name,
     email,
     location,
@@ -82,13 +101,18 @@ class ProfileState extends Equatable {
     weight,
     heightUnit,
     weightUnit,
-    dieticianId,
-    isCheckboxChecked,
-    dieticianName,
-    dieticianImageUrl,
+    dietitianId,
+    dietitianName,
+    dietitianImageUrl,
+    dietitianPhoneNo,
+    dietitianEmail,
+    dietitianClinicName,
+    phoneNo,
+    isLoading,
+    errorMessage,
   ];
 
   @override
   String toString() =>
-      'ProfileState(profileImage: $profileImage, name: $name, email: $email, location: $location, gender: $gender, age: $age, height: $height, weight: $weight, heightUnit: $heightUnit, weightUnit: $weightUnit, dieticianId: $dieticianId, isCheckboxChecked: $isCheckboxChecked)';
+      'ProfileState(profileImagePath: $profileImagePath, name: $name, email: $email, location: $location, gender: $gender, age: $age, height: $height, weight: $weight, heightUnit: $heightUnit, weightUnit: $weightUnit, dietitianId: $dietitianId, errorMessage: $errorMessage)';
 }

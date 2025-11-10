@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:respyr_dietician/features/profile_info/presentation/cubit/profile_cubit.dart';
-import 'package:respyr_dietician/features/profile_info/presentation/cubit/profile_state.dart';
-import 'package:respyr_dietician/features/profile_info/presentation/widgets/profile_bottom_navigation.dart';
-import 'package:respyr_dietician/features/profile_info/presentation/widgets/profile_progress_bar.dart';
-import 'package:respyr_dietician/routes/app_routes.dart';
+import 'package:respyr_dietitian/features/profile_info/presentation/cubit/profile_cubit.dart';
+import 'package:respyr_dietitian/features/profile_info/presentation/cubit/profile_state.dart';
+import 'package:respyr_dietitian/features/profile_info/presentation/widgets/profile_bottom_navigation.dart';
+import 'package:respyr_dietitian/features/profile_info/presentation/widgets/profile_progress_bar.dart';
+import 'package:respyr_dietitian/routes/app_routes.dart';
 
 class AgeScreen extends StatefulWidget {
   final int stepCompleted;
@@ -184,17 +184,19 @@ class _AgeScreenState extends State<AgeScreen> {
             ],
           ),
         ),
-        bottomNavigationBar: BlocBuilder<ProfileCubit, ProfileState>(
-          builder: (context, state) {
-            final cubit = context.read<ProfileCubit>();
-
-            return ProfileBottomNavigation(
-              onBack: () {
-                context.pop();
-              },
-              onNext: () => _onNextPressed(cubit),
-            );
-          },
+        bottomNavigationBar: SafeArea(
+          child: BlocBuilder<ProfileCubit, ProfileState>(
+            builder: (context, state) {
+              final cubit = context.read<ProfileCubit>();
+          
+              return ProfileBottomNavigation(
+                onBack: () {
+                  context.pop();
+                },
+                onNext: () => _onNextPressed(cubit),
+              );
+            },
+          ),
         ),
       ),
     );

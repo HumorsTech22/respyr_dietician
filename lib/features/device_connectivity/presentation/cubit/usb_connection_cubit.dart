@@ -1,7 +1,7 @@
 // usb_cubit.dart
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:respyr_dietician/features/device_connectivity/domain/usb_repository.dart';
-import 'package:respyr_dietician/features/device_connectivity/presentation/cubit/usb_connection_state.dart';
+import 'package:respyr_dietitian/features/device_connectivity/domain/usb_repository.dart';
+import 'package:respyr_dietitian/features/device_connectivity/presentation/cubit/usb_connection_state.dart';
 
 class UsbCubit extends Cubit<UsbState> {
   final UsbRepository repository;

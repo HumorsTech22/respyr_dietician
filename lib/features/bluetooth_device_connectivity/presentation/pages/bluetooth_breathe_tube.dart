@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:respyr_dietitian/client-dashboard/data/model/client_profile_model.dart';
 import 'package:respyr_dietitian/common/widgets/audio_helper.dart';
 import 'package:respyr_dietitian/common/widgets/internet_connectivity_handler.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/repository/bluetooth_repository.dart';
@@ -12,8 +13,11 @@ import 'package:respyr_dietitian/common/dialogs/cancel_Test_dialog.dart';
 import 'package:respyr_dietitian/common/dialogs/disconnection_dialog.dart';
 import 'package:respyr_dietitian/routes/app_routes.dart';
 
+import 'bluetooth_calibration_screen.dart';
+
 class BluetoothBreatheTube extends StatelessWidget {
-  const BluetoothBreatheTube({super.key});
+  final ClientProfileModel clientProfileModel;
+  const BluetoothBreatheTube({super.key, required this.clientProfileModel});
 
   @override
   Widget build(BuildContext context) {
@@ -34,14 +38,22 @@ class BluetoothBreatheTube extends StatelessWidget {
               onButtonPressed: () {
                 cubit.dialogDismissed();
                 cubit.disconnect();
-                context.go(AppRoutes.dieitianDashboardPage);
+                context.go(AppRoutes.clientDashboard);
               },
             );
           }
 
           if (state.isCompleted) {
             cubit.close();
-            context.push(AppRoutes.bluetoothCalibrationScreen);
+
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => RepositoryProvider<BluetoothRepository>.value(
+                  value: context.read<BluetoothRepository>(), // or create(...) if none above
+                  child:  BluetoothCalibrationScreen(clientProfileModel: clientProfileModel,),
+                ),
+              ),
+            );
           }
         },
 
@@ -67,7 +79,12 @@ class BluetoothBreatheTube extends StatelessWidget {
                           IconButton(
                             onPressed:
                                 () => showCancelTestDialog(context, () {
-                                  context.go(AppRoutes.dieitianDashboardPage);
+
+                                  context.go(
+                                    AppRoutes.clientDashboard,
+                                    extra: clientProfileModel,
+                                  );
+
                                   context
                                       .read<BluetoothBreatheTubeCubit>()
                                       .dialogDismissed();

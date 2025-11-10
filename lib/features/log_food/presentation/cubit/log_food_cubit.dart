@@ -1,11 +1,12 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:respyr_dietitian/features/log_food/data/repository/log_food_repository.dart';
 import 'package:respyr_dietitian/features/log_food/domain/entities/food_item.dart';
 import 'package:respyr_dietitian/features/log_food/domain/entities/meal_category.dart';
 import 'package:respyr_dietitian/features/log_food/presentation/cubit/log_food_state.dart';
 
+import '../../data/repository/api_backed_log_food_repository.dart';
+
 class LogFoodCubit extends Cubit<LogFoodState> {
-  final LogFoodRepository repository;
+  final ApiBackedLogFoodRepository repository;
 
   LogFoodCubit(this.repository)
     : super(

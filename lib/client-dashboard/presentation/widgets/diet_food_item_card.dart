@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../extras/meal_type_helper.dart';
 
-import '../extras/meal_type_helper.dart';
-
-
-class DietPlanWidgets{
-  Widget dietFoodItemCard({required int index}){
+class DietPlanWidgets {
+  Widget dietFoodItemCard({
+    required int index,
+    required String foodName,
+    required String foodCalories,
+    required String foodPortion,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Container(
-        constraints: BoxConstraints( maxHeight: 100),
+        constraints: const BoxConstraints(maxHeight: 100),
         width: double.infinity,
-        decoration: ShapeDecoration(
+        decoration: const ShapeDecoration(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.only(
               topLeft: Radius.circular(15),
@@ -22,14 +24,14 @@ class DietPlanWidgets{
         ),
         child: Stack(
           children: [
-            // ⬇️ Apply opacity to the background
+            // Background with opacity
             Opacity(
               opacity: 0.5,
               child: Container(
                 height: double.infinity,
                 decoration: ShapeDecoration(
                   gradient: ThemeHelper().getDietItemGradient(),
-                  shape: RoundedRectangleBorder(
+                  shape: const RoundedRectangleBorder(
                     borderRadius: BorderRadius.only(
                       topLeft: Radius.circular(15),
                       topRight: Radius.circular(15),
@@ -38,16 +40,16 @@ class DietPlanWidgets{
                 ),
               ),
             ),
-            // ⬇️ Keep text fully visible
+
+            // Foreground content
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-
                 children: [
-                  SvgPicture.asset("assets/images/icons/food_cat_meal.svg"),
-                  Text(index.toString(),
+                  Text(
+                    index.toString(),
                     style: GoogleFonts.poppins(
                       color: ThemeHelper().getThemeDarkColor(),
                       fontSize: 25,
@@ -56,40 +58,52 @@ class DietPlanWidgets{
                       letterSpacing: -0.50,
                     ),
                   ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        "Moong Dal Chilla",
-                        style: GoogleFonts.poppins(
-                          color: Colors.black,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          height: 1.26,
-                          letterSpacing: -0.30,
+
+                  // Center column for food details
+                  Expanded(
+                    flex: 2,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // 🔹 Prevent overflow here
+                        Text(
+                          foodName,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.poppins(
+                            color: Colors.black,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            height: 1.26,
+                            letterSpacing: -0.30,
+                          ),
                         ),
-                      ),
-                      SizedBox(height: 4,),
-                      Text("2 ladles (60g each)",
-                        style: GoogleFonts.poppins(
-                          color: const Color(0xFF252525),
-                          fontSize: 10,
-                          fontWeight: FontWeight.w400,
-                          letterSpacing: -0.20,
+                        const SizedBox(height: 4),
+                        Text(
+                          foodPortion,
+                          style: GoogleFonts.poppins(
+                            color: const Color(0xFF252525),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w400,
+                            letterSpacing: -0.20,
+                          ),
                         ),
-                      )
-                    ],
+                      ],
+                    ),
                   ),
-                  Text("220 kcal",
+
+                  Text(
+                    foodCalories,
                     style: GoogleFonts.poppins(
                       color: const Color(0xFF535359),
                       fontSize: 15,
                       fontWeight: FontWeight.w400,
                       letterSpacing: -0.30,
                     ),
-                  )
+                  ),
                 ],
               ),
             ),
@@ -99,4 +113,3 @@ class DietPlanWidgets{
     );
   }
 }
-

@@ -6,13 +6,14 @@ import 'package:flutter_svg/svg.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:respyr_dietitian/client-dashboard/screens/client_dashboard.dart';
 
-import '../../../routes/app_routes.dart';
-import '../../profile_info/presentation/widgets/profile_bottom_navigation.dart';
-import '../services/check_profile_client.dart';
-import '../services/send_otp_email.dart';
+import '../../../../client-dashboard/presentation/screens/client_dashboard.dart';
+import '../../../../routes/app_routes.dart';
+import '../../../profile_info/presentation/widgets/profile_bottom_navigation.dart';
+import '../../data/services/check_profile_client.dart';
+import '../../data/services/send_otp_email.dart';
 import '../widgets/otp_view.dart';
+
 
 class EmailOtp extends StatefulWidget {
   final String enteredEmail;
@@ -221,15 +222,16 @@ class _EmailOtpState extends State<EmailOtp> {
           textColor: Colors.white,
         );
 
-        await Future.delayed(const Duration(milliseconds: 400));
+        await Future.delayed(const Duration(milliseconds: 100));
+        if (!mounted) return;
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) =>  ClientDashboard(clientProfileModel: profile,)));
 
       } else {
 
-        context.push(AppRoutes.profileInfoScreen, extra: {
-          "stepCompleted": 1,
+        context.go(AppRoutes.dietitianScreen ,extra: {
           "enteredEmail": widget.enteredEmail,
-        });
+        },);
+
       }
     } catch (e) {
       setState(() => isLoading = false);
@@ -271,8 +273,7 @@ class _EmailOtpState extends State<EmailOtp> {
 
   @override
   Widget build(BuildContext context) {
-    final mediaQuery = MediaQuery.of(context);
-    final horizontalPadding = mediaQuery.size.width * 0.05;
+
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
@@ -280,22 +281,27 @@ class _EmailOtpState extends State<EmailOtp> {
       body: SafeArea(
         child: Padding(
           padding:
-          EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 25),
+          EdgeInsets.symmetric(horizontal: 13, vertical: 25),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SvgPicture.asset("assets/images/icons/ic_logo_blue.svg"),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: SvgPicture.asset("assets/images/icons/ic_logo_blue.svg"),
+              ),
               const SizedBox(height: 18),
-              Text(
-                "OTP",
-                style: GoogleFonts.poppins(
-                  color: const Color(0xFF252525),
-                  fontSize: 34,
-                  fontWeight: FontWeight.w400,
-                  letterSpacing: -2.04,
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Text(
+                  "OTP",
+                  style: GoogleFonts.poppins(
+                    color: const Color(0xFF252525),
+                    fontSize: 34,
+                    fontWeight: FontWeight.w400,
+                    letterSpacing: -2.04,
+                  ),
                 ),
               ),
-
               const SizedBox(height: 25),
               Row(
                 mainAxisAlignment: MainAxisAlignment.start,
@@ -419,9 +425,11 @@ class _EmailOtpState extends State<EmailOtp> {
           ),
         ),
       ),
-      bottomNavigationBar: ProfileBottomNavigation(
-        onBack: () => Navigator.pop(context),
-        onNext: isLoading ? null : validateOTP,
+      bottomNavigationBar: SafeArea(
+        child: ProfileBottomNavigation(
+          onBack: () => Navigator.pop(context),
+          onNext: isLoading ? null : validateOTP,
+        ),
       ),
     );
   }

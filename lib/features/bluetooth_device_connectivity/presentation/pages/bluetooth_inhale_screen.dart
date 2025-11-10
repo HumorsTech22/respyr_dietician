@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:respyr_dietitian/client-dashboard/data/model/client_profile_model.dart';
 import 'package:respyr_dietitian/common/widgets/audio_helper.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/repository/bluetooth_repository.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_inhale_cubit/bluetooth_inhale_cubit.dart';
@@ -12,8 +13,11 @@ import 'package:respyr_dietitian/common/dialogs/disconnection_dialog.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_inhale_cubit/bluetooth_inhale_state.dart';
 import 'package:respyr_dietitian/routes/app_routes.dart';
 
+import 'bluetooth_exhale_screen.dart';
+
 class BluetoothInhaleScreen extends StatelessWidget {
-  const BluetoothInhaleScreen({super.key});
+  final ClientProfileModel clientProfileModel;
+  const BluetoothInhaleScreen({super.key, required this.clientProfileModel});
 
   @override
   Widget build(BuildContext context) {
@@ -23,13 +27,14 @@ class BluetoothInhaleScreen extends StatelessWidget {
             ctx.read<BluetoothRepository>(),
             AudioHelper(),
           ),
-      child: const _BluetoothInhaleView(),
+      child:  _BluetoothInhaleView(clientProfileModel: clientProfileModel,),
     );
   }
 }
 
 class _BluetoothInhaleView extends StatelessWidget {
-  const _BluetoothInhaleView();
+  final ClientProfileModel clientProfileModel;
+  const _BluetoothInhaleView({ required this.clientProfileModel});
 
   @override
   Widget build(BuildContext context) {
@@ -55,7 +60,11 @@ class _BluetoothInhaleView extends StatelessWidget {
               await cubit.setCancelOrDisconnectFlag();
               cubit.dialogDismissed();
 
-              context.go(AppRoutes.dieitianDashboardPage);
+
+              context.go(
+                AppRoutes.clientDashboard,
+                extra: clientProfileModel,
+              );
             },
           ).then((_) {
             cubit.dialogDismissed();
@@ -63,9 +72,18 @@ class _BluetoothInhaleView extends StatelessWidget {
         }
 
         if (state.navigateToExhaleScreen && state.lastExtractedValue != null) {
-          context.pushReplacement(
-            AppRoutes.bluetoothExhaleScreen,
-            extra: state.lastExtractedValue!,
+          // context.pushReplacement(
+          //   AppRoutes.bluetoothExhaleScreen,
+          //   extra: state.lastExtractedValue!,
+          // );
+
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => RepositoryProvider<BluetoothRepository>.value(
+                value: context.read<BluetoothRepository>(), // or create(...) if none above
+                child: BluetoothExhaleScreen(baseValue: state.lastExtractedValue!, clientProfileModel: clientProfileModel,),
+              ),
+            ),
           );
         }
       },
@@ -104,7 +122,12 @@ class _BluetoothInhaleView extends StatelessWidget {
                               await context
                                   .read<BluetoothInhaleCubit>()
                                   .setCancelOrDisconnectFlag();
-                              context.go(AppRoutes.dieitianDashboardPage);
+
+
+                              context.go(
+                                AppRoutes.clientDashboard,
+                                extra: clientProfileModel,
+                              );
                               context
                                   .read<BluetoothInhaleCubit>()
                                   .dialogDismissed();
