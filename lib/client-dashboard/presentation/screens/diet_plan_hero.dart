@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'package:respyr_dietitian/features/profile_info/data/model/dietician_detail_model.dart';
 import '../../../features/diet_plan/presentation/pages/diet_plan_screen.dart';
+import '../../../features/log_food/presentation/pages/logged_food_screen.dart';
 import '../../data/model/client_profile_model.dart';
 import '../../data/model/diet_plan_strategy_model.dart';
 import '../../extras/meal_time_helper.dart';
@@ -46,7 +47,10 @@ class DietPlanHero extends StatelessWidget {
       ),
       child: Column(
         children: [
-          DashboardAppbar(clientProfileModel: clientProfileModel,isDefaultColor: true, dietitianDetailModel: dietitianDetailModel,),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            child: DashboardAppbar(clientProfileModel: clientProfileModel,isDefaultColor: false, dietitianDetailModel: dietitianDetailModel,),
+          ),
           SizedBox(height: 80,),
           SizedBox(
             width: double.infinity,
@@ -196,7 +200,7 @@ class DietPlanHero extends StatelessWidget {
                           ),
                           Container(height: 0.5, width: double.infinity, color: Colors.white),
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
                             children: [
                               TextButton(
                                 onPressed: () {
@@ -208,7 +212,7 @@ class DietPlanHero extends StatelessWidget {
                                     MaterialPageRoute(builder: (context) => DietPlanScreen(
                                       dieticianId: dietitianDetailModel.dietitianId,
                                       profileId: clientProfileModel.profileId,
-                                      dietPlanId: dietPlanStrategyModel.id.toString(),)),
+                                      dietPlanId: dietPlanStrategyModel.id.toString(), dietPlanStrategyModel: dietPlanStrategyModel, )),
                                   );
 
 
@@ -236,34 +240,42 @@ class DietPlanHero extends StatelessWidget {
                                   ],
                                 ),
                               ),
-                              Visibility(
-                                visible: false,
-                                child: TextButton(
-                                  onPressed: () {},
-                                  style: ElevatedButton.styleFrom(
-                                    elevation: 0,
-                                    backgroundColor: Colors.transparent,
-                                    padding: EdgeInsets.zero,
-                                  ),
-                                  child: Row(
-                                    spacing: 5,
-                                    children: [
-                                      SvgPicture.asset("assets/images/icons/ic_food.svg", width: 20,),
-                                      Text(
-                                        "Log this meal",
-                                        style: GoogleFonts.poppins(
-                                          color: Colors.white,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w600,
-                                          height: 1.10,
-                                          letterSpacing: -0.24,
-                                        ),
+                              TextButton(
+                                onPressed: () {
+
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => FoodLogByDayScreen(
+                                        clientProfileModel: clientProfileModel,
+                                        dietitianModel: dietitianDetailModel,
+                                        dietPlanStrategyModel: dietPlanStrategyModel,
                                       ),
-                                      Icon(Icons.keyboard_arrow_right_outlined, color: Colors.white,size: 15,)
-                                    ],
-                                  ),
+                                    ),
+                                  );
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  elevation: 0,
+                                  backgroundColor: Colors.transparent,
+                                  padding: EdgeInsets.zero,
                                 ),
-                              ),
+                                child: Row(
+                                  spacing: 5,
+                                  children: [
+                                    SvgPicture.asset("assets/images/icons/ic_food.svg", width: 20,),
+                                    Text(
+                                      "View logged meals",
+                                      style: GoogleFonts.poppins(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        height: 1.10,
+                                        letterSpacing: -0.24,
+                                      ),
+                                    ),
+                                    Icon(Icons.keyboard_arrow_right_outlined, color: Colors.white,size: 15,)
+                                  ],
+                                ),
+                              )
                             ],
                           )
                         ],

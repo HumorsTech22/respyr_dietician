@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 
 class FoodLogApi {
   static const String _baseUrl =
-      "https://humorstech.com/dietitian/api/app/insert_food_log.php"; // 🔁 replace with actual path
+      "https://humorstech.com/dietitian/api/app/insert_food_log.php";
 
   /// Inserts a food log entry and returns the decoded JSON response
   static Future<Map<String, dynamic>> insertFoodLog({
@@ -13,6 +13,12 @@ class FoodLogApi {
     required String mealTitle,
     required String mealName,
     required String mealValues,
+
+    // NEW:
+    String? mealDate,   // "YYYY-MM-DD HH:MM:SS" or "YYYY-MM-DD"
+    String? mealDay,    // "monday".."sunday"
+
+    // Optional legacy field (not needed by new PHP)
     String? dttm,
   }) async {
     final Map<String, dynamic> body = {
@@ -22,7 +28,11 @@ class FoodLogApi {
       "meal_title": mealTitle,
       "meal_name": mealName,
       "meal_values": mealValues,
-      "dttm": dttm ?? DateTime.now().toIso8601String(),
+      // NEW columns:
+      if (mealDate != null && mealDate.isNotEmpty) "meal_date": mealDate,
+      if (mealDay != null && mealDay.isNotEmpty)   "meal_day": mealDay,
+      // Optional legacy:
+      if (dttm != null && dttm.isNotEmpty) "dttm": dttm,
     };
 
     try {
@@ -32,12 +42,7 @@ class FoodLogApi {
         body: jsonEncode(body),
       );
 
-
-
       if (response.statusCode == 200) {
-
-
-
         return jsonDecode(response.body);
       } else {
         return {

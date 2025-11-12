@@ -1,28 +1,26 @@
-// features/diet_plan/presentation/pages/diet_plan_screen.dart
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:http/http.dart' as http;
-
-import 'package:respyr_dietitian/features/log_food/data/repository/api_backed_log_food_repository.dart';
-import 'package:respyr_dietitian/features/log_food/presentation/cubit/log_food_cubit.dart';
-import 'package:respyr_dietitian/features/log_food/presentation/cubit/test_timer_cubit/test_timer_cubit.dart';
-import 'package:respyr_dietitian/features/log_food/presentation/pages/log_food_pages.dart';
-
-// INSERT API you already have
-import '../../../log_food/data/repository/insert_food_log_api.dart';
-// NEW fetch file
+import 'package:respyr_dietitian/client-dashboard/data/model/diet_plan_strategy_model.dart';
 import 'package:respyr_dietitian/features/log_food/data/repository/fetch_food_log_api.dart';
-
-import '../widgets/log_food_sheet.dart';
+import 'package:http/http.dart' as http;
+import '../widgets/day_chip.dart';
+import '../widgets/diet_plan_food_item.dart';
+import '../widgets/diet_plan_meal_item.dart';
 
 class DietPlanScreen extends StatefulWidget {
   final String dieticianId;
   final String profileId;
   final String dietPlanId;
-  const DietPlanScreen({super.key, required this.dieticianId, required this.profileId, required this.dietPlanId});
+  final DietPlanStrategyModel dietPlanStrategyModel;
+  const DietPlanScreen({
+    super.key,
+    required this.dieticianId,
+    required this.profileId,
+    required this.dietPlanId,
+    required this.dietPlanStrategyModel,
+  });
 
   @override
   State<DietPlanScreen> createState() => _DietPlanScreenState();
@@ -31,56 +29,117 @@ class DietPlanScreen extends StatefulWidget {
 class _DietPlanScreenState extends State<DietPlanScreen> {
   bool loading = true;
   String? error;
+
   Map<String, dynamic> diet = {};
-  String activeDay = 'monday';
+  String activeDay = 'monday';     // monday..sunday for the selected date
+  DateTime currentDate = DateTime.now();
 
+  // Full list of dates in plan range (start -> end)
+  List<DateTime> planDates = [];
 
-
-  // Logged keys cache for "today"
+  // Logged keys cache for selected day
   Set<String> loggedKeys = <String>{};
-  DateTime currentDate = DateTime.now(); // using today's date for fetch
 
-  static const List<String> _weekdayOrder = [
-    'monday','tuesday','wednesday','thursday','friday','saturday','sunday',
-  ];
-
-  List<String> visibleDays = [];
-  final Map<String, GlobalKey> _chipKeys = {
-    for (final d in _weekdayOrder) d: GlobalKey()
-  };
+  final Map<String, GlobalKey> _chipKeys = {};
 
   @override
   void initState() {
     super.initState();
-    activeDay = _todayName();
+    _initPlanDates(); // uses DateTime directly from the model
+
+    // Default selection: today if within plan, else start date
+    if (planDates.isNotEmpty) {
+      final today = _stripTime(DateTime.now());
+      if (planDates.any((d) => _stripTime(d) == today)) {
+        currentDate = today;
+      } else {
+        currentDate = _stripTime(planDates.first);
+      }
+    }
+    activeDay = _weekdayKeyFromDate(currentDate);
+
     _bootstrap();
+  }
+
+  void _initPlanDates() {
+    try {
+      // ✅ Use DateTime directly from the model (no parsing)
+      final start = _stripTime(widget.dietPlanStrategyModel.planStartDate);
+      final end   = _stripTime(widget.dietPlanStrategyModel.planEndDate);
+
+      if (kDebugMode) {
+        print("Plan start: $start");
+        print("Plan end  : $end");
+      }
+
+      final days = <DateTime>[];
+      DateTime d = start;
+      while (!d.isAfter(end)) {
+        days.add(d);
+        d = d.add(const Duration(days: 1));
+      }
+      planDates = days;
+
+      // Unique keys for chip centering
+      for (final d in planDates) {
+        _chipKeys[_weekdayKeyFromDate(d) + d.toIso8601String()] = GlobalKey();
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint("Plan date range error: $e");
+      planDates = [];
+    }
   }
 
   Future<void> _bootstrap() async {
     await fetchDiet();
-    await _fetchLoggedForToday(); // after diet so UI has content
+    await _fetchLoggedForDate(currentDate);
   }
 
-  String _todayName() {
-    final wd = DateTime.now().weekday; // Monday=1 ... Sunday=7
-    return _weekdayOrder[wd - 1];
+  // ---------- helpers ----------
+  String _weekdayKeyFromDate(DateTime date) {
+    const names = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
+    return names[(date.weekday - 1).clamp(0, 6)];
   }
+
+  DateTime _stripTime(DateTime d) => DateTime(d.year, d.month, d.day);
+
+  bool _isFutureDay(DateTime selected) {
+    final today = _stripTime(DateTime.now());
+    return _stripTime(selected).isAfter(today);
+  }
+
+  // Parse time strings like "08:30", "8:30 PM", "08:30:00", returns null if not parseable.
+  TimeOfDay? _tryParseTimeOfDay(String s) {
+    if (s.isEmpty) return null;
+    final t = s.trim().toUpperCase();
+    final regex = RegExp(r'^(\d{1,2}):(\d{2})(?::\d{2})?\s*([AP]M)?$');
+    final m = regex.firstMatch(t);
+    if (m == null) return null;
+    final h = int.tryParse(m.group(1)!);
+    final min = int.tryParse(m.group(2)!);
+    if (h == null || min == null) return null;
+
+    var hour = h;
+    if (m.group(3) != null) {
+      final ampm = m.group(3)!;
+      if (ampm == 'PM' && hour < 12) hour += 12;
+      if (ampm == 'AM' && hour == 12) hour = 0;
+    }
+    if (hour < 0 || hour > 23 || min < 0 || min > 59) return null;
+    return TimeOfDay(hour: hour, minute: min);
+  }
+
+  DateTime _combineDateAndTime(DateTime date, String timeStr) {
+    final t = _tryParseTimeOfDay(timeStr);
+    final h = t?.hour ?? 0;
+    final m = t?.minute ?? 0;
+    return DateTime(date.year, date.month, date.day, h, m);
+  }
+  // ---------- end helpers ----------
 
   Future<void> fetchDiet() async {
     try {
-      final uri = Uri.parse(
-        'https://humorstech.com/dietitian/api/app/get_diet_plan.php',
-      );
-
-
-      print( widget.dieticianId);
-      print( widget.profileId);
-      print( widget.dietPlanId);
-
-
-
-
-
+      final uri = Uri.parse('https://humorstech.com/dietitian/api/app/get_diet_plan.php');
 
       final res = await http.post(
         uri,
@@ -94,21 +153,12 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
 
       final body = utf8.decode(res.bodyBytes);
       final top = json.decode(body) as Map<String, dynamic>;
-
-
-
-      print(res.body);
-
-
-
       if (res.statusCode != 200 || top['success'] != true) {
         throw Exception('Server error');
       }
 
       final dataArr = (top['data'] as List?) ?? [];
-      if (dataArr.isEmpty) {
-        throw Exception('No data');
-      }
+      if (dataArr.isEmpty) throw Exception('No data');
 
       final data0 = dataArr.first as Map<String, dynamic>;
       final dynDietJson = data0['diet_json'];
@@ -122,24 +172,13 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
         throw Exception('Unexpected diet_json type: ${dynDietJson.runtimeType}');
       }
 
-      final keys = parsedDiet.keys.map((e) => e.toString().toLowerCase()).toSet();
-      final daysInOrder = _weekdayOrder.where((d) => keys.contains(d)).toList(growable: false);
-
-      final defaultDay = _todayName();
-      final picked = daysInOrder.contains(defaultDay)
-          ? defaultDay
-          : (daysInOrder.isNotEmpty ? daysInOrder.first : 'monday');
-
       setState(() {
         diet = parsedDiet;
-        visibleDays = daysInOrder;
-        activeDay = picked;
+        activeDay = _weekdayKeyFromDate(currentDate);
         loading = false;
       });
 
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _centerDayChip(activeDay);
-      });
+      WidgetsBinding.instance.addPostFrameCallback((_) => _centerDayChip(currentDate));
     } catch (e) {
       setState(() {
         error = 'Fetch Error: $e';
@@ -148,30 +187,25 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
     }
   }
 
-  Future<void> _fetchLoggedForToday() async {
+  Future<void> _fetchLoggedForDate(DateTime date) async {
     try {
       final keys = await FoodLogFetchApi.fetchLoggedKeys(
         dieticianId: widget.dieticianId,
         profileId: widget.profileId,
         dietPlanId: widget.dietPlanId,
-        date: currentDate, // today
+        date: date,
       );
-      setState(() {
-        loggedKeys = keys;
-      });
+      setState(() => loggedKeys = keys);
     } catch (e) {
-      if (kDebugMode) {
-        debugPrint("Fetch logged failed: $e");
-      }
-      // keep UI usable
+      if (kDebugMode) debugPrint("Fetch logged failed: $e");
     }
   }
 
-  Future<void> _centerDayChip(String dayKey) async {
-    final key = _chipKeys[dayKey];
-    if (key?.currentContext != null) {
+  Future<void> _centerDayChip(DateTime date) async {
+    final chipKey = _chipKeys[_weekdayKeyFromDate(date) + date.toIso8601String()];
+    if (chipKey?.currentContext != null) {
       await Scrollable.ensureVisible(
-        key!.currentContext!,
+        chipKey!.currentContext!,
         alignment: 0.5,
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
@@ -185,320 +219,136 @@ class _DietPlanScreenState extends State<DietPlanScreen> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     if (error != null) {
-      return Scaffold(
-        body: Center(child: Text(error!, textAlign: TextAlign.center)),
-      );
+      return Scaffold(body: Center(child: Text(error!, textAlign: TextAlign.center)));
     }
 
-    final dayData = diet[activeDay] as Map<String, dynamic>?;
+    // Meals for the weekday of currentDate
+    final dayKey = _weekdayKeyFromDate(currentDate);
+    final dayData = diet[dayKey] as Map<String, dynamic>?;
     final meals = (dayData?['meals'] as List<dynamic>? ?? [])
         .whereType<Map<String, dynamic>>()
         .toList();
+
+    final bool isFuture = _isFutureDay(currentDate);
+    final bool canLog = !isFuture; // allow past & today, block future
+
+    String monthName(int m) => const ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m - 1];
+
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(
         backgroundColor: const Color(0xFFF5F7FA),
         surfaceTintColor: const Color(0xFFF5F7FA),
-        title: Text(
-          'Diet Plan',
-          style: GoogleFonts.poppins(
-            color: const Color(0xFF252525),
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-            letterSpacing: -0.90,
-          ),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          spacing: 5,
+          children: [
+            Text(
+              'Diet Plan',
+              style: GoogleFonts.poppins(
+                color: const Color(0xFF252525),
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                letterSpacing: -0.90,
+              ),
+            ),
+            Text("${widget.dietPlanStrategyModel.planStartDate.day} ${monthName(widget.dietPlanStrategyModel.planStartDate.month)} ${widget.dietPlanStrategyModel.planStartDate.year} - ${widget.dietPlanStrategyModel.planEndDate.day} ${monthName(widget.dietPlanStrategyModel.planEndDate.month)} ${widget.dietPlanStrategyModel.planEndDate.year}",
+              style: GoogleFonts.poppins(
+                color: const Color(0xFF252525),
+                fontSize: 10,
+                fontWeight: FontWeight.w400,
+                height: 1.10,
+                letterSpacing: -0.20,
+              ),
+            )
+          ],
         ),
       ),
       body: SafeArea(
         child: Column(
           children: [
-            // Day chips (order fixed, center selected)
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.all(12),
-              child: Row(
-                spacing: 10,
-                children: visibleDays.map((d) {
-                  final sel = d == activeDay;
-                  return GestureDetector(
-                    key: _chipKeys[d],
-                    onTap: () async {
-                      setState(() => activeDay = d);
-                      await _centerDayChip(d);
-                    },
-                    child: Container(
-                      decoration: ShapeDecoration(
-                        color: sel ? const Color(0xFF308BF9) : Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+
+            Container(
+              width: double.infinity,
+              decoration: ShapeDecoration(
+                color: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
+              ),
+              margin: EdgeInsets.symmetric(horizontal: 10),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.all(10),
+                child: Row(
+                  spacing: 12,
+                  children: [
+                    for (int i = 0; i < planDates.length; i++) ...[
+                      DayChip(
+                        key: _chipKeys[_weekdayKeyFromDate(planDates[i]) + planDates[i].toIso8601String()],
+                        label: _weekdayKeyFromDate(planDates[i]), // monday..sunday
+                        date: planDates[i],
+                        selected: _stripTime(planDates[i]) == _stripTime(currentDate),
+                        onTap: () async {
+                          setState(() {
+                            currentDate = _stripTime(planDates[i]);
+                            activeDay = _weekdayKeyFromDate(currentDate);
+                          });
+                          await _centerDayChip(currentDate);
+                          await _fetchLoggedForDate(currentDate);
+                        },
                       ),
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                      child: Text(
-                        d[0].toUpperCase() + d.substring(1, 3), // Mon, Tue, ...
-                        style: GoogleFonts.poppins(
-                          color: sel ? Colors.white : const Color(0xFF252525),
-                          fontWeight: FontWeight.w600,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                  );
-                }).toList(),
+
+                    ],
+                  ],
+                ),
               ),
             ),
 
-            // Meals for selected day
+            SizedBox(height: 20,),
+
             Expanded(
               child: ListView.builder(
                 itemCount: meals.length,
                 itemBuilder: (_, i) {
                   final m = meals[i];
-                  final mealTitle = (m['time'] ?? '').toString(); // dietTitle
+                  final mealTimeStr = (m['time'] ?? '').toString();
                   final items = (m['items'] as List? ?? const [])
                       .whereType<Map<String, dynamic>>()
                       .toList();
-                  final mt = (m['totals'] as Map<String, dynamic>? ?? {});
 
-                  return Card(
-                    color: Colors.white,
-                    elevation: 0,
-                    margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            mealTitle,
-                            style: GoogleFonts.poppins(
-                              color: const Color(0xFF252525),
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                              height: 1.10,
-                              letterSpacing: -0.72,
-                            ),
-                          ),
-                          const SizedBox(height: 30),
+                  final logDate = currentDate; // concrete date for this chip
+                  final logDateTime = _combineDateAndTime(logDate, mealTimeStr);
 
-                          // Food rows
-                          ...List.generate(items.length, (idx) {
-                            final it = items[idx];
-                            final foodName = (it['name'] ?? '').toString();
-                            final key = FoodLogFetchApi.makeKey(mealTitle, foodName);
-                            final isLogged = loggedKeys.contains(key);
-
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 6),
-                              child: dietPlanFoodItem(
-                                index: idx + 1,
-                                mealTitle: mealTitle,
-                                foodName: foodName,
-                                foodType: 'None',
-                                foodScale: (it['portion'] ?? '').toString(),
-                                foodCalories: (it['calories_kcal'] ?? '').toString(),
-                                foodProtein: (it['protein'] ?? '').toString(),
-                                foodFat: (it['fat'] ?? '').toString(),
-                                foodCarbs: (it['carbs'] ?? '').toString(),
-                                context: context,
-                                isLogged: isLogged,
-                                onLogged: () {
-                                  // Update state immediately on success
-                                  setState(() {
-                                    loggedKeys = Set<String>.from(loggedKeys)..add(key);
-                                  });
-                                },
-                                onAlreadyLogged: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text("Already logged")),
-                                  );
-                                },
-                                dieticianId: widget.dieticianId,
-                                profileId: widget.profileId,
-                                dietPlanId: widget.dietPlanId,
-                              ),
-                            );
-                          }),
-
-
-                        ],
-                      ),
+                  return Opacity(
+                    opacity: canLog ? 1.0 : 0.55,
+                    child: DietPlanMealItem(
+                      mealTitle: mealTimeStr,
+                      items: items,
+                      loggedKeys: loggedKeys,
+                      canLog: canLog,
+                      logDate: logDate,
+                      logDateTime: logDateTime,
+                      dieticianId: widget.dieticianId,
+                      profileId: widget.profileId,
+                      dietPlanId: widget.dietPlanId,
+                      onLoggedKeyAdd: (key) {
+                        setState(() {
+                          loggedKeys = Set<String>.from(loggedKeys)..add(key);
+                        });
+                      },
                     ),
                   );
                 },
               ),
             ),
+
           ],
         ),
       ),
-
-      // Navigate to Log Food screen with repo built from today's meals
-      // floatingActionButton: SafeArea(
-      //   child: ElevatedButton(
-      //     onPressed: () {
-      //       final dayData = diet[activeDay] as Map<String, dynamic>?;
-      //       final meals = (dayData?['meals'] as List? ?? const [])
-      //           .whereType<Map<String, dynamic>>()
-      //           .toList();
-      //       final repo = ApiBackedLogFoodRepository.fromDayMeals(meals);
-      //
-      //       Navigator.of(context).push(
-      //         MaterialPageRoute(
-      //           builder: (_) => MultiBlocProvider(
-      //             providers: [
-      //               BlocProvider<LogFoodCubit>(create: (_) => LogFoodCubit(repo)),
-      //               BlocProvider<TestTimerCubit>(create: (_) => TestTimerCubit()),
-      //             ],
-      //             child: const LogFoodPage(),
-      //           ),
-      //         ),
-      //       );
-      //     },
-      //     style: ElevatedButton.styleFrom(
-      //       backgroundColor: const Color(0xFF308BF9),
-      //       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
-      //     ),
-      //     child: Row(
-      //       mainAxisSize: MainAxisSize.min,
-      //       children: [
-      //         const Icon(Icons.keyboard_arrow_right_rounded, color: Colors.white),
-      //         const SizedBox(width: 8),
-      //         Text(
-      //           "Log Food",
-      //           style: GoogleFonts.poppins(
-      //               color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600),
-      //         ),
-      //       ],
-      //     ),
-      //   ),
-      // ),
     );
   }
 }
-
-/// Your existing row UI with minimal visual indicator added (green tick) and
-/// duplicate-insert protection. No layout changes.
-Widget dietPlanFoodItem({
-  required int index,
-  required String mealTitle,
-  required String foodName,
-  required String foodType,
-  required String foodScale,
-  required String foodCalories,
-  required String foodProtein,
-  required String foodFat,
-  required String foodCarbs,
-  required BuildContext context,
-  required bool isLogged,
-  required VoidCallback onLogged,
-  required VoidCallback onAlreadyLogged,
-  required String dieticianId,
-  required String profileId,
-  required String dietPlanId,
-}) {
-  Future<void> insertFoodLog() async {
-
-
-    LogFoodSheet().showFoodBottomSheet(
-      context: context,
-      mealTitle: mealTitle,
-      index: index,
-      foodName: foodName,
-      foodType: foodType,
-      foodScale: foodScale,
-      foodCalories: foodCalories,
-      foodProtein: foodProtein,
-      foodFat: foodFat,
-      foodCarbs: foodCarbs,
-      isLogged: isLogged,
-      onLogged: () { onLogged(); },
-      onAlreadyLogged: () { onAlreadyLogged(); },
-      dieticianId: dieticianId,
-      profileId: profileId,
-      dietPlanId: dietPlanId,
-    );
-
-
-  }
-
-  return GestureDetector(
-    onTap: insertFoodLog,
-    child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 0),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              const SizedBox(width: 9),
-              Text(
-                index.toString(),
-                style: GoogleFonts.poppins(
-                  color: Colors.black,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  height: 1.26,
-                  letterSpacing: -0.30,
-                ),
-              ),
-              const SizedBox(width: 22),
-              Expanded(
-                flex: 3,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      foodName,
-                      style: GoogleFonts.poppins(
-                        color: Colors.black,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        height: 1.26,
-                        letterSpacing: -0.24,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      foodScale,
-                      style: GoogleFonts.poppins(
-                        color: const Color(0xFF252525),
-                        fontSize: 10,
-                        fontWeight: FontWeight.w400,
-                        letterSpacing: -0.20,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 22),
-
-              Expanded(
-                flex: 1,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-
-                    Text(
-                      "$foodCalories kcal",
-                      textAlign: TextAlign.right,
-                      style: GoogleFonts.poppins(
-                        color: const Color(0xFF535359),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w400,
-                        letterSpacing: -0.24,
-                      ),
-                    ),
-
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    ),
-  );
-}
-
 
 

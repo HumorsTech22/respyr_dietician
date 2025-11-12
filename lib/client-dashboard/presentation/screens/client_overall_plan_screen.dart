@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:respyr_dietitian/client-dashboard/data/model/client_profile_model.dart';
 import '../../data/model/diet_plan_strategy_model.dart';
 
 import '../../extras/date_helper.dart';
@@ -13,7 +14,8 @@ class ClientOverallPlanScreen extends StatefulWidget {
   final List<DietPlanStrategyModel> activeData;
   final List<DietPlanStrategyModel> completedData;
   final List<DietPlanStrategyModel> canceledData;
-  const ClientOverallPlanScreen({super.key, required this.activeData, required this.completedData, required this.canceledData});
+  final ClientProfileModel clientProfileModel;
+  const ClientOverallPlanScreen({super.key, required this.activeData, required this.completedData, required this.canceledData, required this.clientProfileModel});
 
   @override
   State<ClientOverallPlanScreen> createState() => _ClientOverallPlanScreenState();
@@ -147,7 +149,8 @@ class _ClientOverallPlanScreenState extends State<ClientOverallPlanScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) =>  DietPlanOverview(activeData: widget.activeData, completedData: widget.completedData, canceledData: widget.canceledData,),
+                            builder: (_) =>  DietPlanOverview(activeData: widget.activeData, completedData: widget.completedData, canceledData: widget.canceledData,
+                              clientProfileModel: widget.clientProfileModel,),
                           ),
                         );
                       },

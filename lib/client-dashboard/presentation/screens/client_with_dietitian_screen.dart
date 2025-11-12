@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:respyr_dietitian/client-dashboard/extras/meal_type_helper.dart';
 import 'package:respyr_dietitian/client-dashboard/presentation/screens/consultant_info_card.dart';
 import 'package:respyr_dietitian/client-dashboard/presentation/screens/diet_plan_card.dart';
 import 'package:respyr_dietitian/client-dashboard/presentation/screens/diet_plan_hero.dart';
@@ -13,7 +14,6 @@ import '../../../features/bluetooth_device_connectivity/data/datasource/uuid_blu
 import '../../../features/bluetooth_device_connectivity/domain/repository/bluetooth_repository.dart';
 import '../../../features/bluetooth_device_connectivity/domain/repository/bluetooth_repository_impl.dart';
 import '../../../features/bluetooth_device_connectivity/presentation/pages/bluetooth_device_connectivity.dart';
-import '../../../features/dietitian_dashboard/presentation/cubit/dietitian_dashboard_cubit.dart';
 import '../../../features/dietitian_dashboard/presentation/widgets/swipe_button_widget.dart';
 import '../../../features/gifting/dashboard/presentation/widgets/test_result_history.dart';
 import '../../../features/test_history/test_history_by_date/data/models/test_data_record.dart';
@@ -30,12 +30,9 @@ import '../../today_result/today_test_data_event.dart';
 import '../../today_result/today_test_data_repository.dart';
 import '../../today_result/today_test_data_state.dart';
 import '../widgets/dashboard_appbar.dart';
-import 'next_meal_info_screen.dart';
 import 'package:http/http.dart' as http;
 
-class ThemeHelper {
-  Color getStatusBarColor() => const Color(0xFFFFE29F);
-}
+
 
 class ClientWithDietitianScreen extends StatefulWidget {
   final ClientProfileModel clientProfileModel;
@@ -153,19 +150,13 @@ class _ClientWithDietitianScreenState extends State<ClientWithDietitianScreen> {
             ),
             child: Scaffold(
               backgroundColor: Colors.white,
-              // appBar: AppBar(
-              //   backgroundColor: Color(0xFFFFE29F),
-              //   title: DashboardAppbar(clientProfileModel: widget.clientProfileModel, dietitianDetailModel: widget.dietitianModel,),
-              // ),
-
-                appBar: PreferredSize(
-                  preferredSize: const Size.fromHeight(0),
-                  child: AppBar(
-                    backgroundColor: Color(0xFFFFE29F),
-                    elevation: 0,
-                  ),
+              appBar: PreferredSize(
+                preferredSize: const Size.fromHeight(0),
+                child: AppBar(
+                  backgroundColor: ThemeHelper().getStatusBarColor(),
+                  elevation: 0,
                 ),
-
+              ),
               body: SafeArea(
                 child: Stack(
                   children: [
@@ -277,7 +268,6 @@ class _ClientWithDietitianScreenState extends State<ClientWithDietitianScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.max,
             children: [
-              // Fetch and show ONLY today’s data (current meal for 30 mins window, otherwise next)
               FutureBuilder<Map<String, dynamic>>(
                 future: _fetchTodayDiet(
                   widget.dietitianModel.dietitianId,
@@ -294,24 +284,7 @@ class _ClientWithDietitianScreenState extends State<ClientWithDietitianScreen> {
                     );
                   }
                   if (snap.hasError) {
-                    return Column(
-                      children: [
-                        NoDietPlanHero(clientProfileModel: widget.clientProfileModel, dietitianDetailModel: widget.dietitianModel),
-                        const SizedBox(height: 50),
-                        DietPlanCard(
-                          activeData: categorized.active,
-                          completedData: categorized.completed,
-                          canceledData: categorized.cancelled,
-                          dietitianDetailModel: widget.dietitianModel, clientProfileModel: clientProfileModel,
-                        ),
-                        const SizedBox(height: 50),
-                        ConsultantInfoCard(
-                          dietitianModel: widget.dietitianModel,
-                          clientProfileModel: widget.clientProfileModel,
-                        ),
-                        const SizedBox(height: 80),
-                      ],
-                    );
+                    return NoDietPlanHero(clientProfileModel: widget.clientProfileModel, dietitianDetailModel: widget.dietitianModel);
                   }
                   if (!snap.hasData) {
                     return const SizedBox.shrink();
@@ -348,15 +321,6 @@ class _ClientWithDietitianScreenState extends State<ClientWithDietitianScreen> {
                         canceledData: categorized.cancelled,
                         dietitianDetailModel: widget.dietitianModel, clientProfileModel: clientProfileModel,
                       ),
-
-                      const SizedBox(height: 50),
-                      ConsultantInfoCard(
-                        dietitianModel: widget.dietitianModel,
-                        clientProfileModel: widget.clientProfileModel,
-                      ),
-                      const SizedBox(height: 50),
-                      // NextMealInfoScreen(),
-                      const SizedBox(height: 80),
                     ],
                   );
                 },
@@ -364,6 +328,14 @@ class _ClientWithDietitianScreenState extends State<ClientWithDietitianScreen> {
 
 
 
+              const SizedBox(height: 50),
+              ConsultantInfoCard(
+                dietitianModel: widget.dietitianModel,
+                clientProfileModel: widget.clientProfileModel,
+              ),
+              const SizedBox(height: 50),
+              // NextMealInfoScreen(),
+              const SizedBox(height: 80),
 
 
 
