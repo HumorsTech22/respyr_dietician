@@ -45,6 +45,7 @@ class DietPlanWidgets {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               child: Row(
+                spacing: 10,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -63,7 +64,7 @@ class DietPlanWidgets {
                   Expanded(
                     flex: 2,
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisAlignment: MainAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -71,8 +72,9 @@ class DietPlanWidgets {
                         Text(
                           foodName,
                           maxLines: 2,
+
                           overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
+                          textAlign: TextAlign.left,
                           style: GoogleFonts.poppins(
                             color: Colors.black,
                             fontSize: 15,

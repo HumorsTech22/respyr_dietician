@@ -13,6 +13,8 @@ class DietPlanStrategyModel {
   final int caloriesTarget;
   final int proteinTarget;
   final int fiberTarget;
+  final int carbsTarget;
+  final int fatTarget;
   final double waterTarget;
   final List<Goal> goals;         // from key: "goal" (array)
   final List<String> approaches;  // from key: "approach"
@@ -30,6 +32,8 @@ class DietPlanStrategyModel {
     required this.caloriesTarget,
     required this.proteinTarget,
     required this.fiberTarget,
+    required this.carbsTarget,
+    required this.fatTarget,
     required this.waterTarget,
     required this.goals,
     required this.approaches,
@@ -80,6 +84,8 @@ class DietPlanStrategyModel {
     caloriesTarget: _i(json['calories_target']),
     proteinTarget: _i(json['protein_target']),
     fiberTarget: _i(json['fiber_target']),
+    carbsTarget: _i(json['carbs_target']),
+    fatTarget: _i(json['fat_target']),
     waterTarget: _f(json['water_target']),
     goals: _parseGoals(json['goal'] ?? json['goals']),
     approaches: _parseApproach(json['approach']),

@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:respyr_dietitian/client-dashboard/data/model/client_profile_model.dart';
 import 'package:respyr_dietitian/client-dashboard/presentation/widgets/target_item.dart';
 
 import '../../data/model/diet_plan_strategy_model.dart';
@@ -12,12 +13,13 @@ class PlanCard extends StatelessWidget {
   final List<DietPlanStrategyModel> activeData;
   final List<DietPlanStrategyModel> completedData;
   final List<DietPlanStrategyModel> canceledData;
+  final ClientProfileModel clientProfileModel;
 
   const PlanCard({
     super.key,
     required this.activeData,
     required this.completedData,
-    required this.canceledData,
+    required this.canceledData, required this.clientProfileModel,
   });
 
   @override
@@ -81,7 +83,7 @@ class PlanCard extends StatelessWidget {
                     builder: (_) => ClientOverallPlanScreen(
                       activeData: activeData,
                       completedData: completedData,
-                      canceledData: canceledData,
+                      canceledData: canceledData, clientProfileModel: clientProfileModel,
                     ),
                   ),
                 );
