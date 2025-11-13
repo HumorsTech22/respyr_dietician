@@ -69,7 +69,7 @@ class MetabolismTabCard extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               SvgPicture.asset(
-                "assets/images/common/dietitian_share.svg",
+                "assets/images/result_screen/dietitian_result_share.svg",
                 height: 20,
                 width: 20,
                 colorFilter: const ColorFilter.mode(

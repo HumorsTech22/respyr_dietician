@@ -7,6 +7,10 @@ class BluetoothGeneratingResultState extends Equatable {
   final bool isDialogShown;
   final bool navigateToResultScreen;
 
+  final double? acetone;
+  final double? ethanol;
+  final double? hydrogen;
+
   final int completedSteps;
 
   const BluetoothGeneratingResultState({
@@ -15,7 +19,9 @@ class BluetoothGeneratingResultState extends Equatable {
     this.isBluetoothConnected = false,
     this.isDialogShown = false,
     this.navigateToResultScreen = false,
-
+    this.acetone,
+    this.ethanol,
+    this.hydrogen,
     this.completedSteps = 0,
   });
 
@@ -25,7 +31,9 @@ class BluetoothGeneratingResultState extends Equatable {
     bool? isBluetoothConnected,
     bool? isDialogShown,
     bool? navigateToResultScreen,
-
+    double? acetone,
+    double? ethanol,
+    double? hydrogen,
     int? completedSteps,
   }) {
     return BluetoothGeneratingResultState(
@@ -35,7 +43,9 @@ class BluetoothGeneratingResultState extends Equatable {
       isDialogShown: isDialogShown ?? this.isDialogShown,
       navigateToResultScreen:
           navigateToResultScreen ?? this.navigateToResultScreen,
-
+      acetone: acetone ?? this.acetone,
+      ethanol: ethanol ?? this.ethanol,
+      hydrogen: hydrogen ?? this.hydrogen,
       completedSteps: completedSteps ?? this.completedSteps,
     );
   }
@@ -47,7 +57,9 @@ class BluetoothGeneratingResultState extends Equatable {
     isBluetoothConnected,
     isDialogShown,
     navigateToResultScreen,
-
+    acetone,
+    ethanol,
+    hydrogen,
     completedSteps,
   ];
 }

@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:respyr_dietitian/client-dashboard/data/model/client_profile_model.dart';
 import 'package:respyr_dietitian/common/widgets/audio_helper.dart';
 import 'package:respyr_dietitian/common/widgets/internet_connectivity_handler.dart';
+import 'package:respyr_dietitian/core/services/shared_prefs_profile_data.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/repository/bluetooth_repository.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_breathe_tube_cubit/bluetooth_breathe_tube_cubit.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_breathe_tube_cubit/bluetooth_breathe_tube_state.dart';
@@ -13,11 +14,21 @@ import 'package:respyr_dietitian/common/dialogs/cancel_Test_dialog.dart';
 import 'package:respyr_dietitian/common/dialogs/disconnection_dialog.dart';
 import 'package:respyr_dietitian/routes/app_routes.dart';
 
-import 'bluetooth_calibration_screen.dart';
-
 class BluetoothBreatheTube extends StatelessWidget {
   final ClientProfileModel clientProfileModel;
   const BluetoothBreatheTube({super.key, required this.clientProfileModel});
+
+  Future<bool> _showCancelTestDialogBox(BuildContext context) async {
+    bool didCancel = false;
+
+    showCancelTestDialog(context, () {
+      context.go(AppRoutes.clientDashboard, extra: clientProfileModel);
+
+      context.read<BluetoothBreatheTubeCubit>().dialogDismissed();
+    });
+
+    return didCancel;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +39,7 @@ class BluetoothBreatheTube extends StatelessWidget {
             AudioHelper(),
           ),
       child: BlocConsumer<BluetoothBreatheTubeCubit, BluetoothBreatheTubeState>(
-        listener: (context, state) {
+        listener: (context, state) async {
           final cubit = context.read<BluetoothBreatheTubeCubit>();
 
           if (state.isDialogShown) {
@@ -44,114 +55,110 @@ class BluetoothBreatheTube extends StatelessWidget {
           }
 
           if (state.isCompleted) {
+            await ClientProfilePrefs.saveClientProfile(clientProfileModel);
             cubit.close();
-
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => RepositoryProvider<BluetoothRepository>.value(
-                  value: context.read<BluetoothRepository>(), // or create(...) if none above
-                  child:  BluetoothCalibrationScreen(clientProfileModel: clientProfileModel,),
-                ),
-              ),
+            context.pushReplacement(
+              AppRoutes.bluetoothCalibrationScreen,
+              extra: clientProfileModel,
             );
           }
         },
 
         builder: (context, state) {
-          return Scaffold(
-            backgroundColor: Colors.white,
-            body: InternetConnectivityHandler(
-              onConnectivityChanged: (hasInternet) {
-                context.read<BluetoothBreatheTubeCubit>().handleInternetChanged(
-                  hasInternet,
-                );
-              },
-              child: SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          IconButton(
-                            onPressed:
-                                () => showCancelTestDialog(context, () {
+          return PopScope(
+            canPop: false,
+            onPopInvokedWithResult: (didPop, result) async {
+              if (!didPop) {
+                final shouldExit = await _showCancelTestDialogBox(context);
 
-                                  context.go(
-                                    AppRoutes.clientDashboard,
-                                    extra: clientProfileModel,
-                                  );
-
-                                  context
-                                      .read<BluetoothBreatheTubeCubit>()
-                                      .dialogDismissed();
-                                }),
-                            icon: SvgPicture.asset(
-                              "assets/images/common/closeicon.svg",
+                if (shouldExit) {}
+              }
+            },
+            child: Scaffold(
+              backgroundColor: Colors.white,
+              body: InternetConnectivityHandler(
+                onConnectivityChanged: (hasInternet) {
+                  context
+                      .read<BluetoothBreatheTubeCubit>()
+                      .handleInternetChanged(hasInternet);
+                },
+                child: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            IconButton(
+                              onPressed:
+                                  () => _showCancelTestDialogBox(context),
+                              icon: SvgPicture.asset(
+                                "assets/images/common/closeicon.svg",
+                              ),
                             ),
-                          ),
-                          const Spacer(),
-                          IconButton(
-                            onPressed: () {
-                              context
-                                  .read<BluetoothBreatheTubeCubit>()
-                                  .audioHelper
-                                  .toggleMute();
-                            },
-                            icon: BlocBuilder<
-                              BluetoothBreatheTubeCubit,
-                              BluetoothBreatheTubeState
-                            >(
-                              builder: (context, state) {
-                                return Icon(
-                                  context
-                                          .read<BluetoothBreatheTubeCubit>()
-                                          .audioHelper
-                                          .isMuted
-                                      ? Icons.volume_off
-                                      : Icons.volume_up,
-                                );
+                            const Spacer(),
+                            IconButton(
+                              onPressed: () {
+                                context
+                                    .read<BluetoothBreatheTubeCubit>()
+                                    .audioHelper
+                                    .toggleMute();
                               },
+                              icon: BlocBuilder<
+                                BluetoothBreatheTubeCubit,
+                                BluetoothBreatheTubeState
+                              >(
+                                builder: (context, state) {
+                                  return Icon(
+                                    context
+                                            .read<BluetoothBreatheTubeCubit>()
+                                            .audioHelper
+                                            .isMuted
+                                        ? Icons.volume_off
+                                        : Icons.volume_up,
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 80),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: Text(
+                            "Place the mouth tube in the slot",
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.mulish(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w400,
+                              color: Color(0xFF595959),
                             ),
                           ),
-                        ],
-                      ),
-                      SizedBox(height: 80),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: Text(
-                          "Place the mouth tube in the slot",
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.mulish(
+                        ),
+                        Image.asset("assets/images/gif_images/mouth_tube.gif"),
+                        SizedBox(height: 50),
+                        LinearProgressIndicator(
+                          value: state.progress,
+                          backgroundColor: const Color(0xFFE0E0E0),
+                          color: Color(0xFF308BF9),
+                          minHeight: 15,
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        SizedBox(height: 20),
+                        Text(
+                          'Loading... ${(state.progress * 100).toInt()}%',
+                          style: GoogleFonts.roboto(
                             fontSize: 15,
                             fontWeight: FontWeight.w400,
-                            color: Color(0xFF595959),
+                            color: Color(0xFF308BF9),
                           ),
                         ),
-                      ),
-                      Image.asset("assets/images/gif_images/mouth_tube.gif"),
-                      SizedBox(height: 50),
-                      LinearProgressIndicator(
-                        value: state.progress,
-                        backgroundColor: const Color(0xFFE0E0E0),
-                        color: Color(0xFF308BF9),
-                        minHeight: 15,
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      SizedBox(height: 20),
-                      Text(
-                        'Loading... ${(state.progress * 100).toInt()}%',
-                        style: GoogleFonts.roboto(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w400,
-                          color: Color(0xFF308BF9),
-                        ),
-                      ),
-                      const Spacer(),
-                    ],
+                        const Spacer(),
+                      ],
+                    ),
                   ),
                 ),
               ),

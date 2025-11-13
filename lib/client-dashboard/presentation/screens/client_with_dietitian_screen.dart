@@ -3,12 +3,16 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:respyr_dietitian/client-dashboard/extras/meal_type_helper.dart';
 import 'package:respyr_dietitian/client-dashboard/presentation/screens/consultant_info_card.dart';
 import 'package:respyr_dietitian/client-dashboard/presentation/screens/diet_plan_card.dart';
 import 'package:respyr_dietitian/client-dashboard/presentation/screens/diet_plan_hero.dart';
 import 'package:respyr_dietitian/client-dashboard/presentation/screens/no_diet_plan_hero.dart';
+import 'package:respyr_dietitian/common/dialogs/abort_sheet_dialog.dart';
+import 'package:respyr_dietitian/common/widgets/abort_device_manager.dart';
 import 'package:respyr_dietitian/features/profile_info/data/model/dietician_detail_model.dart';
+import 'package:respyr_dietitian/routes/app_routes.dart';
 import '../../../common/widgets/loading_widget.dart';
 import '../../../features/bluetooth_device_connectivity/data/datasource/uuid_bluetooth_manager.dart';
 import '../../../features/bluetooth_device_connectivity/domain/repository/bluetooth_repository.dart';
@@ -31,8 +35,6 @@ import '../../today_result/today_test_data_repository.dart';
 import '../../today_result/today_test_data_state.dart';
 import '../widgets/dashboard_appbar.dart';
 import 'package:http/http.dart' as http;
-
-
 
 class ClientWithDietitianScreen extends StatefulWidget {
   final ClientProfileModel clientProfileModel;
@@ -58,7 +60,10 @@ class _ClientWithDietitianScreenState extends State<ClientWithDietitianScreen> {
   }
 
   Future<Map<String, dynamic>> _fetchTodayDiet(
-      String dietitianId, String profileId, String dietPlanId) async {
+    String dietitianId,
+    String profileId,
+    String dietPlanId,
+  ) async {
     final body = jsonEncode({
       'login_id': dietitianId,
       'profile_id': profileId,
@@ -97,7 +102,7 @@ class _ClientWithDietitianScreenState extends State<ClientWithDietitianScreen> {
     // If API returns only one day
     if (today.isEmpty && dietJson.isNotEmpty) {
       final keys =
-      dietJson.keys.map((e) => e.toString().toLowerCase()).toList();
+          dietJson.keys.map((e) => e.toString().toLowerCase()).toList();
       if (keys.length == 1) {
         final k = keys.first;
         return {
@@ -114,33 +119,67 @@ class _ClientWithDietitianScreenState extends State<ClientWithDietitianScreen> {
     };
   }
 
+  Future<void> checkDeviceAbortStatus(BuildContext context) async {
+    try {
+      final isDeviceAborted = await AbortDeviceManager.getAbortStatus();
+
+      if (context.mounted) {
+        if (isDeviceAborted) {
+          CheckAbortSheet.show(
+            context: context,
+            onTakeTextClick: () {
+              context.push(
+                AppRoutes.bluetoothDeviceConnectivity,
+                extra: widget.clientProfileModel,
+              );
+            },
+          );
+        } else {
+          context.push(
+            AppRoutes.bluetoothDeviceConnectivity,
+            extra: widget.clientProfileModel,
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint("❌ Error checking device abort status: $e");
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
         BlocProvider<DietPlanBloc>(
-          create: (_) => DietPlanBloc(DietPlanRepository(DietPlanService()))
-            ..add(FetchPlans(
-              dietitianId: widget.clientProfileModel.dietitianId,
-              clientId: widget.clientProfileModel.profileId,
-            )),
+          create:
+              (_) => DietPlanBloc(DietPlanRepository(DietPlanService()))..add(
+                FetchPlans(
+                  dietitianId: widget.clientProfileModel.dietitianId,
+                  clientId: widget.clientProfileModel.profileId,
+                ),
+              ),
         ),
         BlocProvider<TodayTestDataBloc>(
-          create: (_) => TodayTestDataBloc(
-            TodayTestDataRepository(widget.todayTestDataApiService),
-          )..add(LoadTestDataForDay(
-            profileId: widget.clientProfileModel.profileId,
-            date: DateTime.now(), dietitianId: widget.dietitianModel.dietitianId,
-          )),
+          create:
+              (_) => TodayTestDataBloc(
+                TodayTestDataRepository(widget.todayTestDataApiService),
+              )..add(
+                LoadTestDataForDay(
+                  profileId: widget.clientProfileModel.profileId,
+                  date: DateTime.now(),
+                  dietitianId: widget.dietitianModel.dietitianId,
+                ),
+              ),
         ),
       ],
       child: BlocBuilder<DietPlanBloc, DietPlanState>(
         builder: (context, state) {
-          final statusBarColor = state.status == LoadStatus.success &&
-              state.data != null &&
-              state.data!.active.isNotEmpty
-              ? ThemeHelper().getStatusBarColor()
-              : const Color(0xFFD3E5FF);
+          final statusBarColor =
+              state.status == LoadStatus.success &&
+                      state.data != null &&
+                      state.data!.active.isNotEmpty
+                  ? ThemeHelper().getStatusBarColor()
+                  : const Color(0xFFD3E5FF);
 
           return AnnotatedRegion<SystemUiOverlayStyle>(
             value: SystemUiOverlayStyle(
@@ -160,31 +199,28 @@ class _ClientWithDietitianScreenState extends State<ClientWithDietitianScreen> {
               body: SafeArea(
                 child: Stack(
                   children: [
-                    Positioned.fill(child:  _buildContent(context, state, widget.clientProfileModel)),
+                    Positioned.fill(
+                      child: _buildContent(
+                        context,
+                        state,
+                        widget.clientProfileModel,
+                      ),
+                    ),
                     Positioned(
                       bottom: 10,
                       left: 0,
                       right: 0,
-                      child:  Center(
+                      child: Center(
                         child: SwipeButtonWidget(
                           onSwiped: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => RepositoryProvider<BluetoothRepository>(
-                                  create: (_) => BluetoothRepositoryImpl(UuidBluetoothManager()),
-                                  child:  BluetoothDeviceConnectivity(clientProfileModel: widget.clientProfileModel),
-                                ),
-                              ),
-                            );
+                            checkDeviceAbortStatus(context);
                           },
                         ),
-                      )
-                      ,)
+                      ),
+                    ),
                   ],
                 ),
               ),
-
-
             ),
           );
         },
@@ -192,7 +228,11 @@ class _ClientWithDietitianScreenState extends State<ClientWithDietitianScreen> {
     );
   }
 
-  Widget _buildContent(BuildContext context, DietPlanState state, ClientProfileModel clientProfileModel) {
+  Widget _buildContent(
+    BuildContext context,
+    DietPlanState state,
+    ClientProfileModel clientProfileModel,
+  ) {
     if (state.status == LoadStatus.loading) {
       return const Scaffold(
         backgroundColor: Colors.white,
@@ -211,7 +251,8 @@ class _ClientWithDietitianScreenState extends State<ClientWithDietitianScreen> {
           physics: const AlwaysScrollableScrollPhysics(),
           child: ConstrainedBox(
             constraints: BoxConstraints(
-              minHeight: MediaQuery.of(context).size.height -
+              minHeight:
+                  MediaQuery.of(context).size.height -
                   MediaQuery.of(context).padding.top -
                   MediaQuery.of(context).padding.bottom,
             ),
@@ -261,7 +302,8 @@ class _ClientWithDietitianScreenState extends State<ClientWithDietitianScreen> {
         physics: const AlwaysScrollableScrollPhysics(),
         child: ConstrainedBox(
           constraints: BoxConstraints(
-            minHeight: MediaQuery.of(context).size.height -
+            minHeight:
+                MediaQuery.of(context).size.height -
                 MediaQuery.of(context).padding.top -
                 MediaQuery.of(context).padding.bottom,
           ),
@@ -284,7 +326,10 @@ class _ClientWithDietitianScreenState extends State<ClientWithDietitianScreen> {
                     );
                   }
                   if (snap.hasError) {
-                    return NoDietPlanHero(clientProfileModel: widget.clientProfileModel, dietitianDetailModel: widget.dietitianModel);
+                    return NoDietPlanHero(
+                      clientProfileModel: widget.clientProfileModel,
+                      dietitianDetailModel: widget.dietitianModel,
+                    );
                   }
                   if (!snap.hasData) {
                     return const SizedBox.shrink();
@@ -319,14 +364,13 @@ class _ClientWithDietitianScreenState extends State<ClientWithDietitianScreen> {
                         activeData: categorized.active,
                         completedData: categorized.completed,
                         canceledData: categorized.cancelled,
-                        dietitianDetailModel: widget.dietitianModel, clientProfileModel: clientProfileModel,
+                        dietitianDetailModel: widget.dietitianModel,
+                        clientProfileModel: clientProfileModel,
                       ),
                     ],
                   );
                 },
               ),
-
-
 
               const SizedBox(height: 50),
               ConsultantInfoCard(
@@ -336,10 +380,6 @@ class _ClientWithDietitianScreenState extends State<ClientWithDietitianScreen> {
               const SizedBox(height: 50),
               // NextMealInfoScreen(),
               const SizedBox(height: 80),
-
-
-
-
             ],
           ),
         ),
