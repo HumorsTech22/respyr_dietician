@@ -23,9 +23,9 @@ import '../model/dietitian_result_model.dart';
 
 class DietitianResultRepository {
   Future<DietitianResultModel> fetchResults({
-    required int acetone,
-    required int ethanol,
-    required int hydrogen,
+    required double acetone,
+    required double ethanol,
+    required double hydrogen,
     required bool diabetic,
     required String goal,
     int debug = 1,

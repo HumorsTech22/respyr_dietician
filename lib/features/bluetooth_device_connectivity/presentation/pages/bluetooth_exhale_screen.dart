@@ -16,367 +16,380 @@ import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presenta
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_exhale_cubit.dart/bluetooth_exhale_state.dart';
 import 'package:respyr_dietitian/routes/app_routes.dart';
 
-import 'bluetooth_generating_result_screen.dart';
-
 class BluetoothExhaleScreen extends StatelessWidget {
   final String baseValue;
   final ClientProfileModel clientProfileModel;
-  const BluetoothExhaleScreen({super.key, required this.baseValue, required this.clientProfileModel});
+  const BluetoothExhaleScreen({
+    super.key,
+    required this.baseValue,
+    required this.clientProfileModel,
+  });
+
+  Future<bool> showCancelTestDialogBox(BuildContext context) async {
+    bool didCancel = false;
+
+    showCancelTestDialog(context, () async {
+      context.read<BluetoothExhaleCubit>().sendAbort();
+
+      context.go(AppRoutes.clientDashboard, extra: clientProfileModel);
+
+      context.read<BluetoothExhaleCubit>().dialogDismissed();
+      await context.read<BluetoothExhaleCubit>().setCancelOrDisconnectFlag();
+    });
+
+    return didCancel;
+  }
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create:
-          (ctx) => BluetoothExhaleCubit(
-            processor: BluetoothBlowProcessor(),
-            repo: ctx.read<BluetoothRepository>(),
-            baseValue: baseValue,
-            audioHelper: AudioHelper(),
-          ),
-      child: BlocConsumer<BluetoothExhaleCubit, BluetoothExhaleState>(
-        listener: (context, state) {
-          if (state.exhaleComplete) {
-            final processor = context.read<BluetoothExhaleCubit>().processor;
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (!didPop) {
+          final shouldExit = await showCancelTestDialogBox(context);
 
-            final maxPR =
-                processor.blowValuesList.isNotEmpty
-                    ? processor.blowValuesList.reduce((a, b) => a > b ? a : b)
-                    : 0.0;
+          if (shouldExit) {}
+        }
+      },
+      child: BlocProvider(
+        create:
+            (ctx) => BluetoothExhaleCubit(
+              processor: BluetoothBlowProcessor(),
+              repo: ctx.read<BluetoothRepository>(),
+              baseValue: baseValue,
+              audioHelper: AudioHelper(),
+            ),
+        child: BlocConsumer<BluetoothExhaleCubit, BluetoothExhaleState>(
+          listener: (context, state) {
+            if (!context.mounted) return;
+            if (state.exhaleComplete) {
+              final processor = context.read<BluetoothExhaleCubit>().processor;
 
-            final bestPR =
-                processor.blowValuesList.isNotEmpty
-                    ? processor.blowValuesList.reduce((a, b) => a + b) /
-                        processor.blowValuesList.length
-                    : 0.0;
+              final maxPR =
+                  processor.blowValuesList.isNotEmpty
+                      ? processor.blowValuesList.reduce((a, b) => a > b ? a : b)
+                      : 0.0;
 
-            final duration = processor.blowDuration;
-            final allValues = [
-              ...processor.baseBlowValueList,
-              ...processor.blowValuesList,
-            ];
+              final bestPR =
+                  processor.blowValuesList.isNotEmpty
+                      ? processor.blowValuesList.reduce((a, b) => a + b) /
+                          processor.blowValuesList.length
+                      : 0.0;
 
-            final params = GeneratingResultParams(
-              maxPressure: maxPR,
-              bestPressure: bestPR,
-              blowDuration: duration,
-              blowValuesList: allValues,
-            );
+              final duration = processor.blowDuration;
+              final allValues = [
+                ...processor.baseBlowValueList,
+                ...processor.blowValuesList,
+              ];
 
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(
-                builder: (_) => RepositoryProvider<BluetoothRepository>.value(
-                  value: context.read<BluetoothRepository>(), // or create(...) if none above
-                  child: BluetoothGeneratingResultScreen(
-                    maxPressure: maxPR,
-                    bestPressure: bestPR,
-                    blowDuration: duration,
-                    blowValuesList: allValues, clientProfileModel: clientProfileModel,
+              final params = GeneratingResultParams(
+                maxPressure: maxPR,
+                bestPressure: bestPR,
+                blowDuration: duration,
+                blowValuesList: allValues,
+                clientProfileModel: clientProfileModel,
+              );
+
+              context.read<BluetoothExhaleCubit>().stop();
+              context.read<BluetoothExhaleCubit>().close();
+              if (!context.mounted) return;
+              if (ModalRoute.of(context)?.isCurrent != true) return;
+              context.pushReplacement(
+                AppRoutes.bluetoothGeneratingResultScreen,
+                extra: params,
+              );
+            }
+
+            switch (state.activeDialog) {
+              case ActiveDialog.disconnect:
+                if (ModalRoute.of(context)?.isCurrent != true) return;
+
+                showDeviceDisconnectedBox(
+                  context: context,
+                  onButtonPressed: () async {
+                    context.read<BluetoothExhaleCubit>().stop();
+                    context.read<BluetoothExhaleCubit>().dialogDismissed();
+
+                    context.go(
+                      AppRoutes.clientDashboard,
+                      extra: clientProfileModel,
+                    );
+
+                    await context
+                        .read<BluetoothExhaleCubit>()
+                        .setCancelOrDisconnectFlag();
+                  },
+                ).then(
+                  (_) => context.read<BluetoothExhaleCubit>().dialogDismissed(),
+                );
+                break;
+
+              case ActiveDialog.timeout:
+                if (ModalRoute.of(context)?.isCurrent != true) return;
+
+                showExhaleSessionTimeOutDialog(
+                  context: context,
+                  onButtonPressed: () async {
+                    context.read<BluetoothExhaleCubit>().stop();
+                    context.read<BluetoothExhaleCubit>().dialogDismissed();
+
+                    context.go(
+                      AppRoutes.clientDashboard,
+                      extra: clientProfileModel,
+                    );
+
+                    await context
+                        .read<BluetoothExhaleCubit>()
+                        .setCancelOrDisconnectFlag();
+                  },
+                ).then(
+                  (_) => context.read<BluetoothExhaleCubit>().dialogDismissed(),
+                );
+                break;
+
+              case ActiveDialog.improper:
+                if (!context.mounted) return;
+                if (ModalRoute.of(context)?.isCurrent != true) return;
+                showImproperExhale(
+                  context: context,
+                  tryAgainButtonClicked: () async {
+                    context.read<BluetoothExhaleCubit>().abortBlow();
+                    context.read<BluetoothExhaleCubit>().dialogDismissed();
+
+                    context.go(
+                      AppRoutes.clientDashboard,
+                      extra: clientProfileModel,
+                    );
+
+                    await context
+                        .read<BluetoothExhaleCubit>()
+                        .setCancelOrDisconnectFlag();
+                  },
+                  needHelpButtonCancel: () {
+                    Navigator.pop(context);
+                  },
+                );
+                break;
+
+              case ActiveDialog.none:
+                break;
+            }
+          },
+          builder: (context, state) {
+            if (state.textError != null) {
+              return Scaffold(
+                body: Center(
+                  child: Text(
+                    state.textError!,
+                    style: const TextStyle(color: Colors.red),
                   ),
                 ),
-              ),
-            );
-
-          }
-
-          switch (state.activeDialog) {
-            case ActiveDialog.disconnect:
-              showDeviceDisconnectedBox(
-                context: context,
-                onButtonPressed: () async {
-                  context.read<BluetoothExhaleCubit>().stop();
-                  context.read<BluetoothExhaleCubit>().dialogDismissed();
-
-                  context.go(
-                    AppRoutes.clientDashboard,
-                    extra: clientProfileModel,
-                  );
-
-                  await context
-                      .read<BluetoothExhaleCubit>()
-                      .setCancelOrDisconnectFlag();
-                },
-              ).then(
-                (_) => context.read<BluetoothExhaleCubit>().dialogDismissed(),
               );
-              break;
+            }
 
-            case ActiveDialog.timeout:
-              showExhaleSessionTimeOutDialog(
-                context: context,
-                onButtonPressed: () async {
-                  context.read<BluetoothExhaleCubit>().stop();
-                  context.read<BluetoothExhaleCubit>().dialogDismissed();
-
-                  context.go(
-                    AppRoutes.clientDashboard,
-                    extra: clientProfileModel,
-                  );
-
-                  await context
-                      .read<BluetoothExhaleCubit>()
-                      .setCancelOrDisconnectFlag();
-                },
-              ).then(
-                (_) => context.read<BluetoothExhaleCubit>().dialogDismissed(),
-              );
-              break;
-
-            case ActiveDialog.improper:
-              showImproperExhale(
-                context: context,
-                tryAgainButtonClicked: () async {
-                  context.read<BluetoothExhaleCubit>().abortBlow();
-                  context.read<BluetoothExhaleCubit>().dialogDismissed();
-
-                  context.go(
-                    AppRoutes.clientDashboard,
-                    extra: clientProfileModel,
-                  );
-
-                  await context
-                      .read<BluetoothExhaleCubit>()
-                      .setCancelOrDisconnectFlag();
-                },
-                needHelpButtonCancel: () {
-                  Navigator.pop(context);
-                },
-              );
-              break;
-
-            case ActiveDialog.none:
-              break;
-          }
-        },
-        builder: (context, state) {
-          if (state.textError != null) {
             return Scaffold(
-              body: Center(
-                child: Text(
-                  state.textError!,
-                  style: const TextStyle(color: Colors.red),
-                ),
-              ),
-            );
-          }
+              backgroundColor: Colors.white,
 
-          return Scaffold(
-            backgroundColor: Colors.white,
-
-            body: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 10,
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Stack(
-                      children: [
-                        SizedBox(
-                          height: 350,
-                          width: MediaQuery.of(context).size.width * 0.96,
-                          child: Image.asset(
-                            'assets/images/gif_images/exhale.gif',
+              body: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Stack(
+                        children: [
+                          SizedBox(
+                            height: 350,
+                            width: MediaQuery.of(context).size.width * 0.96,
+                            child: Image.asset(
+                              'assets/images/gif_images/exhale.gif',
+                            ),
                           ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              IconButton(
-                                onPressed:
-                                    () =>
-                                        showCancelTestDialog(context, () async {
-                                          context
-                                              .read<BluetoothExhaleCubit>()
-                                              .sendAbort();
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                IconButton(
+                                  onPressed:
+                                      () => showCancelTestDialogBox(context),
 
-                                          context.go(
-                                            AppRoutes.clientDashboard,
-                                            extra: clientProfileModel,
-                                          );
-
-                                          context
-                                              .read<BluetoothExhaleCubit>()
-                                              .dialogDismissed();
-                                          await context
-                                              .read<BluetoothExhaleCubit>()
-                                              .setCancelOrDisconnectFlag();
-                                        }),
-                                icon: Container(
-                                  height: 20,
-                                  width: 20,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(5),
-                                    color: Colors.white,
-                                  ),
-                                  child: SvgPicture.asset(
-                                    "assets/images/common/closeicon.svg",
-                                  ),
-                                ),
-                              ),
-                              const Spacer(),
-                              IconButton(
-                                onPressed: () {},
-                                icon: Icon(Icons.volume_up),
-                              ),
-                            ],
-                          ),
-                        ),
-                        if (state.progress > 0.2 && state.progress < 0.49)
-                          Positioned(
-                            bottom: 50,
-                            left: 40,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 15,
-                                vertical: 10,
-                              ),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(25),
-                                color: Colors.white,
-                              ),
-                              child: Row(
-                                children: [
-                                  Text(
-                                    "Having trouble with exhale?\t",
-                                    textAlign: TextAlign.center,
-                                    style: GoogleFonts.mulish(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      color: Color(0xFF595959),
+                                  icon: Container(
+                                    height: 20,
+                                    width: 20,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(5),
+                                      color: Colors.white,
+                                    ),
+                                    child: SvgPicture.asset(
+                                      "assets/images/common/closeicon.svg",
                                     ),
                                   ),
-                                  InkWell(
-                                    onTap: () {},
-                                    child: Text(
-                                      "Try practice test",
+                                ),
+                                const Spacer(),
+                                IconButton(
+                                  onPressed: () {},
+                                  icon: Icon(Icons.volume_up),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (state.progress > 0.2 && state.progress < 0.49)
+                            Positioned(
+                              bottom: 50,
+                              left: 40,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 15,
+                                  vertical: 10,
+                                ),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(25),
+                                  color: Colors.white,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Text(
+                                      "Having trouble with exhale?\t",
                                       textAlign: TextAlign.center,
                                       style: GoogleFonts.mulish(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w600,
-                                        color: Color(0xFF308BF9),
+                                        color: Color(0xFF595959),
                                       ),
                                     ),
-                                  ),
-                                ],
+                                    InkWell(
+                                      onTap: () {},
+                                      child: Text(
+                                        "Try practice test",
+                                        textAlign: TextAlign.center,
+                                        style: GoogleFonts.mulish(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: Color(0xFF308BF9),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
-                          ),
-                      ],
-                    ),
+                        ],
+                      ),
 
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                      child: RichText(
-                        textAlign: TextAlign.center,
-                        text: TextSpan(
-                          style: GoogleFonts.poppins(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w400,
-                            color: Colors.grey,
-                          ),
-                          children: [
-                            const TextSpan(
-                              text: "Exhale into device until scale turns ",
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        child: RichText(
+                          textAlign: TextAlign.center,
+                          text: TextSpan(
+                            style: GoogleFonts.poppins(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w400,
+                              color: Colors.grey,
                             ),
-                            TextSpan(
-                              text: "GREEN",
-                              style: GoogleFonts.poppins(
-                                color: const Color(0xFF3EAF58),
+                            children: [
+                              const TextSpan(
+                                text: "Exhale into device until scale turns ",
                               ),
-                            ),
-                          ],
+                              TextSpan(
+                                text: "GREEN",
+                                style: GoogleFonts.poppins(
+                                  color: const Color(0xFF3EAF58),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
 
-                    Stack(
-                      children: [
-                        SizedBox(
-                          width: MediaQuery.of(context).size.width,
-                          height: 60,
-                          child: ClipRRect(
-                            borderRadius: const BorderRadius.all(
-                              Radius.circular(10),
-                            ),
+                      Stack(
+                        children: [
+                          SizedBox(
+                            width: MediaQuery.of(context).size.width,
+                            height: 60,
+                            child: ClipRRect(
+                              borderRadius: const BorderRadius.all(
+                                Radius.circular(10),
+                              ),
 
-                            child: LinearProgressIndicator(
-                              value: state.progress,
+                              child: LinearProgressIndicator(
+                                value: state.progress,
 
-                              backgroundColor: const Color(0xFFF3F3F3),
+                                backgroundColor: const Color(0xFFF3F3F3),
 
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                state.progress < 0.10
-                                    ? Colors.grey
-                                    : state.progress <
-                                        (state.thresholdPercentage ?? 1) / 120
-                                    ? Colors.red
-                                    : Colors.green,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  state.progress < 0.10
+                                      ? Colors.grey
+                                      : state.progress <
+                                          (state.thresholdPercentage ?? 1) / 120
+                                      ? Colors.red
+                                      : Colors.green,
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                        Positioned(
-                          left:
-                              ((state.thresholdPercentage ?? 0) / 120) *
-                              MediaQuery.of(context).size.width,
-                          top: 0,
-                          bottom: 0,
-                          child: Container(width: 2, color: Colors.black),
-                        ),
-                      ],
-                    ),
-
-                    Text(
-                      _getInfoText(state),
-                      style: GoogleFonts.poppins(
-                        fontSize: 25,
-                        color:
-                            state.progress < 0.10
-                                ? Colors.grey
-                                : state.progress <
-                                    (state.thresholdPercentage ?? 1) / 120
-                                ? Colors.red
-                                : Colors.green,
-                        fontWeight: FontWeight.w600,
+                          Positioned(
+                            left:
+                                ((state.thresholdPercentage ?? 0) / 120) *
+                                MediaQuery.of(context).size.width,
+                            top: 0,
+                            bottom: 0,
+                            child: Container(width: 2, color: Colors.black),
+                          ),
+                        ],
                       ),
-                    ),
 
-                    Column(
-                      children: [
-                        Text(
-                          "${state.secondsRemaining}",
-                          style: GoogleFonts.roboto(
-                            fontSize: 40,
-                            fontWeight: FontWeight.w400,
-                            color:
-                                state.secondsRemaining <= 10
-                                    ? Colors.red
-                                    : Colors.black,
-                          ),
+                      Text(
+                        _getInfoText(state),
+                        style: GoogleFonts.poppins(
+                          fontSize: 25,
+                          color:
+                              state.progress < 0.10
+                                  ? Colors.grey
+                                  : state.progress <
+                                      (state.thresholdPercentage ?? 1) / 120
+                                  ? Colors.red
+                                  : Colors.green,
+                          fontWeight: FontWeight.w600,
                         ),
-                        Text(
-                          'sec',
-                          style: GoogleFonts.roboto(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w400,
-                            color:
-                                state.secondsRemaining <= 10
-                                    ? Colors.red
-                                    : Colors.black,
+                      ),
+
+                      Column(
+                        children: [
+                          Text(
+                            "${state.secondsRemaining}",
+                            style: GoogleFonts.roboto(
+                              fontSize: 40,
+                              fontWeight: FontWeight.w400,
+                              color:
+                                  state.secondsRemaining <= 10
+                                      ? Colors.red
+                                      : Colors.black,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                          Text(
+                            'sec',
+                            style: GoogleFonts.roboto(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w400,
+                              color:
+                                  state.secondsRemaining <= 10
+                                      ? Colors.red
+                                      : Colors.black,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }

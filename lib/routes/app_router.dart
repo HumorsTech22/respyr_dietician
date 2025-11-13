@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/params/exhale_screen_params.dart';
+import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/params/generating_result_params.dart';
+import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/pages/bluetooth_device_connectivity.dart';
+import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/pages/bluetooth_generating_result_screen.dart';
 import 'package:respyr_dietitian/features/profile_info/presentation/pages/age_screen.dart';
 import 'package:respyr_dietitian/features/profile_info/presentation/pages/dietician_screen.dart';
 import 'package:respyr_dietitian/features/profile_info/presentation/pages/gender_screen.dart';
@@ -45,8 +49,6 @@ final GoRouter appRouter = GoRouter(
       },
     ),
 
-
-
     // Profile info screen with optional map extra
     GoRoute(
       path: AppRoutes.profileInfoScreen,
@@ -56,7 +58,6 @@ final GoRouter appRouter = GoRouter(
         final String enteredEmail = data["enteredEmail"] ?? "NA";
         final String profileImage = data["profileImage"] ?? "NA";
         final String profileName = data["profileName"] ?? "NA";
-
 
         return ProfileInfoScreen(
           stepCompleted: stepCompleted,
@@ -145,7 +146,6 @@ final GoRouter appRouter = GoRouter(
       },
     ),
 
-
     GoRoute(
       path: AppRoutes.splashScreen,
       builder: (context, state) => const SplashScreen(),
@@ -170,33 +170,76 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.signInWithEmail,
       builder: (context, state) => const SignInWithEmail(),
     ),
+    GoRoute(
+      path: AppRoutes.bluetoothDeviceConnectivity,
+      builder: (context, state) {
+        final extra = state.extra;
+        if (extra == null || extra is! ClientProfileModel) {
+          return _errorScreen('Missing or invalid client profile data.');
+        }
+        return BluetoothDeviceConnectivity(clientProfileModel: extra);
+      },
+    ),
+    GoRoute(
+      path: AppRoutes.bluetoothBreatheTube,
+      builder: (context, state) {
+        final extra = state.extra;
+        if (extra == null || extra is! ClientProfileModel) {
+          return _errorScreen('Missing or invalid client profile data.');
+        }
+        return BluetoothBreatheTube(clientProfileModel: extra);
+      },
+    ),
+    GoRoute(
+      path: AppRoutes.bluetoothCalibrationScreen,
+      builder: (context, state) {
+        final extra = state.extra;
+        if (extra == null || extra is! ClientProfileModel) {
+          return _errorScreen('Missing or invalid client profile data.');
+        }
+        return BluetoothCalibrationScreen(clientProfileModel: extra);
+      },
+    ),
+    GoRoute(
+      path: AppRoutes.bluetoothInhaleScreen,
+      builder: (context, state) {
+        final extra = state.extra;
+        if (extra == null || extra is! ClientProfileModel) {
+          return _errorScreen('Missing or invalid client profile data.');
+        }
+        return BluetoothInhaleScreen(clientProfileModel: extra);
+      },
+    ),
 
-    // GoRoute(
-    //   path: AppRoutes.bluetoothBreatheTube,
-    //   builder: (context, state) {
-    //     return BluetoothBreatheTube();
-    //   },
-    // ),
-    //
-    // GoRoute(
-    //   path: AppRoutes.bluetoothCalibrationScreen,
-    //   builder: (context, state) {
-    //     return BluetoothCalibrationScreen();
-    //   },
-    // ),
-    // GoRoute(
-    //   path: AppRoutes.bluetoothInhaleScreen,
-    //   builder: (context, state) {
-    //     return BluetoothInhaleScreen();
-    //   },
-    // ),
-    // GoRoute(
-    //   path: AppRoutes.bluetoothExhaleScreen,
-    //   builder: (context, state) {
-    //     final baseValue = (state.extra ?? "") as String;
-    //     return BluetoothExhaleScreen(baseValue: baseValue);
-    //   },
-    // ),
+    GoRoute(
+      path: AppRoutes.bluetoothExhaleScreen,
+      builder: (context, state) {
+        final params = state.extra as ExhaleScreenParams?;
+
+        if (params == null) {
+          return _errorScreen('Missing navigation parameters.');
+        }
+
+        return BluetoothExhaleScreen(
+          clientProfileModel: params.clientProfileModel,
+          baseValue: params.baseValue,
+        );
+      },
+    ),
+
+    GoRoute(
+      path: AppRoutes.bluetoothGeneratingResultScreen,
+      builder: (context, state) {
+        final params = state.extra as GeneratingResultParams;
+        return BluetoothGeneratingResultScreen(
+          maxPressure: params.maxPressure,
+          bestPressure: params.bestPressure,
+          blowDuration: params.blowDuration,
+          blowValuesList: params.blowValuesList,
+          clientProfileModel: params.clientProfileModel,
+        );
+      },
+    ),
 
     GoRoute(
       path: AppRoutes.dietitianResultScreen,
@@ -205,14 +248,12 @@ final GoRouter appRouter = GoRouter(
         return BlocProvider(
           create:
               (context) => DietitianResultCubit(
-            context.read<DietitianResultRepository>(),
-          ),
+                context.read<DietitianResultRepository>(),
+              ),
           child: DietitianResultScreen(args: args),
         );
       },
     ),
-
-
 
     GoRoute(
       path: AppRoutes.fullScreenImageView,
@@ -235,8 +276,6 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) => ResultScreen(),
     ),
   ],
-
-
 );
 
 Widget _errorScreen(String message) {
@@ -254,4 +293,3 @@ Widget _errorScreen(String message) {
     ),
   );
 }
-

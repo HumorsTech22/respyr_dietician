@@ -10,9 +10,9 @@ class DietitianResultCubit extends Cubit<DietitianResultState> {
   static const List<String> _tabs = ['Gut', 'Fat', 'Liver'];
 
   Future<void> fetchDietitianResult({
-    required int acetone,
-    required int ethanol,
-    required int hydrogen,
+    required double acetone,
+    required double ethanol,
+    required double hydrogen,
     required bool diabetic,
     required String goal,
     required String dietitianId,
