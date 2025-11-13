@@ -55,7 +55,6 @@ class BluetoothBreatheTube extends StatelessWidget {
           }
 
           if (state.isCompleted) {
-            await ClientProfilePrefs.saveClientProfile(clientProfileModel);
             cubit.close();
             context.pushReplacement(
               AppRoutes.bluetoothCalibrationScreen,

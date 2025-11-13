@@ -40,10 +40,14 @@ class _BluetoothInhaleView extends StatelessWidget {
 
     showCancelTestDialog(context, () async {
       context.read<BluetoothInhaleCubit>().sendAbort();
-
+      Future.microtask(() async {
+        if (!context.read<BluetoothInhaleCubit>().isClosed)
+          await context
+              .read<BluetoothInhaleCubit>()
+              .setCancelOrDisconnectFlag();
+      });
       context.go(AppRoutes.clientDashboard, extra: clientProfileModel);
       context.read<BluetoothInhaleCubit>().dialogDismissed();
-      await context.read<BluetoothInhaleCubit>().setCancelOrDisconnectFlag();
     });
 
     return didCancel;

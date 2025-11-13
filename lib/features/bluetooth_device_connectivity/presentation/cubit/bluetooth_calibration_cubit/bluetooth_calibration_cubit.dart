@@ -11,6 +11,7 @@ class BluetoothCalibrationCubit extends Cubit<BluetoothCalibrationState> {
 
   StreamSubscription<bool>? _connSub;
   StreamSubscription<String>? _dataSub;
+  Timer? _inhaleTimeoutTimer;
 
   bool signalsAlreadySent = false;
   bool _isRunningCalibration = false;
@@ -40,8 +41,6 @@ class BluetoothCalibrationCubit extends Cubit<BluetoothCalibrationState> {
 
     if (connected) {
       print("✅ Bluetooth Connected");
-
-      // Start calibration automatically
       if (!_isRunningCalibration) {
         _isRunningCalibration = true;
         await Future.delayed(const Duration(seconds: 1));
@@ -60,13 +59,18 @@ class BluetoothCalibrationCubit extends Cubit<BluetoothCalibrationState> {
     if (data.isEmpty || _disposed) return;
 
     final normalized = data.trim().toLowerCase();
-    print("📨 Received Bluetooth Data: '$data' (normalized: '$normalized')");
+    print("📨 Received Bluetooth Data: '$normalized'");
 
     if (normalized.contains("inhale") && !state.navigateToInhaleScreen) {
       print("➡️ Inhale detected → Navigating to inhale screen");
+      _inhaleTimeoutTimer?.cancel(); // ✅ Stop waiting timer
       stop();
       emit(
-        state.copyWith(navigateToInhaleScreen: true, waitForInhaleCmd: false),
+        state.copyWith(
+          navigateToInhaleScreen: true,
+          waitForInhaleCmd: false,
+          showPleaseWaitMessage: false,
+        ),
       );
     }
   }
@@ -102,9 +106,7 @@ class BluetoothCalibrationCubit extends Cubit<BluetoothCalibrationState> {
   Future<void> setCancelOrDisconnectFlag({bool isCancel = false}) async {
     final prefs = await SharedPreferences.getInstance();
     final DateTime now = DateTime.now();
-
     final Duration offset = const Duration(minutes: 1);
-
     final DateTime futureTime = now.add(offset);
     await prefs.setString(
       'cancel_or_disconnect_time',
@@ -120,17 +122,13 @@ class BluetoothCalibrationCubit extends Cubit<BluetoothCalibrationState> {
     for (int i = 1; i <= 5; i++) {
       if (_disposed ||
           !state.isBluetoothConnected ||
-          state.navigateToInhaleScreen) {
+          state.navigateToInhaleScreen)
         return;
-      }
 
       await Future.delayed(Duration(seconds: i == 1 ? 20 : 10));
-      if (i == 3) {
-        _audioHelper.playActivatingSensors();
-      }
-      if (i == 4) {
-        _audioHelper.playStartBreathTest();
-      }
+
+      if (i == 3) _audioHelper.playActivatingSensors();
+      if (i == 4) _audioHelper.playStartBreathTest();
 
       if (_disposed) return;
       emit(state.copyWith(completedSteps: i));
@@ -138,8 +136,18 @@ class BluetoothCalibrationCubit extends Cubit<BluetoothCalibrationState> {
 
       await sendCalibrationCommand(i);
     }
+
+    // ✅ Done with calibration
     emit(state.copyWith(waitForInhaleCmd: true));
     print("🚦 Calibration sequence done, waiting for inhale...");
+
+    _inhaleTimeoutTimer?.cancel();
+    _inhaleTimeoutTimer = Timer(const Duration(seconds: 30), () {
+      if (!_disposed && !state.navigateToInhaleScreen) {
+        print("⏳ No inhale detected within 30s — showing please wait...");
+        emit(state.copyWith(showPleaseWaitMessage: true));
+      }
+    });
   }
 
   void showDisconnectedDialog() {
@@ -163,10 +171,9 @@ class BluetoothCalibrationCubit extends Cubit<BluetoothCalibrationState> {
 
   void stop() {
     _disposed = true;
+    _inhaleTimeoutTimer?.cancel();
     _connSub?.cancel();
     _dataSub?.cancel();
-    _connSub = null;
-    _dataSub = null;
     _audioHelper.stopAudio();
   }
 
