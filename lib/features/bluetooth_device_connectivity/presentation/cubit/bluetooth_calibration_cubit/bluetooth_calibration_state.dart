@@ -9,7 +9,7 @@ class BluetoothCalibrationState extends Equatable {
   final int completedSteps;
   final bool isMuted;
   final bool waitForInhaleCmd;
-
+  final bool showPleaseWaitMessage;
   const BluetoothCalibrationState({
     this.textError,
     this.hasInternet = false,
@@ -19,6 +19,7 @@ class BluetoothCalibrationState extends Equatable {
     this.navigateToInhaleScreen = false,
     this.completedSteps = 0,
     this.waitForInhaleCmd = false,
+    this.showPleaseWaitMessage = false,
   });
 
   BluetoothCalibrationState copyWith({
@@ -30,6 +31,7 @@ class BluetoothCalibrationState extends Equatable {
     bool? isMuted,
     int? completedSteps,
     bool? waitForInhaleCmd,
+    bool? showPleaseWaitMessage,
   }) {
     return BluetoothCalibrationState(
       textError: textError ?? this.textError,
@@ -41,6 +43,8 @@ class BluetoothCalibrationState extends Equatable {
       isMuted: isMuted ?? this.isMuted,
       completedSteps: completedSteps ?? this.completedSteps,
       waitForInhaleCmd: waitForInhaleCmd ?? this.waitForInhaleCmd,
+      showPleaseWaitMessage:
+          showPleaseWaitMessage ?? this.showPleaseWaitMessage,
     );
   }
 
@@ -54,5 +58,6 @@ class BluetoothCalibrationState extends Equatable {
     isMuted,
     completedSteps,
     waitForInhaleCmd,
+    showPleaseWaitMessage,
   ];
 }

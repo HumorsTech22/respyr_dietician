@@ -44,13 +44,15 @@ class BluetoothCalibrationScreen extends StatelessWidget {
 
       showCancelTestDialog(context, () async {
         context.read<BluetoothCalibrationCubit>().sendAbort();
-
+        Future.microtask(() async {
+          if (!context.read<BluetoothCalibrationCubit>().isClosed)
+            await context
+                .read<BluetoothCalibrationCubit>()
+                .setCancelOrDisconnectFlag();
+        });
         context.go(AppRoutes.clientDashboard, extra: clientProfileModel);
 
         context.read<BluetoothCalibrationCubit>().dialogDismissed();
-        await context
-            .read<BluetoothCalibrationCubit>()
-            .setCancelOrDisconnectFlag();
       });
 
       return didCancel;
@@ -123,80 +125,92 @@ class BluetoothCalibrationScreen extends StatelessWidget {
               });
             }
           },
-          child:
-              BlocBuilder<BluetoothCalibrationCubit, BluetoothCalibrationState>(
-                builder: (context, state) {
-                  return Scaffold(
-                    backgroundColor: Colors.white,
-                    body: SafeArea(
-                      child: Column(
+          child: BlocBuilder<
+            BluetoothCalibrationCubit,
+            BluetoothCalibrationState
+          >(
+            builder: (context, state) {
+              return Scaffold(
+                backgroundColor: Colors.white,
+                body: SafeArea(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              IconButton(
-                                onPressed:
-                                    () => showCancelTestDialogBox(context),
-                                icon: SvgPicture.asset(
-                                  "assets/images/common/closeicon.svg",
-                                ),
-                              ),
-                              const Spacer(),
-                              IconButton(
-                                onPressed: () {
-                                  context.read<AudioCubit>().toggleMute();
-                                },
-                                icon: BlocBuilder<AudioCubit, AudioState>(
-                                  builder: (context, audioState) {
-                                    return Icon(
-                                      audioState.isMuted
-                                          ? Icons.volume_off
-                                          : Icons.volume_up,
-                                    );
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
-                          Image(
-                            image: ResizeImage(
-                              AssetImage(
-                                state.completedSteps > 4
-                                    ? calibrationGifs[4]
-                                    : calibrationGifs[state.completedSteps],
-                              ),
-                              width: 200,
-                              height: 200,
+                          IconButton(
+                            onPressed: () => showCancelTestDialogBox(context),
+                            icon: SvgPicture.asset(
+                              "assets/images/common/closeicon.svg",
                             ),
                           ),
-                          Text(
-                            state.completedSteps > 4
-                                ? progressMessage[4]
-                                : progressMessage[state.completedSteps],
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.roboto(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w400,
-                              color: Color(0xFF595959),
+                          const Spacer(),
+                          IconButton(
+                            onPressed: () {
+                              context.read<AudioCubit>().toggleMute();
+                            },
+                            icon: BlocBuilder<AudioCubit, AudioState>(
+                              builder: (context, audioState) {
+                                return Icon(
+                                  audioState.isMuted
+                                      ? Icons.volume_off
+                                      : Icons.volume_up,
+                                );
+                              },
                             ),
-                          ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: List.generate(
-                              5,
-                              (i) => _buildProgressIndicator(i, context, state),
-                            ),
-                          ),
-                          SizedBox(
-                            height: MediaQuery.of(context).size.height * 0.06,
                           ),
                         ],
                       ),
-                    ),
-                  );
-                },
-              ),
+                      Image(
+                        image: ResizeImage(
+                          AssetImage(
+                            state.completedSteps > 4
+                                ? calibrationGifs[4]
+                                : calibrationGifs[state.completedSteps],
+                          ),
+                          width: 200,
+                          height: 200,
+                        ),
+                      ),
+                      Text(
+                        state.completedSteps > 4
+                            ? progressMessage[4]
+                            : progressMessage[state.completedSteps],
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.roboto(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w400,
+                          color: Color(0xFF595959),
+                        ),
+                      ),
+                      Text(
+                        state.showPleaseWaitMessage
+                            ? "Please wait… still searching for inhale signal"
+                            : "",
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.roboto(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w400,
+                          color: Color(0xFF595959),
+                        ),
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(
+                          5,
+                          (i) => _buildProgressIndicator(i, context, state),
+                        ),
+                      ),
+                      SizedBox(
+                        height: MediaQuery.of(context).size.height * 0.06,
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
         ),
       ),
     );

@@ -15,6 +15,11 @@ class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
 
   BluetoothConnectionCubit(this.repo) : super(const BluetoothConnectionState());
 
+  // ✅ Safe emit wrapper
+  void safeEmit(BluetoothConnectionState newState) {
+    if (!isClosed) emit(newState);
+  }
+
   Future<void> init() async {
     _listenConnection();
     _listenData();
@@ -23,7 +28,7 @@ class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
     final connectedDeviceId = await repo.getAlreadyConnectedDeviceId();
 
     if (connectedDeviceId != null) {
-      emit(
+      safeEmit(
         state.copyWith(
           isConnected: true,
           connectingDeviceId: connectedDeviceId,
@@ -43,7 +48,7 @@ class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
     _scanSub?.cancel();
     _scanTimer?.cancel();
 
-    emit(
+    safeEmit(
       state.copyWith(
         status: BluetoothConnectionStatus.scanning,
         isScanning: true,
@@ -56,10 +61,12 @@ class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
         .scan(timeout: timeout)
         .listen(
           (devices) {
-            emit(state.copyWith(devices: devices));
+            if (isClosed) return;
+            safeEmit(state.copyWith(devices: devices));
           },
           onError: (e) {
-            emit(
+            if (isClosed) return;
+            safeEmit(
               state.copyWith(
                 status: BluetoothConnectionStatus.textError,
                 isScanning: false,
@@ -70,13 +77,14 @@ class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
         );
 
     _scanTimer = Timer(timeout, () {
+      if (isClosed) return;
       _scanSub?.cancel();
-      emit(state.copyWith(isScanning: false));
+      safeEmit(state.copyWith(isScanning: false));
     });
   }
 
   Future<void> connectById(String id) async {
-    emit(
+    safeEmit(
       state.copyWith(
         connectingDeviceId: id,
         status: BluetoothConnectionStatus.connecting,
@@ -85,14 +93,14 @@ class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
 
     try {
       await repo.connectById(id);
-      emit(
+      safeEmit(
         state.copyWith(
           isConnected: true,
           status: BluetoothConnectionStatus.connected,
         ),
       );
     } catch (e) {
-      emit(
+      safeEmit(
         state.copyWith(
           isConnected: false,
           connectingDeviceId: null,
@@ -107,10 +115,12 @@ class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
   void _listenConnection() {
     _connSub?.cancel();
     _connSub = repo.connectionStatusStream().listen((connected) async {
+      if (isClosed) return;
+
       if (connected) {
         print("✅ Bluetooth Connected");
 
-        emit(
+        safeEmit(
           state.copyWith(
             isConnected: true,
             status: BluetoothConnectionStatus.connected,
@@ -118,6 +128,7 @@ class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
         );
 
         await for (final ready in repo.deviceReadyStream()) {
+          if (isClosed) return;
           if (ready) {
             print("✅ Device Ready – Sending initial command '!'");
             await sendCommand("!");
@@ -126,10 +137,9 @@ class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
         }
       } else {
         print("❌ Disconnected – restarting scan...");
-        emit(
+        safeEmit(
           state.copyWith(
             isConnected: false,
-
             connectingDeviceId: null,
             status: BluetoothConnectionStatus.disconnected,
             devices: [],
@@ -138,14 +148,23 @@ class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
 
         // Wait a short delay before scanning to avoid overlap
         await Future.delayed(const Duration(seconds: 1));
-        startScan();
+        if (!isClosed) startScan();
       }
     });
   }
 
   Future<void> disconnect() async {
+    print("🔌 Disconnect requested...");
     await repo.disconnect();
-    emit(
+
+    // Cancel all active listeners immediately
+    await _connSub?.cancel();
+    await _dataSub?.cancel();
+    await _scanSub?.cancel();
+    await _readySub?.cancel();
+    _scanTimer?.cancel();
+
+    safeEmit(
       state.copyWith(
         isConnected: false,
         connectingDeviceId: null,
@@ -158,42 +177,56 @@ class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
     try {
       print("📤 Sending to device: $data");
       await repo.sendData(data);
-      emit(state.copyWith(lastData: data));
+      safeEmit(state.copyWith(lastData: data));
     } catch (e) {
       print("❌ Send error: $e");
-      emit(state.copyWith(error: "Send error: $e"));
+      safeEmit(state.copyWith(error: "Send error: $e"));
     }
   }
 
   void sendAbort() {
-    if (state.isConnected) repo.sendData("&");
+    if (state.isConnected) {
+      print("⚠️ Sending abort '&'");
+      repo.sendData("&");
+    }
   }
 
   void _listenData() {
     _dataSub?.cancel();
-    _dataSub = repo.receivedDataStream().listen((s) async {
-      final clean = s.trim();
-      print("📩 Received: $clean");
+    _dataSub = repo.receivedDataStream().listen(
+      (s) async {
+        if (isClosed) return;
+        final clean = s.trim();
+        print("📩 Received: $clean");
 
-      if (clean.startsWith("H")) {
-        final deviceId = clean.substring(1).trim();
-        print("✅ Parsed Device ID: $deviceId");
-        emit(state.copyWith(lastData: clean, connectingDeviceId: deviceId));
-        print("🚀 Sending '{' after device ID handshake...");
-        await Future.delayed(const Duration(milliseconds: 300));
-        await sendCommand("{");
-      } else {
-        emit(state.copyWith(lastData: clean));
-      }
-    }, onError: (e) => print("❌ Error receiving data: $e"));
+        if (clean.startsWith("H")) {
+          final deviceId = clean.substring(1).trim();
+          print("✅ Parsed Device ID: $deviceId");
+          safeEmit(
+            state.copyWith(lastData: clean, connectingDeviceId: deviceId),
+          );
+          print("🚀 Sending '{' after device ID handshake...");
+          await Future.delayed(const Duration(milliseconds: 300));
+          if (!isClosed) await sendCommand("{");
+        } else {
+          safeEmit(state.copyWith(lastData: clean));
+        }
+      },
+      onError: (e) {
+        if (isClosed) return;
+        print("❌ Error receiving data: $e");
+        safeEmit(state.copyWith(error: "Receive error: $e"));
+      },
+    );
   }
 
   @override
-  Future<void> close() {
-    _connSub?.cancel();
-    _dataSub?.cancel();
-    _scanSub?.cancel();
-    _readySub?.cancel();
+  Future<void> close() async {
+    print("🧹 Closing BluetoothConnectionCubit...");
+    await _connSub?.cancel();
+    await _dataSub?.cancel();
+    await _scanSub?.cancel();
+    await _readySub?.cancel();
     _scanTimer?.cancel();
     return super.close();
   }

@@ -5,6 +5,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
+import 'package:respyr_dietitian/client-dashboard/data/model/client_profile_model.dart';
 import 'package:respyr_dietitian/core/services/shared_prefs_profile_data.dart';
 import 'package:respyr_dietitian/features/dietitian_result_screen/domain/dietitian_result_view_model.dart';
 import 'package:respyr_dietitian/features/dietitian_result_screen/presentation/cubit/dietitian_result_cubit.dart';
@@ -18,7 +20,12 @@ import 'package:respyr_dietitian/routes/app_routes.dart';
 
 class DietitianResultScreen extends StatefulWidget {
   final Map<String, dynamic>? args;
-  const DietitianResultScreen({super.key, this.args});
+  final ClientProfileModel clientProfileModel;
+  const DietitianResultScreen({
+    super.key,
+    this.args,
+    required this.clientProfileModel,
+  });
 
   @override
   State<DietitianResultScreen> createState() => _DietitianResultScreenState();
@@ -176,43 +183,73 @@ class _DietitianResultScreenState extends State<DietitianResultScreen>
     super.dispose();
   }
 
+  Future<bool> navToDashboard(BuildContext context) async {
+    bool didCancel = false;
+
+    if (context.mounted) {
+      context.go(AppRoutes.clientDashboard, extra: widget.clientProfileModel);
+    }
+
+    return didCancel;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: BlocBuilder<DietitianResultCubit, DietitianResultState>(
-        builder: (context, state) {
-          if (state.isLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (!didPop) {
+          final shouldExit = await navToDashboard(context);
 
-          if (state.errorMessage != null) {
-            return Center(child: Text("Error: ${state.errorMessage}"));
-          }
+          if (shouldExit) {}
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: BlocBuilder<DietitianResultCubit, DietitianResultState>(
+          builder: (context, state) {
+            if (state.isLoading) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-          final result = state.dietitianResult;
-          if (result == null) {
-            return const Center(child: Text("No data available"));
-          }
+            if (state.errorMessage != null) {
+              return Center(child: Text("Error: ${state.errorMessage}"));
+            }
 
-          // ensure offsets will be computed after this layout
-          WidgetsBinding.instance.addPostFrameCallback(
-            (_) => _computeSectionOffsetsIfNeeded(),
-          );
+            final result = state.dietitianResult;
+            if (result == null) {
+              return const Center(child: Text("No data available"));
+            }
 
-          return CustomScrollView(
-            controller: viewModel.scrollController,
-            slivers: [
-              _buildAppBar(context),
-              _buildOverviewSection(context, state),
-              _buildStickyTabs(context, state),
-              _buildSections(context, state),
-              _buildDisclaimer(),
-            ],
-          );
-        },
+            // ensure offsets will be computed after this layout
+            WidgetsBinding.instance.addPostFrameCallback(
+              (_) => _computeSectionOffsetsIfNeeded(),
+            );
+
+            return CustomScrollView(
+              controller: viewModel.scrollController,
+              slivers: [
+                _buildAppBar(context),
+                _buildOverviewSection(context, state),
+                _buildStickyTabs(context, state),
+                _buildSections(context, state),
+                _buildDisclaimer(),
+              ],
+            );
+          },
+        ),
       ),
     );
+  }
+
+  String _formatDttm(String? dttm) {
+    if (dttm == null || dttm.isEmpty) return '';
+    try {
+      final date = DateTime.parse(dttm).toLocal();
+      return DateFormat('d MMM yyyy, h:mma').format(date);
+    } catch (_) {
+      return dttm;
+    }
   }
 
   // SliverAppBar
@@ -233,17 +270,8 @@ class _DietitianResultScreenState extends State<DietitianResultScreen>
               children: [
                 IconButton(
                   padding: EdgeInsets.zero,
-                  onPressed: () async {
-                    final clientProfileModel =
-                        await ClientProfilePrefs.getClientProfile();
-                    if (clientProfileModel == null) return;
-                    if (context.mounted) {
-                      context.go(
-                        AppRoutes.clientDashboard,
-                        extra: clientProfileModel,
-                      );
-                    }
-                  },
+                  onPressed: () => navToDashboard(context),
+
                   icon: SvgPicture.asset(
                     "assets/images/common/closeicon.svg",
                     colorFilter: const ColorFilter.mode(
@@ -258,7 +286,7 @@ class _DietitianResultScreenState extends State<DietitianResultScreen>
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      'Shubham Deshmukh',
+                      widget.clientProfileModel.profileName,
                       style: GoogleFonts.poppins(
                         color: Colors.white,
                         fontSize: 18,
@@ -268,7 +296,7 @@ class _DietitianResultScreenState extends State<DietitianResultScreen>
                       ),
                     ),
                     Text(
-                      '25 June 2025, 12:00pm',
+                      _formatDttm(widget.clientProfileModel.dttm),
                       style: GoogleFonts.poppins(
                         color: Colors.white,
                         fontSize: 10,

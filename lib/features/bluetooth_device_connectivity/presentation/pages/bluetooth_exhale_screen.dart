@@ -28,13 +28,18 @@ class BluetoothExhaleScreen extends StatelessWidget {
   Future<bool> showCancelTestDialogBox(BuildContext context) async {
     bool didCancel = false;
 
-    showCancelTestDialog(context, () async {
+    showCancelTestDialog(context, () {
       context.read<BluetoothExhaleCubit>().sendAbort();
+      Future.microtask(() async {
+        if (!context.read<BluetoothExhaleCubit>().isClosed)
+          await context
+              .read<BluetoothExhaleCubit>()
+              .setCancelOrDisconnectFlag();
+      });
 
       context.go(AppRoutes.clientDashboard, extra: clientProfileModel);
 
       context.read<BluetoothExhaleCubit>().dialogDismissed();
-      await context.read<BluetoothExhaleCubit>().setCancelOrDisconnectFlag();
     });
 
     return didCancel;
@@ -109,15 +114,17 @@ class BluetoothExhaleScreen extends StatelessWidget {
                   onButtonPressed: () async {
                     context.read<BluetoothExhaleCubit>().stop();
                     context.read<BluetoothExhaleCubit>().dialogDismissed();
+                    Future.microtask(() async {
+                      if (!context.read<BluetoothExhaleCubit>().isClosed)
+                        await context
+                            .read<BluetoothExhaleCubit>()
+                            .setCancelOrDisconnectFlag();
+                    });
 
                     context.go(
                       AppRoutes.clientDashboard,
                       extra: clientProfileModel,
                     );
-
-                    await context
-                        .read<BluetoothExhaleCubit>()
-                        .setCancelOrDisconnectFlag();
                   },
                 ).then(
                   (_) => context.read<BluetoothExhaleCubit>().dialogDismissed(),
@@ -132,15 +139,16 @@ class BluetoothExhaleScreen extends StatelessWidget {
                   onButtonPressed: () async {
                     context.read<BluetoothExhaleCubit>().stop();
                     context.read<BluetoothExhaleCubit>().dialogDismissed();
-
+                    Future.microtask(() async {
+                      if (!context.read<BluetoothExhaleCubit>().isClosed)
+                        await context
+                            .read<BluetoothExhaleCubit>()
+                            .setCancelOrDisconnectFlag();
+                    });
                     context.go(
                       AppRoutes.clientDashboard,
                       extra: clientProfileModel,
                     );
-
-                    await context
-                        .read<BluetoothExhaleCubit>()
-                        .setCancelOrDisconnectFlag();
                   },
                 ).then(
                   (_) => context.read<BluetoothExhaleCubit>().dialogDismissed(),
@@ -155,15 +163,16 @@ class BluetoothExhaleScreen extends StatelessWidget {
                   tryAgainButtonClicked: () async {
                     context.read<BluetoothExhaleCubit>().abortBlow();
                     context.read<BluetoothExhaleCubit>().dialogDismissed();
-
+                    Future.microtask(() async {
+                      if (!context.read<BluetoothExhaleCubit>().isClosed)
+                        await context
+                            .read<BluetoothExhaleCubit>()
+                            .setCancelOrDisconnectFlag();
+                    });
                     context.go(
                       AppRoutes.clientDashboard,
                       extra: clientProfileModel,
                     );
-
-                    await context
-                        .read<BluetoothExhaleCubit>()
-                        .setCancelOrDisconnectFlag();
                   },
                   needHelpButtonCancel: () {
                     Navigator.pop(context);

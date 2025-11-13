@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/params/exhale_screen_params.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/params/generating_result_params.dart';
+import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/params/result_screen_params.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/pages/bluetooth_device_connectivity.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/pages/bluetooth_generating_result_screen.dart';
 import 'package:respyr_dietitian/features/profile_info/presentation/pages/age_screen.dart';
@@ -244,13 +245,16 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.dietitianResultScreen,
       builder: (context, state) {
-        final args = state.extra as Map<String, dynamic>?;
+        final params = state.extra as ResultScreenParams;
         return BlocProvider(
           create:
               (context) => DietitianResultCubit(
                 context.read<DietitianResultRepository>(),
               ),
-          child: DietitianResultScreen(args: args),
+          child: DietitianResultScreen(
+            args: params.args,
+            clientProfileModel: params.clientProfileModel,
+          ),
         );
       },
     ),
