@@ -1,16 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:respyr_dietitian/core/utils/score_utils.dart';
+import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/model/generating_result_model.dart';
 import 'package:respyr_dietitian/features/dietitian_result_screen/presentation/cubit/dietitian_result_state.dart';
 
 class MetabolismCard extends StatelessWidget {
   final String metabolismType;
   final DietitianResultState state;
+  final GeneratingResultModel result;
 
   const MetabolismCard({
     super.key,
     required this.metabolismType,
     required this.state,
+    required this.result,
   });
 
   static final Map<String, String> _metabolismIcon = {
@@ -37,8 +41,7 @@ class MetabolismCard extends StatelessWidget {
     "Liver": "Detoxification Metabolism Score",
   };
 
-  Map<String, int> _getScores() {
-    final result = state.dietitianResult;
+  Map<String, int> _getScores(GeneratingResultModel result) {
     if (result == null) return {"one": 0, "two": 0};
 
     final metabolism = result.respyrResponse.metabolismScoreAnalysis;
@@ -66,34 +69,20 @@ class MetabolismCard extends StatelessWidget {
     }
   }
 
-  String _getRating(int score) {
-    if (score >= 80) return "Good";
-    if (score >= 60) return "Fair";
-    if (score >= 40) return "Poor";
-    return "Poor";
-  }
-
-  Color _getRatingColor(String rating) {
-    switch (rating) {
-      case "Good":
-        return const Color(0xFF3EAF58);
-      case "Fair":
-        return const Color(0xFFFFA500);
-      case "Poor":
-        return const Color(0xFFE74C3C);
-      default:
-        return const Color(0xFFE74C3C);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final scores = _getScores();
+    final scores = _getScores(result);
     final score1 = scores["one"] ?? 0;
     final score2 = scores["two"] ?? 0;
 
-    final rating1 = _getRating(score1);
-    final rating2 = _getRating(score2);
+    final info1 = getScoreLevel(
+      score1,
+      _metabolismSubTypeOne[metabolismType] ?? "",
+    );
+    final info2 = getScoreLevel(
+      score2,
+      _metabolismSubTypeTwo[metabolismType] ?? "",
+    );
 
     return Container(
       width: MediaQuery.of(context).size.width * 0.55,
@@ -176,9 +165,9 @@ class MetabolismCard extends StatelessWidget {
                         ),
                         Container(height: 10, width: 1, color: Colors.black),
                         Text(
-                          rating1,
+                          info1.label,
                           style: GoogleFonts.poppins(
-                            color: _getRatingColor(rating1),
+                            color: info1.color,
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
                             height: 1.10,
@@ -226,9 +215,9 @@ class MetabolismCard extends StatelessWidget {
                         ),
                         Container(height: 10, width: 1, color: Colors.black),
                         Text(
-                          rating2,
+                          info2.label,
                           style: GoogleFonts.poppins(
-                            color: _getRatingColor(rating2),
+                            color: info2.color,
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
                             height: 1.10,

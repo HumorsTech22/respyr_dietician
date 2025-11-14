@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-enum ScoreLevel { poor, fair, good }
-
 class ScoreInfo {
   final String label;
   final Color color;
@@ -9,37 +7,62 @@ class ScoreInfo {
   const ScoreInfo({required this.label, required this.color});
 }
 
-/// Determines score level and provides label & color
-ScoreInfo getScoreLevel(int score) {
-  if (score >= 0 && score <= 60) {
-    return const ScoreInfo(label: 'Poor', color: Color(0xFFEA5455)); // Red
-  } else if (score >= 61 && score <= 79) {
-    return const ScoreInfo(label: 'Fair', color: Color(0xFFFFC412)); // Yellow
-  } else if (score >= 80 && score <= 100) {
-    return const ScoreInfo(label: 'Good', color: Color(0xFF3EAF58)); // Green
-  } else {
-    return const ScoreInfo(label: 'Invalid', color: Colors.grey);
-  }
+/// --------------------------------------------------------------
+/// STRICT SUBTYPE MATCHING FOR REVERSE SCORING
+/// --------------------------------------------------------------
+bool isReverseSubtype(String subtype) {
+  final cleaned = subtype.toLowerCase().trim();
+
+  return cleaned == "fermentative metabolism score" ||
+      cleaned == "glucose metabolism score" ||
+      cleaned == "detoxification metabolism score";
 }
 
-class ScoreColorHelper {
-  static Color getScoreColor(double score) {
-    if (score >= 80.0 && score <= 100.0) {
-      return const Color(0xFF3EAF58); // Green - Good
-    } else if (score >= 70.0 && score < 80.0) {
-      return const Color(0xFFFFC412); // Yellow - Fair
+/// --------------------------------------------------------------
+/// GET SCORE LEVEL BASED ON SUBTYPE RULE
+/// --------------------------------------------------------------
+ScoreInfo getScoreLevel(int score, String subtype) {
+  final reverse = isReverseSubtype(subtype);
+
+  if (!reverse) {
+    // NORMAL (0–60 Poor, 60–80 Fair, 80–100 Good)
+    if (score <= 60) {
+      return const ScoreInfo(label: 'Poor', color: Color(0xFFEA5455));
+    } else if (score <= 80) {
+      return const ScoreInfo(label: 'Fair', color: Color(0xFFFFC412));
     } else {
-      return const Color(0xFFEA5455); // Red - Poor
+      return const ScoreInfo(label: 'Good', color: Color(0xFF3EAF58));
     }
   }
 
-  static List<Color> getLinearScoreColor(double score) {
-    if (score >= 80.0 && score <= 100.0) {
-      return [const Color(0xFF3FAF58), const Color(0xFF009245)];
-    } else if (score >= 70.0 && score < 80.0) {
-      return [const Color(0xFFFFC412), const Color(0xFFE3AC06)];
-    } else {
-      return [const Color(0xFFEA5455), const Color(0xFFC1272D)];
+  // REVERSE (0–20 Good, 20–60 Fair, 60–100 Poor)
+  if (score <= 20) {
+    return const ScoreInfo(label: 'Good', color: Color(0xFF3EAF58));
+  } else if (score <= 60) {
+    return const ScoreInfo(label: 'Fair', color: Color(0xFFFFC412));
+  } else {
+    return const ScoreInfo(label: 'Poor', color: Color(0xFFEA5455));
+  }
+}
+
+/// --------------------------------------------------------------
+/// COLOR / GRADIENT PICKER
+/// --------------------------------------------------------------
+class ScoreColorHelper {
+  static Color getScoreColor(int score, String subtype) {
+    return getScoreLevel(score, subtype).color;
+  }
+
+  static List<Color> getLinearScoreColor(int score, String subtype) {
+    final label = getScoreLevel(score, subtype).label;
+
+    switch (label) {
+      case "Good":
+        return [Color(0xFF3FAF58), Color(0xFF009245)];
+      case "Fair":
+        return [Color(0xFFFFC412), Color(0xFFE3AC06)];
+      default: // Poor
+        return [Color(0xFFEA5455), Color(0xFFC1272D)];
     }
   }
 }

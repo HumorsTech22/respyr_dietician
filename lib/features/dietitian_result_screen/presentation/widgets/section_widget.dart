@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:respyr_dietitian/core/utils/score_utils.dart';
+import 'package:respyr_dietitian/client-dashboard/data/model/client_profile_model.dart';
+import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/model/generating_result_model.dart';
 import 'package:respyr_dietitian/features/dietitian_result_screen/presentation/cubit/dietitian_result_state.dart';
 import 'package:respyr_dietitian/features/dietitian_result_screen/presentation/widgets/metabolism_tab_card.dart';
 
@@ -9,12 +10,16 @@ class SectionWidget extends StatelessWidget {
   final GlobalKey sectionKey;
   final String metabolismType;
   final DietitianResultState state;
+  final ClientProfileModel clientProfileModel;
+  final GeneratingResultModel result;
 
   const SectionWidget({
     super.key,
     required this.sectionKey,
     required this.metabolismType,
     required this.state,
+    required this.clientProfileModel,
+    required this.result,
   });
 
   static final Map<String, String> _sectionHeaderIcon = {
@@ -41,8 +46,9 @@ class SectionWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final subTypes = _metabolismSubTypes[metabolismType] ?? [];
-    final result = state.dietitianResult;
-    if (result == null) return const SizedBox();
+
+    // Prevent crash for invalid metabolismType
+    if (subTypes.length < 2) return const SizedBox();
 
     final metabolism = result.respyrResponse.metabolismScoreAnalysis;
     final markers = result.respyrResponse.breathMarkerAnalysis;
@@ -71,6 +77,7 @@ class SectionWidget extends StatelessWidget {
       "Liver" => metabolism.hepaticStress,
       _ => metabolism.absorption,
     };
+
     final metab2 = switch (metabolismType) {
       "Gut" => metabolism.fermentation,
       "Fat" => metabolism.glucoseMetabolism,
@@ -80,9 +87,6 @@ class SectionWidget extends StatelessWidget {
 
     final metab1Score = metab1.score;
     final metab2Score = metab2.score;
-
-    final metab1Level = getScoreLevel(metab1Score );
-    final metab2Level = getScoreLevel(metab2Score );
 
     return Container(
       key: sectionKey,
@@ -124,7 +128,7 @@ class SectionWidget extends StatelessWidget {
                       ),
                       const SizedBox(height: 5),
                       Text(
-                        '${ppm.toStringAsFixed(0)} ppm',
+                        '$ppm ppm',
                         style: GoogleFonts.poppins(
                           color: const Color(0xFF252525),
                           fontSize: 20,
@@ -136,33 +140,28 @@ class SectionWidget extends StatelessWidget {
                 ),
                 const SizedBox(height: 15),
 
-                // 1st metabolism subtype card
                 MetabolismTabCard(
                   metabolismSubtype: subTypes[0],
                   score: metab1Score,
-                  rating: metab1Level.label,
-                  ratingColor: metab1Level.color,
                   interpretation: metab1.interpretation,
                   clientState: metab1.clientState,
                   ppmNote: metab1.ppmNote,
+                  clientProfileModel: clientProfileModel,
                 ),
                 const SizedBox(height: 15),
 
-                // 2nd metabolism subtype card
                 MetabolismTabCard(
                   metabolismSubtype: subTypes[1],
                   score: metab2Score,
-                  rating: metab2Level.label,
-                  ratingColor: metab2Level.color,
                   interpretation: metab2.interpretation,
                   clientState: metab2.clientState,
                   ppmNote: metab2.ppmNote,
+                  clientProfileModel: clientProfileModel,
                 ),
               ],
             ),
           ),
 
-          // Floating Header Label
           Positioned(
             top: 0,
             left: 14,

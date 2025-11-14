@@ -6,8 +6,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:respyr_dietitian/client-dashboard/data/model/client_profile_model.dart';
 import 'package:respyr_dietitian/common/dialogs/cancel_Test_dialog.dart';
 import 'package:respyr_dietitian/common/dialogs/disconnection_dialog.dart';
+import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/repository/generating_result_repository.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/params/result_screen_params.dart';
-import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/repository/bluetooth_repository.dart';
+import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/repository/bluetooth_repository.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_generating_result_cubit/bluetooth_generating_result_cubit.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_generating_result_cubit/bluetooth_generating_result_state.dart';
 import 'package:respyr_dietitian/routes/app_routes.dart';
@@ -68,6 +69,7 @@ class BluetoothGeneratingResultScreen extends StatelessWidget {
               blowDuration: blowDuration,
               blowValuesList: blowValuesList,
               clientProfileModel: clientProfileModel,
+              repository: context.read<GeneratingResultRepository>(),
             ),
         child: BlocConsumer<
           BluetoothGeneratingResultCubit,
@@ -94,15 +96,6 @@ class BluetoothGeneratingResultScreen extends StatelessWidget {
             }
 
             if (state.navigateToResultScreen) {
-              final acetone = state.acetone ?? 0.0;
-              final ethanol = state.ethanol ?? 0.0;
-              final hydrogen = state.hydrogen ?? 0.0;
-              final diabetic = false;
-              final goal = "fat_loss";
-
-              final dietitianId = clientProfileModel.dietitianId;
-              final profileId = clientProfileModel.profileId;
-
               // Reset navigation trigger in Cubit
               context
                   .read<BluetoothGeneratingResultCubit>()
@@ -111,18 +104,10 @@ class BluetoothGeneratingResultScreen extends StatelessWidget {
               // Delay navigation until next frame to prevent UI freeze
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 if (!context.mounted) return;
-                context.push(
+                context.go(
                   AppRoutes.dietitianResultScreen,
                   extra: ResultScreenParams(
-                    args: {
-                      'acetone': acetone,
-                      'ethanol': ethanol,
-                      'hydrogen': hydrogen,
-                      'diabetic': diabetic,
-                      'goal': goal,
-                      'dietitianId': dietitianId,
-                      'profileId': profileId,
-                    },
+                    result: state.dietitianResult!,
                     clientProfileModel: clientProfileModel,
                   ),
                 );

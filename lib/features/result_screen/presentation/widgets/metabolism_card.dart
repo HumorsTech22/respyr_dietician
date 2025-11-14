@@ -21,8 +21,14 @@ class MetaCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scoreInfoOne = getScoreLevel(metabolismScoreOne as int);
-    final scoreInfoTwo = getScoreLevel(metabolismScoreTwo as int);
+    final scoreInfoOne = getScoreLevel(
+      metabolismScoreOne as int,
+      metaScoreSubtitleOne,
+    );
+    final scoreInfoTwo = getScoreLevel(
+      metabolismScoreTwo as int,
+      metaScoreSubtitleTwo,
+    );
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10),
       child: Column(

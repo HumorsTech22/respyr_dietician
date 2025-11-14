@@ -7,7 +7,7 @@ import 'package:respyr_dietitian/client-dashboard/data/model/client_profile_mode
 import 'package:respyr_dietitian/common/widgets/audio_helper.dart';
 import 'package:respyr_dietitian/common/widgets/internet_connectivity_handler.dart';
 import 'package:respyr_dietitian/core/services/shared_prefs_profile_data.dart';
-import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/repository/bluetooth_repository.dart';
+import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/repository/bluetooth_repository.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_breathe_tube_cubit/bluetooth_breathe_tube_cubit.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_breathe_tube_cubit/bluetooth_breathe_tube_state.dart';
 import 'package:respyr_dietitian/common/dialogs/cancel_Test_dialog.dart';

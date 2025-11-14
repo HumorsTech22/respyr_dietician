@@ -3,7 +3,8 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:http/http.dart' as http;
-import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/repository/bluetooth_repository.dart';
+import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/repository/bluetooth_repository.dart';
+import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/repository/generating_result_repository.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_generating_result_cubit/bluetooth_generating_result_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:respyr_dietitian/client-dashboard/data/model/client_profile_model.dart';
@@ -16,7 +17,7 @@ class BluetoothGeneratingResultCubit
   final int blowDuration;
   final List<double> blowValuesList;
   final ClientProfileModel clientProfileModel;
-
+  final GeneratingResultRepository repository;
   StreamSubscription<bool>? _connSub;
   StreamSubscription<String>? _dataSub;
 
@@ -34,6 +35,7 @@ class BluetoothGeneratingResultCubit
     required this.blowDuration,
     required this.blowValuesList,
     required this.clientProfileModel,
+    required this.repository,
   }) : super(const BluetoothGeneratingResultState()) {
     _init();
   }
@@ -58,6 +60,32 @@ class BluetoothGeneratingResultCubit
       _triggerAnalysis();
     } else if (!connected && !state.isDialogShown) {
       _showDisconnectedDialog();
+    }
+  }
+
+  Future<void> fetchDietitianResult({
+    required double acetone,
+    required double ethanol,
+    required double hydrogen,
+    required bool diabetic,
+    required String goal,
+    required String dietitianId,
+    required String profileId,
+  }) async {
+    try {
+      final result = await repository.fetchResults(
+        acetone: acetone,
+        ethanol: ethanol,
+        hydrogen: hydrogen,
+        diabetic: diabetic,
+        goal: goal,
+        dietitianId: dietitianId,
+        profileId: profileId,
+      );
+
+      emit(state.copyWith(dietitianResult: result, textError: null));
+    } catch (e) {
+      emit(state.copyWith(textError: e.toString()));
     }
   }
 
@@ -139,14 +167,30 @@ class BluetoothGeneratingResultCubit
       final apiResponse = await _callProcessRawDataApi(replaced);
 
       if (apiResponse != null) {
+        final acetone = (apiResponse['acetone'] as num?)?.toDouble() ?? 0;
+        final ethanol = (apiResponse['ethanol'] as num?)?.toDouble() ?? 0;
+        final hydrogen = (apiResponse['hydrogen'] as num?)?.toDouble() ?? 0;
+
+        // First store raw values
         emit(
           state.copyWith(
-            acetone: (apiResponse['acetone'] as num?)?.toDouble(),
-            ethanol: (apiResponse['ethanol'] as num?)?.toDouble(),
-            hydrogen: (apiResponse['hydrogen'] as num?)?.toDouble(),
-            navigateToResultScreen: true,
+            acetone: acetone,
+            ethanol: ethanol,
+            hydrogen: hydrogen,
           ),
         );
+
+        await fetchDietitianResult(
+          acetone: acetone,
+          ethanol: ethanol,
+          hydrogen: hydrogen,
+          diabetic: false,
+          goal: "fat_loss",
+          dietitianId: clientProfileModel.dietitianId,
+          profileId: clientProfileModel.profileId,
+        );
+
+        emit(state.copyWith(navigateToResultScreen: true));
       } else {
         emit(state.copyWith(textError: "API response invalid"));
       }

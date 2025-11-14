@@ -1,4 +1,3 @@
-import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/model/bluetooth_device_model.dart';
 
 abstract class BluetoothRepository {
