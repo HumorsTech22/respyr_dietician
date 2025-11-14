@@ -10,8 +10,9 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:respyr_dietitian/core/audio/audio_cubit.dart';
 import 'package:respyr_dietitian/core/services/usb_communication_service.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/datasource/uuid_bluetooth_manager.dart';
-import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/repository/bluetooth_repository.dart';
-import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/repository/bluetooth_repository_impl.dart';
+import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/repository/bluetooth_repository.dart';
+import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/repository/generating_result_repository.dart';
+import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/repository_impl/bluetooth_repository_impl.dart';
 import 'package:respyr_dietitian/features/device_connectivity/data/usb_repository_impl.dart';
 
 import 'package:respyr_dietitian/features/dietitian_dashboard/data/repository/dietitian_dashboard_repository.dart';
@@ -28,7 +29,7 @@ import 'package:respyr_dietitian/routes/app_router.dart';
 
 // 🔹 Local notifications
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-FlutterLocalNotificationsPlugin();
+    FlutterLocalNotificationsPlugin();
 
 // 🔹 Background FCM handler
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -50,9 +51,10 @@ Future<void> main() async {
 
   // 🔹 Local notifications setup
   const AndroidInitializationSettings androidInit =
-  AndroidInitializationSettings('@mipmap/ic_launcher');
-  const InitializationSettings initSettings =
-  InitializationSettings(android: androidInit);
+      AndroidInitializationSettings('@mipmap/ic_launcher');
+  const InitializationSettings initSettings = InitializationSettings(
+    android: androidInit,
+  );
 
   await flutterLocalNotificationsPlugin.initialize(
     initSettings,
@@ -131,28 +133,29 @@ Future<void> main() async {
         RepositoryProvider<BluetoothRepository>(
           create: (_) => BluetoothRepositoryImpl(UuidBluetoothManager()),
         ),
-        RepositoryProvider<DietitianResultRepository>(
-          create: (_) => DietitianResultRepository(),
+        RepositoryProvider<GeneratingResultRepository>(
+          create: (_) => GeneratingResultRepository(),
         ),
       ],
       child: MultiBlocProvider(
         providers: [
           BlocProvider(
-            create: (_) => ProfileCubit(
-              calculateBMI,
-              calculateBMR,
-              dieticianRepository,
-            ),
+            create:
+                (_) => ProfileCubit(
+                  calculateBMI,
+                  calculateBMR,
+                  dieticianRepository,
+                ),
           ),
 
           BlocProvider(create: (_) => AudioCubit()),
           BlocProvider(create: (_) => TestTimerCubit()),
 
-
           BlocProvider(
-            create: (_) => DietitianDashboardCubit(
-              dietitianDashboardRepository,
-            )..loadDietitianDashboard(DateTime.now()),
+            create:
+                (_) =>
+                    DietitianDashboardCubit(dietitianDashboardRepository)
+                      ..loadDietitianDashboard(DateTime.now()),
           ),
         ],
         child: const MyApp(),

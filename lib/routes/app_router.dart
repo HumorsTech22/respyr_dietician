@@ -3,9 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/repository/bluetooth_repository.dart';
+import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/repository/generating_result_repository.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/params/exhale_screen_params.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/params/generating_result_params.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/params/result_screen_params.dart';
+import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_generating_result_cubit/bluetooth_generating_result_cubit.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/pages/bluetooth_device_connectivity.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/pages/bluetooth_generating_result_screen.dart';
 import 'package:respyr_dietitian/features/profile_info/presentation/pages/age_screen.dart';
@@ -29,7 +32,6 @@ import '../features/bluetooth_device_connectivity/presentation/pages/bluetooth_i
 import '../features/client_login/presentation/screens/client_login_with_phone_no.dart';
 import '../features/client_login/presentation/screens/sign_in_options.dart';
 import '../features/client_login/presentation/screens/sign_in_with_email.dart';
-import '../features/dietitian_result_screen/data/repository/dietitian_result_repository.dart';
 import '../features/dietitian_result_screen/presentation/cubit/dietitian_result_cubit.dart';
 import '../features/dietitian_result_screen/presentation/pages/dietitian_result_screen.dart';
 import '../features/profile_info/presentation/widgets/dietician_detail_screen.dart';
@@ -227,17 +229,29 @@ final GoRouter appRouter = GoRouter(
         );
       },
     ),
-
     GoRoute(
       path: AppRoutes.bluetoothGeneratingResultScreen,
       builder: (context, state) {
         final params = state.extra as GeneratingResultParams;
-        return BluetoothGeneratingResultScreen(
-          maxPressure: params.maxPressure,
-          bestPressure: params.bestPressure,
-          blowDuration: params.blowDuration,
-          blowValuesList: params.blowValuesList,
-          clientProfileModel: params.clientProfileModel,
+
+        return BlocProvider(
+          create:
+              (context) => BluetoothGeneratingResultCubit(
+                repo: context.read<BluetoothRepository>(),
+                repository: context.read<GeneratingResultRepository>(),
+                maxPressure: params.maxPressure,
+                bestPressure: params.bestPressure,
+                blowDuration: params.blowDuration,
+                blowValuesList: params.blowValuesList,
+                clientProfileModel: params.clientProfileModel,
+              ),
+          child: BluetoothGeneratingResultScreen(
+            maxPressure: params.maxPressure,
+            bestPressure: params.bestPressure,
+            blowDuration: params.blowDuration,
+            blowValuesList: params.blowValuesList,
+            clientProfileModel: params.clientProfileModel,
+          ),
         );
       },
     ),
@@ -247,12 +261,9 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) {
         final params = state.extra as ResultScreenParams;
         return BlocProvider(
-          create:
-              (context) => DietitianResultCubit(
-                context.read<DietitianResultRepository>(),
-              ),
+          create: (context) => DietitianResultCubit(),
           child: DietitianResultScreen(
-            args: params.args,
+            result: params.result,
             clientProfileModel: params.clientProfileModel,
           ),
         );

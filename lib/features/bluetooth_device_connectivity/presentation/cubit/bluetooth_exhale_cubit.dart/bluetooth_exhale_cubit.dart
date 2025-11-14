@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:respyr_dietitian/common/widgets/audio_helper.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/processor/bluetooth_blow_processor.dart';
-import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/repository/bluetooth_repository.dart';
+import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/repository/bluetooth_repository.dart';
 import 'package:respyr_dietitian/common/widgets/threshold.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'bluetooth_exhale_state.dart';

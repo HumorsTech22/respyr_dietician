@@ -7,7 +7,8 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:respyr_dietitian/client-dashboard/data/model/client_profile_model.dart';
-import 'package:respyr_dietitian/core/services/shared_prefs_profile_data.dart';
+import 'package:respyr_dietitian/core/utils/bmi_bmr_conversion.dart';
+import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/model/generating_result_model.dart';
 import 'package:respyr_dietitian/features/dietitian_result_screen/domain/dietitian_result_view_model.dart';
 import 'package:respyr_dietitian/features/dietitian_result_screen/presentation/cubit/dietitian_result_cubit.dart';
 import 'package:respyr_dietitian/features/dietitian_result_screen/presentation/cubit/dietitian_result_state.dart';
@@ -19,11 +20,11 @@ import 'package:respyr_dietitian/features/dietitian_result_screen/presentation/w
 import 'package:respyr_dietitian/routes/app_routes.dart';
 
 class DietitianResultScreen extends StatefulWidget {
-  final Map<String, dynamic>? args;
+  final GeneratingResultModel result;
   final ClientProfileModel clientProfileModel;
   const DietitianResultScreen({
     super.key,
-    this.args,
+    required this.result,
     required this.clientProfileModel,
   });
 
@@ -47,37 +48,6 @@ class _DietitianResultScreenState extends State<DietitianResultScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     viewModel.scrollController.addListener(_onVerticalScroll);
-
-    // Precache the large image and fetch data after first frame
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      // safe precache
-      try {
-        precacheImage(
-          const AssetImage("assets/images/result_screen/dietitian.png"),
-          context,
-        );
-      } catch (_) {}
-
-      final args = widget.args ?? {};
-      final acetone = args['acetone'] ?? 22.0;
-      final ethanol = args['ethanol'] ?? 3.0;
-      final hydrogen = args['hydrogen'] ?? 12.0;
-      final diabetic = args['diabetic'] ?? false;
-      final goal = args['goal'] ?? "fat_loss";
-      final dietitianId = args['dietitianId'] ?? "do01";
-      final profileId = args['profileId'] ?? "p01";
-
-      // fetch results
-      context.read<DietitianResultCubit>().fetchDietitianResult(
-        acetone: acetone,
-        ethanol: ethanol,
-        hydrogen: hydrogen,
-        diabetic: diabetic,
-        goal: goal,
-        dietitianId: dietitianId,
-        profileId: profileId,
-      );
-    });
   }
 
   @override
@@ -100,8 +70,9 @@ class _DietitianResultScreenState extends State<DietitianResultScreen>
   }
 
   void _handleScrollPosition() {
-    if (!viewModel.tabScrollController.hasClients || viewModel.isAnimating)
+    if (!viewModel.tabScrollController.hasClients || viewModel.isAnimating) {
       return;
+    }
 
     final offset = viewModel.scrollController.offset;
     final cubit = context.read<DietitianResultCubit>();
@@ -112,8 +83,9 @@ class _DietitianResultScreenState extends State<DietitianResultScreen>
       return;
     }
 
-    if (_gutOffset == null || _fatOffset == null || _liverOffset == null)
+    if (_gutOffset == null || _fatOffset == null || _liverOffset == null) {
       return;
+    }
 
     final gutPos = _gutOffset!;
     final fatPos = _fatOffset!;
@@ -208,15 +180,8 @@ class _DietitianResultScreenState extends State<DietitianResultScreen>
         backgroundColor: Colors.white,
         body: BlocBuilder<DietitianResultCubit, DietitianResultState>(
           builder: (context, state) {
-            if (state.isLoading) {
-              return const Center(child: CircularProgressIndicator());
-            }
+            final result = widget.result.respyrResponse;
 
-            if (state.errorMessage != null) {
-              return Center(child: Text("Error: ${state.errorMessage}"));
-            }
-
-            final result = state.dietitianResult;
             if (result == null) {
               return const Center(child: Text("No data available"));
             }
@@ -327,6 +292,22 @@ class _DietitianResultScreenState extends State<DietitianResultScreen>
     BuildContext context,
     DietitianResultState state,
   ) {
+    final rawWeight = widget.clientProfileModel.weight;
+    final rawHeight = widget.clientProfileModel.height;
+    final rawAge = widget.clientProfileModel.age;
+    final gender = widget.clientProfileModel.gender;
+
+    final weight = double.tryParse(rawWeight.toString()) ?? 0.0;
+    final height = double.tryParse(rawHeight.toString()) ?? 0.0;
+    final age = int.tryParse(rawAge.toString()) ?? 0;
+
+    final bmi = BmiBmrUtils.calculateBMI(weightKg: weight, heightCm: height);
+    final bmr = BmiBmrUtils.calculateBMR(
+      weightKg: weight,
+      heightCm: height,
+      age: age,
+      gender: gender,
+    );
     return SliverToBoxAdapter(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -336,7 +317,7 @@ class _DietitianResultScreenState extends State<DietitianResultScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                BmiBmrCard(bodyMassIndex: 25.0, basalMetabolicRate: 1827.00),
+                BmiBmrCard(bodyMassIndex: bmi, basalMetabolicRate: bmr),
                 const SizedBox(height: 30),
                 Text(
                   'Scores Overview',
@@ -368,11 +349,23 @@ class _DietitianResultScreenState extends State<DietitianResultScreen>
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const SizedBox(height: 15),
-                      MetabolismCard(metabolismType: 'Liver', state: state),
+                      MetabolismCard(
+                        metabolismType: 'Liver',
+                        state: state,
+                        result: widget.result,
+                      ),
                       const SizedBox(height: 25),
-                      MetabolismCard(metabolismType: 'Fat', state: state),
+                      MetabolismCard(
+                        metabolismType: 'Fat',
+                        state: state,
+                        result: widget.result,
+                      ),
                       const SizedBox(height: 25),
-                      MetabolismCard(metabolismType: 'Gut', state: state),
+                      MetabolismCard(
+                        metabolismType: 'Gut',
+                        state: state,
+                        result: widget.result,
+                      ),
                     ],
                   ),
                 ),
@@ -453,6 +446,8 @@ class _DietitianResultScreenState extends State<DietitianResultScreen>
             sectionKey: viewModel.gutKey,
             metabolismType: 'Gut',
             state: state,
+            clientProfileModel: widget.clientProfileModel,
+            result: widget.result,
           ),
         ),
         Padding(
@@ -461,6 +456,8 @@ class _DietitianResultScreenState extends State<DietitianResultScreen>
             sectionKey: viewModel.fatKey,
             metabolismType: 'Fat',
             state: state,
+            clientProfileModel: widget.clientProfileModel,
+            result: widget.result,
           ),
         ),
         Padding(
@@ -469,6 +466,8 @@ class _DietitianResultScreenState extends State<DietitianResultScreen>
             sectionKey: viewModel.liverKey,
             metabolismType: 'Liver',
             state: state,
+            clientProfileModel: widget.clientProfileModel,
+            result: widget.result,
           ),
         ),
       ]),

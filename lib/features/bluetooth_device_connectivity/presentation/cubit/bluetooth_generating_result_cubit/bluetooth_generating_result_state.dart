@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/model/generating_result_model.dart';
 
 class BluetoothGeneratingResultState extends Equatable {
   final String? textError;
@@ -12,6 +13,7 @@ class BluetoothGeneratingResultState extends Equatable {
   final double? hydrogen;
 
   final int completedSteps;
+  final GeneratingResultModel? dietitianResult;
 
   const BluetoothGeneratingResultState({
     this.textError,
@@ -23,6 +25,7 @@ class BluetoothGeneratingResultState extends Equatable {
     this.ethanol,
     this.hydrogen,
     this.completedSteps = 0,
+    this.dietitianResult,
   });
 
   BluetoothGeneratingResultState copyWith({
@@ -35,6 +38,7 @@ class BluetoothGeneratingResultState extends Equatable {
     double? ethanol,
     double? hydrogen,
     int? completedSteps,
+    GeneratingResultModel? dietitianResult,
   }) {
     return BluetoothGeneratingResultState(
       textError: textError ?? this.textError,
@@ -47,6 +51,7 @@ class BluetoothGeneratingResultState extends Equatable {
       ethanol: ethanol ?? this.ethanol,
       hydrogen: hydrogen ?? this.hydrogen,
       completedSteps: completedSteps ?? this.completedSteps,
+      dietitianResult: dietitianResult ?? this.dietitianResult,
     );
   }
 
@@ -61,5 +66,6 @@ class BluetoothGeneratingResultState extends Equatable {
     ethanol,
     hydrogen,
     completedSteps,
+    dietitianResult,
   ];
 }

@@ -7,7 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:respyr_dietitian/client-dashboard/data/model/client_profile_model.dart';
 import 'package:respyr_dietitian/common/widgets/audio_helper.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/params/exhale_screen_params.dart';
-import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/repository/bluetooth_repository.dart';
+import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/repository/bluetooth_repository.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_inhale_cubit/bluetooth_inhale_cubit.dart';
 import 'package:respyr_dietitian/common/dialogs/cancel_Test_dialog.dart';
 import 'package:respyr_dietitian/common/dialogs/disconnection_dialog.dart';

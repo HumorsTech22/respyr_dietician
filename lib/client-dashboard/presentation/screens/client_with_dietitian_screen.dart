@@ -15,8 +15,8 @@ import 'package:respyr_dietitian/features/profile_info/data/model/dietician_deta
 import 'package:respyr_dietitian/routes/app_routes.dart';
 import '../../../common/widgets/loading_widget.dart';
 import '../../../features/bluetooth_device_connectivity/data/datasource/uuid_bluetooth_manager.dart';
-import '../../../features/bluetooth_device_connectivity/domain/repository/bluetooth_repository.dart';
-import '../../../features/bluetooth_device_connectivity/domain/repository/bluetooth_repository_impl.dart';
+import '../../../features/bluetooth_device_connectivity/data/repository/bluetooth_repository.dart';
+import '../../../features/bluetooth_device_connectivity/domain/repository_impl/bluetooth_repository_impl.dart';
 import '../../../features/bluetooth_device_connectivity/presentation/pages/bluetooth_device_connectivity.dart';
 import '../../../features/dietitian_dashboard/presentation/widgets/swipe_button_widget.dart';
 import '../../../features/gifting/dashboard/presentation/widgets/test_result_history.dart';
