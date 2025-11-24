@@ -125,24 +125,28 @@ class _DietitianScreenState extends State<DietitianScreen> {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 SvgPicture.asset("assets/images/icons/ic_logo_blue.svg"),
-                                InkWell(
-                                  onTap: (){
-                                    context.push(AppRoutes.profileInfoScreen, extra: {
-                                      "stepCompleted": 1,
-                                      "enteredEmail": widget.enteredEmail,
-                                      "profileImage": widget.imageUrlPath,
-                                      "profileName":  widget.profileName,
-                                    },);
-                                  },
-                                  child: Text("Skip",
-                                    style: GoogleFonts.poppins(
-                                      color: const Color(0xFF252525),
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w700,
-                                      height: 1.10,
-                                      letterSpacing: 0.30,
+                                Visibility(
+
+                                  child: InkWell(
+                                    onTap: (){
+                                      context.push(AppRoutes.profileInfoScreen, extra: {
+                                        "stepCompleted": 1,
+                                        "enteredEmail": widget.enteredEmail,
+                                        "profileImage": widget.imageUrlPath,
+                                        "profileName":  widget.profileName,
+                                      },);
+                                    },
+                                    child: Text("Skip",
+                                      style: GoogleFonts.poppins(
+                                        color: const Color(0xFF252525),
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w700,
+                                        height: 1.10,
+                                        letterSpacing: 0.30,
+                                      ),
                                     ),
                                   ),
+                                  visible: false,
                                 )
                               ],
                             ),

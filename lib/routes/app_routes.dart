@@ -36,4 +36,11 @@ abstract class AppRoutes {
 
   static const dietitianResultScreen = '/dietitian-result-screen';
 
+
+  /// notification
+  static const notificationScreen = '/notification-screen';
+
+  /// Test history
+  static const completeTestHistory = '/complete-test-history';
+
 }

@@ -1,10 +1,14 @@
+import 'package:dash_chat_2/dash_chat_2.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:respyr_dietitian/client-dashboard/data/model/client_profile_model.dart';
 import 'package:respyr_dietitian/features/profile_info/data/model/dietician_detail_model.dart';
 
+import '../../../features/chat_manger/data/bloc/chat_bloc.dart';
+import '../../../features/chat_manger/data/repository/chat_repository.dart';
 import '../../../features/chat_manger/presentation/screen/chat_screen.dart';
 import '../../data/model/dietitian_model.dart';
 
@@ -57,8 +61,6 @@ class _ConsultantInfoCardState extends State<ConsultantInfoCard>
               hoverColor: Colors.transparent,
             ),
             child: ExpansionTile(
-
-
               // Let "More Info" button control expansion
               initiallyExpanded: isExpanded,
               onExpansionChanged: (expanded) {
@@ -202,53 +204,70 @@ class _ConsultantInfoCardState extends State<ConsultantInfoCard>
             ),
           ),
           SizedBox(height: 0,),
-          ElevatedButton(
-              onPressed: (){
+          SizedBox(
+            height: 61,
+            child: ElevatedButton(
+                onPressed: (){
 
-                // Navigator.pushReplacement(
-                //   context,
-                //   MaterialPageRoute(
-                //     builder: (_) => ChatScreen(
-                //       dietitianModel: widget.dietitianModel!, clientProfileModel: widget.clientProfileModel,
-                //     ),
-                //   ),
-                // );
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => ChatScreen(
-                      dietitianModel: widget.dietitianModel,
-                      clientProfileModel: widget.clientProfileModel,
+                  // Navigator.pushReplacement(
+                  //   context,
+                  //   MaterialPageRoute(
+                  //     builder: (_) => ChatScreen(
+                  //       dietitianModel: widget.dietitianModel!, clientProfileModel: widget.clientProfileModel,
+                  //     ),
+                  //   ),
+                  // );
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => BlocProvider(
+                        create: (context) => ChatBloc(
+                          repository: ChatRepository(
+                            sender: ChatUser(
+                              id: widget.clientProfileModel.profileId,
+                              firstName: widget.clientProfileModel.profileName,
+                            ),
+                            receiver: ChatUser(
+                              id: widget.dietitianModel.dietitianId,
+                              firstName: widget.dietitianModel.name,
+                            ),
+                          ),
+                        ),
+                        child: ChatScreen(
+                          dietitianModel: widget.dietitianModel,
+                          clientProfileModel: widget.clientProfileModel,
+                        ),
+                      ),
                     ),
+                  );
+
+                },
+                style: ElevatedButton.styleFrom(
+                  elevation: 0,
+                  shadowColor: Colors.transparent,
+                  surfaceTintColor: Colors.transparent,
+                  backgroundColor: const Color(0xFF308BF9),
+                  padding: EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+
                   ),
-                );
-
-              },
-              style: ElevatedButton.styleFrom(
-                elevation: 0,
-                shadowColor: Colors.transparent,
-                surfaceTintColor: Colors.transparent,
-                backgroundColor: const Color(0xFF308BF9),
-                padding: EdgeInsets.symmetric(vertical: 20, horizontal: 20),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-
                 ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text("Send message",
-                    style: GoogleFonts.poppins(
-                      color: Colors.white,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      height: 1.10,
-                      letterSpacing: -0.30,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text("Send message",
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        height: 1.10,
+                        letterSpacing: -0.30,
+                      ),
                     ),
-                  ),
-                  Icon(Icons.keyboard_arrow_right_outlined, color: Colors.white,)
-                ],
-              )
+                    Icon(Icons.keyboard_arrow_right_outlined, color: Colors.white,)
+                  ],
+                )
+            ),
           )
         ],
       ),

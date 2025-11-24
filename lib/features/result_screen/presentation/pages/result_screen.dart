@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:respyr_dietitian/client-dashboard/data/model/client_profile_model.dart';
 import 'package:respyr_dietitian/features/result_screen/data/repository/result_repository.dart';
 import 'package:respyr_dietitian/features/result_screen/presentation/cubit/result_cubit.dart';
 import 'package:respyr_dietitian/features/result_screen/presentation/cubit/result_state.dart';
 import 'package:respyr_dietitian/features/result_screen/presentation/widgets/result_content.dart';
 
 class ResultScreen extends StatelessWidget {
-  const ResultScreen({super.key});
+  final ClientProfileModel clientProfileModel;
+  const ResultScreen({super.key, required this.clientProfileModel});
 
   @override
   Widget build(BuildContext context) {

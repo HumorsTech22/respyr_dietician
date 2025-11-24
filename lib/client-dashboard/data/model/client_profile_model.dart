@@ -1,5 +1,6 @@
 class ClientProfileModel {
   final int id;
+  // Note: API key in JSON uses 'dietician_id' (with a 'c')
   final String dietitianId;
   final String profileId;
   final String phoneNo;
@@ -14,6 +15,8 @@ class ClientProfileModel {
   final String location;
   final String dttm;
   final int isNotificationEnabled;
+  // Renamed to avoid collision with the boolean getter
+  final int isDietitianLinkedInt;
 
   ClientProfileModel({
     required this.id,
@@ -31,31 +34,37 @@ class ClientProfileModel {
     required this.location,
     required this.dttm,
     required this.isNotificationEnabled,
+    // Using the new field name
+    required this.isDietitianLinkedInt,
   });
 
   factory ClientProfileModel.fromJson(Map<String, dynamic> json) {
     return ClientProfileModel(
-      id: json['id'],
-      dietitianId: json['dietician_id'],
-      profileId: json['profile_id'],
-      phoneNo: json['phone_no'],
-      email: json['email'],
-      profileName: json['profile_name'],
-      profileImage: json['profile_image'],
-      age: json['age'],
-      gender: json['gender'],
-      height: json['height'],
-      weight: json['weight'],
-      region: json['region'],
-      location: json['location'],
-      dttm: json['dttm'],
-      isNotificationEnabled: json['is_notification_enabled'],
+      id: json['id'] as int,
+      // API key used here
+      dietitianId: json['dietician_id'] as String,
+      profileId: json['profile_id'] as String,
+      phoneNo: json['phone_no'] as String,
+      email: json['email'] as String,
+      profileName: json['profile_name'] as String,
+      profileImage: json['profile_image'] as String,
+      age: json['age'] as String,
+      gender: json['gender'] as String,
+      height: json['height'] as String,
+      weight: json['weight'] as String,
+      region: json['region'] as String,
+      location: json['location'] as String,
+      dttm: json['dttm'] as String,
+      isNotificationEnabled: json['is_notification_enabled'] as int,
+      // Using the new field name
+      isDietitianLinkedInt: json['is_dietitian_linked'] as int,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      // API key used here
       'dietician_id': dietitianId,
       'profile_id': profileId,
       'phone_no': phoneNo,
@@ -70,6 +79,7 @@ class ClientProfileModel {
       'location': location,
       'dttm': dttm,
       'is_notification_enabled': isNotificationEnabled,
+      'is_dietitian_linked': isDietitianLinkedInt,
     };
   }
 
@@ -90,6 +100,7 @@ class ClientProfileModel {
     String? location,
     String? dttm,
     int? isNotificationEnabled,
+    int? isDietitianLinkedInt, // Updated parameter name
   }) {
     return ClientProfileModel(
       id: id ?? this.id,
@@ -107,11 +118,15 @@ class ClientProfileModel {
       location: location ?? this.location,
       dttm: dttm ?? this.dttm,
       isNotificationEnabled: isNotificationEnabled ?? this.isNotificationEnabled,
+      // Updated field/parameter name
+      isDietitianLinkedInt: isDietitianLinkedInt ?? this.isDietitianLinkedInt,
     );
   }
 
   // Helper method to convert to boolean for easier UI handling
   bool get isNotificationsEnabledBool => isNotificationEnabled == 1;
+  // Corrected name to avoid field collision
+  bool get isDietitianLinked => isDietitianLinkedInt == 1;
 
   // Helper method to convert from boolean to int for API
   static int boolToInt(bool value) => value ? 1 : 0;

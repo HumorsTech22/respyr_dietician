@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:respyr_dietitian/client-dashboard/data/model/diet_plan_strategy_model.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/repository/bluetooth_repository.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/repository/generating_result_repository.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/params/exhale_screen_params.dart';
@@ -11,6 +12,7 @@ import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/p
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_generating_result_cubit/bluetooth_generating_result_cubit.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/pages/bluetooth_device_connectivity.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/pages/bluetooth_generating_result_screen.dart';
+import 'package:respyr_dietitian/features/dietitian_result_screen/presentation/pages/overall_metabolism_score.dart';
 import 'package:respyr_dietitian/features/profile_info/presentation/pages/age_screen.dart';
 import 'package:respyr_dietitian/features/profile_info/presentation/pages/dietician_screen.dart';
 import 'package:respyr_dietitian/features/profile_info/presentation/pages/gender_screen.dart';
@@ -34,9 +36,16 @@ import '../features/client_login/presentation/screens/sign_in_options.dart';
 import '../features/client_login/presentation/screens/sign_in_with_email.dart';
 import '../features/dietitian_result_screen/presentation/cubit/dietitian_result_cubit.dart';
 import '../features/dietitian_result_screen/presentation/pages/dietitian_result_screen.dart';
+import '../features/notification/presentation/screens/notification_screen.dart';
+import '../features/profile_info/presentation/cubit/profile_cubit.dart';
 import '../features/profile_info/presentation/widgets/dietician_detail_screen.dart';
+import '../features/test_result/test_histoty/presentation/screen/test_history_screen.dart';
+
+/// ✅ Global navigator key used by GoRouter AND by GlobalBlePopupManager
+final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
 final GoRouter appRouter = GoRouter(
+  navigatorKey: rootNavigatorKey,  // 👈 this is the key change
   initialLocation: AppRoutes.splashScreen,
   debugLogDiagnostics: true,
 
@@ -173,84 +182,182 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.signInWithEmail,
       builder: (context, state) => const SignInWithEmail(),
     ),
+
     GoRoute(
       path: AppRoutes.bluetoothDeviceConnectivity,
       builder: (context, state) {
         final extra = state.extra;
-        if (extra == null || extra is! ClientProfileModel) {
+
+        // 1. Check it's a Map
+        if (extra == null || extra is! Map) {
+          return _errorScreen('Missing or invalid params.');
+        }
+
+        // 2. Extract values from the map
+        final client = extra['client'];
+        final strategy = extra['strategy'];
+
+        // 3. Type checks
+        if (client is! ClientProfileModel) {
           return _errorScreen('Missing or invalid client profile data.');
         }
-        return BluetoothDeviceConnectivity(clientProfileModel: extra);
+
+        // strategy can be nullable if you want
+        if (strategy != null && strategy is! DietPlanStrategyModel) {
+          return _errorScreen('Missing or invalid diet plan strategy data. ');
+        }
+
+        return BluetoothDeviceConnectivity(
+          clientProfileModel: client,
+          dietPlanStrategyModel: strategy,
+        );
       },
     ),
+
     GoRoute(
       path: AppRoutes.bluetoothBreatheTube,
       builder: (context, state) {
         final extra = state.extra;
-        if (extra == null || extra is! ClientProfileModel) {
+
+        if (extra == null || extra is! Map) {
+          return _errorScreen('Missing or invalid params.');
+        }
+
+        final client = extra['client'];
+        final strategy = extra['strategy'];
+
+        if (client is! ClientProfileModel) {
           return _errorScreen('Missing or invalid client profile data.');
         }
-        return BluetoothBreatheTube(clientProfileModel: extra);
+
+        if (strategy != null && strategy is! DietPlanStrategyModel) {
+          return _errorScreen('Missing or invalid diet plan strategy data.');
+        }
+
+        return BluetoothBreatheTube(
+          clientProfileModel: client,
+          dietPlanStrategyModel: strategy,
+        );
       },
     ),
+
     GoRoute(
       path: AppRoutes.bluetoothCalibrationScreen,
       builder: (context, state) {
         final extra = state.extra;
-        if (extra == null || extra is! ClientProfileModel) {
+
+        if (extra == null || extra is! Map) {
+          return _errorScreen('Missing or invalid params.');
+        }
+
+        final client = extra['client'];
+        final strategy = extra['strategy'];
+
+        if (client is! ClientProfileModel) {
           return _errorScreen('Missing or invalid client profile data.');
         }
-        return BluetoothCalibrationScreen(clientProfileModel: extra);
+
+        if (strategy != null && strategy is! DietPlanStrategyModel) {
+          return _errorScreen('Missing or invalid diet plan strategy data.');
+        }
+
+        return BluetoothCalibrationScreen(
+          clientProfileModel: client,
+          dietPlanStrategyModel: strategy,
+        );
       },
     ),
+
     GoRoute(
       path: AppRoutes.bluetoothInhaleScreen,
       builder: (context, state) {
         final extra = state.extra;
-        if (extra == null || extra is! ClientProfileModel) {
+
+        if (extra == null || extra is! Map) {
+          return _errorScreen('Missing or invalid params.');
+        }
+
+        final client = extra['client'];
+        final strategy = extra['strategy'];
+
+        if (client is! ClientProfileModel) {
           return _errorScreen('Missing or invalid client profile data.');
         }
-        return BluetoothInhaleScreen(clientProfileModel: extra);
+
+        if (strategy != null && strategy is! DietPlanStrategyModel) {
+          return _errorScreen('Missing or invalid diet plan strategy data.');
+        }
+
+        return BluetoothInhaleScreen(
+          clientProfileModel: client,
+          dietPlanStrategyModel: strategy,
+        );
       },
     ),
 
     GoRoute(
       path: AppRoutes.bluetoothExhaleScreen,
       builder: (context, state) {
-        final params = state.extra as ExhaleScreenParams?;
+        final extra = state.extra;
 
-        if (params == null) {
-          return _errorScreen('Missing navigation parameters.');
+        if (extra is ExhaleScreenParams) {
+          return BluetoothExhaleScreen(
+            clientProfileModel: extra.clientProfileModel,
+            baseValue: extra.baseValue,
+            dietPlanStrategyModel: extra.dietPlanStrategyModel,
+          );
         }
 
-        return BluetoothExhaleScreen(
-          clientProfileModel: params.clientProfileModel,
-          baseValue: params.baseValue,
-        );
+        if (extra is Map) {
+          try {
+            final client = extra['clientProfileModel'] as ClientProfileModel;
+            final dietPlan =
+            extra['dietPlanStrategyModel'] as DietPlanStrategyModel;
+            final baseValue = extra['baseValue'] as String? ?? '';
+
+            final params = ExhaleScreenParams(
+              clientProfileModel: client,
+              baseValue: baseValue,
+              dietPlanStrategyModel: dietPlan,
+            );
+
+            return BluetoothExhaleScreen(
+              clientProfileModel: params.clientProfileModel,
+              baseValue: params.baseValue,
+              dietPlanStrategyModel: params.dietPlanStrategyModel,
+            );
+          } catch (e) {
+            return _errorScreen('Invalid navigation map: $e');
+          }
+        }
+
+        return _errorScreen('Missing or invalid navigation parameters.');
       },
     ),
+
     GoRoute(
       path: AppRoutes.bluetoothGeneratingResultScreen,
       builder: (context, state) {
         final params = state.extra as GeneratingResultParams;
 
         return BlocProvider(
-          create:
-              (context) => BluetoothGeneratingResultCubit(
-                repo: context.read<BluetoothRepository>(),
-                repository: context.read<GeneratingResultRepository>(),
-                maxPressure: params.maxPressure,
-                bestPressure: params.bestPressure,
-                blowDuration: params.blowDuration,
-                blowValuesList: params.blowValuesList,
-                clientProfileModel: params.clientProfileModel,
-              ),
+          create: (context) => BluetoothGeneratingResultCubit(
+            repo: context.read<BluetoothRepository>(),
+            repository: context.read<GeneratingResultRepository>(),
+            maxPressure: params.maxPressure,
+            bestPressure: params.bestPressure,
+            blowDuration: params.blowDuration,
+            blowValuesList: params.blowValuesList,
+            clientProfileModel: params.clientProfileModel,
+            dietPlanStrategyModel: params.dietPlanStrategyModel,
+          ),
           child: BluetoothGeneratingResultScreen(
             maxPressure: params.maxPressure,
             bestPressure: params.bestPressure,
             blowDuration: params.blowDuration,
             blowValuesList: params.blowValuesList,
             clientProfileModel: params.clientProfileModel,
+            dietPlanStrategyModel: params.dietPlanStrategyModel,
           ),
         );
       },
@@ -262,7 +369,7 @@ final GoRouter appRouter = GoRouter(
         final params = state.extra as ResultScreenParams;
         return BlocProvider(
           create: (context) => DietitianResultCubit(),
-          child: DietitianResultScreen(
+          child: OverallMetabolismScore(
             result: params.result,
             clientProfileModel: params.clientProfileModel,
           ),
@@ -288,8 +395,31 @@ final GoRouter appRouter = GoRouter(
 
     GoRoute(
       path: AppRoutes.resultScreen,
-      builder: (context, state) => ResultScreen(),
+      builder: (context, state) {
+        final client = state.extra as ClientProfileModel;
+        return ResultScreen(clientProfileModel: client);
+      },
     ),
+
+    GoRoute(
+      path: AppRoutes.notificationScreen,
+      builder: (context, state) {
+        final client = state.extra as ClientProfileModel;
+        return NotificationScreen(clientProfileModel: client);
+      },
+    ),
+
+    GoRoute(
+      path:  AppRoutes.completeTestHistory,
+      builder: (context, state) {
+        final clientProfileModel = state.extra as Map;
+        return TestHistoryScreen(
+          clientProfileModel: clientProfileModel['client'],
+          dietPlanStrategyModel: clientProfileModel['plan'],
+        );
+      },
+    ),
+
   ],
 );
 

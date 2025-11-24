@@ -80,31 +80,34 @@ class MetabolismTabCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SvgPicture.asset(
-                "assets/images/result_screen/dietitian_result_share.svg",
-                height: 20,
-                width: 20,
-                colorFilter: const ColorFilter.mode(
-                  Color(0xFF308BF9),
-                  BlendMode.srcIn,
+          Visibility(
+            visible: false,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SvgPicture.asset(
+                  "assets/images/result_screen/dietitian_result_share.svg",
+                  height: 20,
+                  width: 20,
+                  colorFilter: const ColorFilter.mode(
+                    Color(0xFF308BF9),
+                    BlendMode.srcIn,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 5),
-              Text(
-                'View trend',
-                style: GoogleFonts.poppins(
-                  color: const Color(0xFF308BF9),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  height: 1.10,
-                  letterSpacing: -0.24,
+                const SizedBox(width: 5),
+                Text(
+                  'View trend',
+                  style: GoogleFonts.poppins(
+                    color: const Color(0xFF308BF9),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    height: 1.10,
+                    letterSpacing: -0.24,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           const SizedBox(height: 10),
           const Divider(),

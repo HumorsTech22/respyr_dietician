@@ -33,9 +33,7 @@ class DeviceSection extends StatelessWidget {
       content = _buildDeviceList(context);
     }
 
-    final validDeviceId =
-        state.connectingDeviceId != null &&
-        RegExp(r'^\d+$').hasMatch(state.connectingDeviceId!);
+    final validDeviceId = state.connectingDeviceId != null && RegExp(r'^\d+$').hasMatch(state.connectingDeviceId!);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Column(

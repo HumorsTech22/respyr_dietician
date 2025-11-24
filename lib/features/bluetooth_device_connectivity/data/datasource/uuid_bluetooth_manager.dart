@@ -18,13 +18,13 @@ class UuidBluetoothManager {
 
   bool _isConnected = false;
 
-  // UUIDs
+  // Your device UUIDs
   final Guid serviceUuid = Guid("6e400001-b5a3-f393-e0a9-e50e24dcca9e");
-  final Guid notifyCharacteristicUuid = Guid(
+  final Guid readCharacteristicUuid = Guid(
     "49535343-1e4d-4bd9-ba61-23c647249616",
   );
   final Guid writeCharacteristicUuid = Guid(
-    "6e400002-b5a3-f393-e0a9-e50e24dcca9e",
+    "6e400003-b5a3-f393-e0a9-e50e24dcca9e",
   );
 
   bool get isConnected => _isConnected;
@@ -32,14 +32,12 @@ class UuidBluetoothManager {
   Stream<String> get dataStream => _dataCtrl.stream;
   Stream<bool> get deviceReadyStream => _readyCtrl.stream;
 
-  // ----------------- Constructor -----------------
   UuidBluetoothManager() {
-    // 🔍 Global listener for Bluetooth adapter state
     _adapterStateSub = FlutterBluePlus.adapterState.listen((state) {
       if (state == BluetoothAdapterState.off ||
           state == BluetoothAdapterState.turningOff) {
         if (kDebugMode) {
-          print("⚠️ Bluetooth turned OFF — performing teardown");
+          print("⚠️ Bluetooth turned OFF — teardown");
         }
         _handleBluetoothOff();
       } else if (state == BluetoothAdapterState.on) {
@@ -76,15 +74,14 @@ class UuidBluetoothManager {
     await FlutterBluePlus.startScan(timeout: timeout);
 
     _scanSub = FlutterBluePlus.scanResults.listen((results) {
-      final filtered =
-          results.where((r) {
-            final adv = r.advertisementData;
-            final matchesName = r.device.platformName.startsWith("Respyr");
-            final matchesService = adv.serviceUuids.contains(
-              serviceUuid.toString(),
-            );
-            return matchesName || matchesService;
-          }).toList();
+      final filtered = results.where((r) {
+        final adv = r.advertisementData;
+        final matchesName = r.device.platformName.contains("Respyr");
+        final matchesService = adv.serviceUuids.contains(
+          serviceUuid.toString(),
+        );
+        return matchesName || matchesService;
+      }).toList();
 
       if (filtered.isNotEmpty) {
         onResults?.call(filtered);
@@ -99,7 +96,10 @@ class UuidBluetoothManager {
   }
 
   // ----------------- Connect -----------------
-  Future<void> connect(BluetoothDevice device, {Function? onConnected}) async {
+  Future<void> connect(
+      BluetoothDevice device, {
+        Function? onConnected,
+      }) async {
     await stopScan();
     await _device?.disconnect();
     _device = device;
@@ -144,9 +144,9 @@ class UuidBluetoothManager {
   }
 
   Future<void> connectById(
-    String id, {
-    Duration scanTimeout = const Duration(seconds: 10),
-  }) async {
+      String id, {
+        Duration scanTimeout = const Duration(seconds: 10),
+      }) async {
     final connected = await FlutterBluePlus.connectedDevices;
     final already = connected.where((d) => d.remoteId.str == id).toList();
     if (already.isNotEmpty) {
@@ -201,9 +201,20 @@ class UuidBluetoothManager {
       if (s.uuid == serviceUuid) {
         if (kDebugMode) print("Service found: ${s.uuid}");
         for (final c in s.characteristics) {
-          if (kDebugMode) print("  Char: ${c.uuid} props: ${c.properties}");
-          if (c.uuid == notifyCharacteristicUuid) notifyChar = c;
-          if (c.uuid == writeCharacteristicUuid) writeChar = c;
+          if (kDebugMode) {
+            print("  Char: ${c.uuid} props: ${c.properties}");
+          }
+
+          // pick NOTIFY characteristic in this service
+          if (c.properties.notify && notifyChar == null) {
+            notifyChar = c;
+          }
+
+          // pick WRITE characteristic in this service
+          if ((c.properties.write || c.properties.writeWithoutResponse) &&
+              writeChar == null) {
+            writeChar = c;
+          }
         }
       }
     }
@@ -255,7 +266,9 @@ class UuidBluetoothManager {
         if (kDebugMode) print("✅ Write success");
         return;
       } catch (e) {
-        if (kDebugMode) print("⚠️ Write failed (attempt $attempt): $e");
+        if (kDebugMode) {
+          print("⚠️ Write failed (attempt $attempt): $e");
+        }
         if (attempt == maxRetries) return;
         await Future.delayed(Duration(milliseconds: 200 * attempt));
       }
@@ -288,7 +301,6 @@ class UuidBluetoothManager {
     _device = null;
     _isConnected = false;
 
-    // Always emit fresh states
     if (!_connCtrl.isClosed) _connCtrl.add(false);
     if (!_readyCtrl.isClosed) _readyCtrl.add(false);
   }

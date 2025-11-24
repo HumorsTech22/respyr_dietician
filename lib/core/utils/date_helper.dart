@@ -3,15 +3,21 @@ class DateHelper{
     return "${date.day} ${_monthName(date.month)}";
   }
 
-  String formatToDateTimeString(DateTime date) {
-    final day = date.day.toString().padLeft(2, '0');
-    final month = _monthShort(date.month);
-    final hour = date.hour > 12 ? date.hour - 12 : date.hour == 0 ? 12 : date.hour;
-    final minute = date.minute.toString().padLeft(2, '0');
-    final ampm = date.hour >= 12 ? "pm" : "am";
-    return "$day $month, $hour:$minute$ampm";
-  }
+  // Convert to IST and format as: 20 Nov, 4:35pm
+  String formatToDateTimeString(DateTime dateUtc) {
+    // 1️⃣ Ensure we start from UTC
+    final ist = dateUtc.toUtc().add(const Duration(hours: 5, minutes: 30));
 
+    final day = ist.day.toString().padLeft(2, '0');
+    final month = _monthShort(ist.month);
+
+    final hour24 = ist.hour;
+    final hour12 = hour24 > 12 ? hour24 - 12 : hour24 == 0 ? 12 : hour24;
+    final minute = ist.minute.toString().padLeft(2, '0');
+    final ampm = hour24 >= 12 ? "pm" : "am";
+
+    return "$day $month, $hour12:$minute$ampm";
+  }
 // Helper methods
   String _monthName(int month) {
     const months = [

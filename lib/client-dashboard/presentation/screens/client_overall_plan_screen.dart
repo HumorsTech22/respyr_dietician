@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:respyr_dietitian/client-dashboard/data/model/client_profile_model.dart';
+import 'package:respyr_dietitian/client-dashboard/data/model/dietitian_model.dart';
+import 'package:respyr_dietitian/features/profile_info/data/model/dietician_detail_model.dart';
 import '../../data/model/diet_plan_strategy_model.dart';
 
 import '../../extras/date_helper.dart';
@@ -11,11 +13,12 @@ import 'active_plan_screen.dart';
 
 
 class ClientOverallPlanScreen extends StatefulWidget {
-  final List<DietPlanStrategyModel> activeData;
+  final DietPlanStrategyModel activeData;
   final List<DietPlanStrategyModel> completedData;
   final List<DietPlanStrategyModel> canceledData;
   final ClientProfileModel clientProfileModel;
-  const ClientOverallPlanScreen({super.key, required this.activeData, required this.completedData, required this.canceledData, required this.clientProfileModel});
+  final DietitianDetailModel dietitianDetailModel;
+  const ClientOverallPlanScreen({super.key, required this.activeData, required this.completedData, required this.canceledData, required this.clientProfileModel, required this.dietitianDetailModel});
 
   @override
   State<ClientOverallPlanScreen> createState() => _ClientOverallPlanScreenState();
@@ -69,97 +72,71 @@ class _ClientOverallPlanScreenState extends State<ClientOverallPlanScreen> {
               ),
             ),
             SizedBox(height: 19,),
-            Visibility(
-              visible: widget.activeData.isNotEmpty,
-              replacement: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: GestureDetector(
+                onTap: (){
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>  DietPlanOverview(activeData: widget.activeData,
+                        completedData: widget.completedData, canceledData: widget.canceledData,
+                        clientProfileModel: widget.clientProfileModel, dietitianDetailModel: widget.dietitianDetailModel,),
+                    ),
+                  );
+                },
                 child: Container(
                   width: double.infinity,
-                  padding: EdgeInsets.only(top: 42, bottom: 25),
                   decoration: ShapeDecoration(
                     color: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(15),
                     ),
                   ),
+                  padding: EdgeInsets.symmetric(horizontal: 15, vertical: 15),
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Image.asset("assets/images/icons/ic_no_file.png", width: 100, height: 100,),
-                      SizedBox(height: 8,),
-                      Text("No Active plan",
-                        style: GoogleFonts.poppins(
-                          color: const Color(0xFF252525),
-                          fontSize: 25,
-                          fontWeight: FontWeight.w600,
-                          height: 1.10,
-                          letterSpacing: -1,
-                        ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(widget.activeData.planTitle,
+                            style: GoogleFonts.poppins(
+                              color: const Color(0xFF252525),
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              height: 1.10,
+                              letterSpacing: -0.72,
+                            ),
+                          ),
+                          Text("${formatToDayShortMonth(widget.activeData.planStartDate)} - ${formatToDayShortMonth(widget.activeData.planEndDate)}",
+                            style: GoogleFonts.poppins(
+                              color: const Color(0xFF252525),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w400,
+                              height: 1.10,
+                              letterSpacing: -0.24,
+                            ),
+                          )
+                        ],
                       ),
                       SizedBox(height: 15,),
-                      ConstrainedBox(
-                        constraints: BoxConstraints(maxWidth: 182),
-                        child: Text("Your consultant has’t shared a diet plan yet.",
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.poppins(
-                            color: const Color(0xFF252525),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w400,
-                            letterSpacing: -0.24,
-                          ),
+                      Text(formatToDateTimeString(widget.activeData.updatedAt),
+                        style: GoogleFonts.poppins(
+                          color: const Color(0xFF535359),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w400,
+                          height: 1.10,
+                          letterSpacing: -0.20,
                         ),
                       ),
-                      SizedBox(height: 21,),
+                      SizedBox(height: 12,),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
-                        decoration: ShapeDecoration(
-                          color: const Color(0xFF308BF9),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
-                        ),
-                        child:Row(
-                          mainAxisSize: MainAxisSize.min,
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          spacing: 10,
-                          children: [
-                            Text(
-                              'Ask your consultant',
-                              style: GoogleFonts.poppins(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                height: 1.10,
-                                letterSpacing: -0.24,
-                              ),
-                            ),
-                            Icon(Icons.keyboard_arrow_right_outlined, color: Colors.white, size: 16,)
-                          ],
-                        ),
-                      )
-                    ],
-                  ),
-                ),
-              ) ,
-              child: Column(
-                children: widget.activeData.asMap().entries.map((entry) {
-                  final dietPlanStrategyModel = entry.value;
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                    child: GestureDetector(
-                      onTap: (){
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) =>  DietPlanOverview(activeData: widget.activeData, completedData: widget.completedData, canceledData: widget.canceledData,
-                              clientProfileModel: widget.clientProfileModel,),
-                          ),
-                        );
-                      },
-                      child: Container(
                         width: double.infinity,
                         decoration: ShapeDecoration(
-                          color: Colors.white,
+                          color: const Color(0xFFF0F5FC),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15),
+                            borderRadius: BorderRadius.circular(10),
                           ),
                         ),
                         padding: EdgeInsets.symmetric(horizontal: 15, vertical: 15),
@@ -167,18 +144,10 @@ class _ClientOverallPlanScreenState extends State<ClientOverallPlanScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(dietPlanStrategyModel.planTitle,
-                                  style: GoogleFonts.poppins(
-                                    color: const Color(0xFF252525),
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w600,
-                                    height: 1.10,
-                                    letterSpacing: -0.72,
-                                  ),
-                                ),
-                                Text("${formatToDayMonth(dietPlanStrategyModel.planStartDate)} - ${formatToDayMonth(dietPlanStrategyModel.planEndDate)}",
+                                SvgPicture.asset("assets/images/icons/ic_goal.svg"),
+                                SizedBox(width: 5,),
+                                Text("Goal",
                                   style: GoogleFonts.poppins(
                                     color: const Color(0xFF252525),
                                     fontSize: 12,
@@ -189,85 +158,45 @@ class _ClientOverallPlanScreenState extends State<ClientOverallPlanScreen> {
                                 )
                               ],
                             ),
-                            SizedBox(height: 15,),
-                            Text(formatToDateTimeString(dietPlanStrategyModel.updatedAt),
-                              style: GoogleFonts.poppins(
-                                color: const Color(0xFF535359),
-                                fontSize: 10,
-                                fontWeight: FontWeight.w400,
-                                height: 1.10,
-                                letterSpacing: -0.20,
-                              ),
+                            SizedBox(height: 19,),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 10),
+                              child: ListView.builder(
+                                shrinkWrap: true,
+                                physics: NeverScrollableScrollPhysics(),
+                                itemCount: widget.activeData.goals.length,
+                                itemBuilder: (context, index) {
+
+                                  final goal = widget.activeData.goals[index];
+                                  return goalItem(
+                                    goalName: goal.name,
+                                    currentStat: goal.currentStat.toString(),
+                                    targetStat: goal.targetStat.toString(),
+                                    unit: goal.unit,
+                                    // optional
+                                  );
+
+
+                                },
+                              ) ,
                             ),
-                            SizedBox(height: 12,),
-                            Container(
-                              width: double.infinity,
-                              decoration: ShapeDecoration(
-                                color: const Color(0xFFF0F5FC),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                              ),
-                              padding: EdgeInsets.symmetric(horizontal: 15, vertical: 15),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      SvgPicture.asset("assets/images/icons/ic_goal.svg"),
-                                      SizedBox(width: 5,),
-                                      Text("Goal",
-                                        style: GoogleFonts.poppins(
-                                          color: const Color(0xFF252525),
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w400,
-                                          height: 1.10,
-                                          letterSpacing: -0.24,
-                                        ),
-                                      )
-                                    ],
-                                  ),
-                                  SizedBox(height: 19,),
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                                    child: ListView.builder(
-                                      shrinkWrap: true,
-                                      physics: NeverScrollableScrollPhysics(),
-                                      itemCount: dietPlanStrategyModel.goals.length,
-                                      itemBuilder: (context, index) {
 
-                                        final goal = dietPlanStrategyModel.goals[index];
-                                        return goalItem(
-                                          goalName: goal.name,
-                                          currentStat: goal.currentStat.toString(),
-                                          targetStat: goal.targetStat.toString(),
-                                          // optional
-                                        );
-
-
-                                      },
-                                    ) ,
-                                  ),
-
-                                ],
-                              ),
-                            ),
-                            SizedBox(height: 15,),
-                            Text("Updated 05 Jul, 12:30pm",
-                              style: GoogleFonts.poppins(
-                                color: const Color(0xFF535359),
-                                fontSize: 10,
-                                fontWeight: FontWeight.w400,
-                                height: 1.10,
-                                letterSpacing: -0.20,
-                              ),
-                            )
                           ],
                         ),
                       ),
-                    ),
-                  );
-                }).toList(),
+                      SizedBox(height: 15,),
+                      Text("Updated 05 Jul, 12:30pm",
+                        style: GoogleFonts.poppins(
+                          color: const Color(0xFF535359),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w400,
+                          height: 1.10,
+                          letterSpacing: -0.20,
+                        ),
+                      )
+                    ],
+                  ),
+                ),
               ),
             ),
             SizedBox(height: 30,),

@@ -68,8 +68,7 @@ class _SwipeButtonWidgetState extends State<SwipeButtonWidget> {
                   style: GoogleFonts.poppins(
                     color: const Color(0xFF535359),
                     fontSize: 15,
-                    fontWeight: FontWeight.w400,
-                    height: 1.10,
+                    fontWeight: FontWeight.w600,
                     letterSpacing: -0.30,
                   ),
                 )
@@ -111,15 +110,18 @@ class _SwipeButtonWidgetState extends State<SwipeButtonWidget> {
               child: Container(
                 width: height - 8,
                 height: height - 8,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF308BF9),
-                  shape: BoxShape.circle,
-                  boxShadow: [
+                decoration: ShapeDecoration(
+                  color: const Color(0xFF308BF9),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(25000),
+                  ),
+                  shadows: [
                     BoxShadow(
-                      color: Colors.black38,
-                      offset: Offset(0, 2),
-                      blurRadius: 4,
-                    ),
+                      color: Color(0x3F000000),
+                      blurRadius: 8.40,
+                      offset: Offset(0, 0),
+                      spreadRadius: 0,
+                    )
                   ],
                 ),
                 child: const Icon(Icons.arrow_forward, color: Colors.white),

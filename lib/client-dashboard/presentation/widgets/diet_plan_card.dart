@@ -4,6 +4,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:respyr_dietitian/client-dashboard/data/model/client_profile_model.dart';
 import 'package:respyr_dietitian/client-dashboard/presentation/widgets/target_item.dart';
+import 'package:respyr_dietitian/features/profile_info/data/model/dietician_detail_model.dart';
 
 import '../../data/model/diet_plan_strategy_model.dart';
 import '../../extras/date_helper.dart';
@@ -14,12 +15,13 @@ class PlanCard extends StatelessWidget {
   final List<DietPlanStrategyModel> completedData;
   final List<DietPlanStrategyModel> canceledData;
   final ClientProfileModel clientProfileModel;
+  final DietitianDetailModel dietitianDetailModel;
 
   const PlanCard({
     super.key,
     required this.activeData,
     required this.completedData,
-    required this.canceledData, required this.clientProfileModel,
+    required this.canceledData, required this.clientProfileModel, required this.dietitianDetailModel,
   });
 
   @override
@@ -42,21 +44,25 @@ class PlanCard extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 5),
             child: Row(
+
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              spacing: 20,
               children: [
-                Text(
-                  hasActiveData ? displayModel!.planTitle : "No Active Plan",
-                  style: GoogleFonts.poppins(
-                    color: const Color(0xFF252525),
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    height: 1.10,
-                    letterSpacing: -0.72,
+                Expanded(
+                  child: Text(
+                    hasActiveData ? displayModel!.planTitle : "No Active Plan",
+                    style: GoogleFonts.poppins(
+                      color: const Color(0xFF252525),
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      height: 1.10,
+                      letterSpacing: -0.72,
+                    ),
                   ),
                 ),
                 Text(
                   hasActiveData
-                      ? "${formatToDayMonth(displayModel!.planStartDate)} - ${formatToDayMonth(displayModel.planEndDate)}"
+                      ? "${formatToDayShortMonth(displayModel!.planStartDate)} - ${formatToDayShortMonth(displayModel.planEndDate)}"
                       : "-",
                   style: GoogleFonts.poppins(
                     color: const Color(0xFF252525),
@@ -81,9 +87,9 @@ class PlanCard extends StatelessWidget {
                   context,
                   MaterialPageRoute(
                     builder: (_) => ClientOverallPlanScreen(
-                      activeData: activeData,
+                      activeData: activeData.first,
                       completedData: completedData,
-                      canceledData: canceledData, clientProfileModel: clientProfileModel,
+                      canceledData: canceledData, clientProfileModel: clientProfileModel, dietitianDetailModel: dietitianDetailModel,
                     ),
                   ),
                 );
@@ -176,7 +182,7 @@ class PlanCard extends StatelessWidget {
                 ),
                 targetItem(
                   targetLabel: 'Water',
-                  targetIntake: 'Litre',
+                  targetIntake: 'ml',
                   targetValue: hasActiveData ? displayModel!.waterTarget : 0,
                 ),
               ],

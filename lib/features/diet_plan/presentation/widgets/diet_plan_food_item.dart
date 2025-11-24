@@ -59,9 +59,11 @@ Widget dietPlanFoodItem({
 
   return GestureDetector(
     onTap: insertFoodLog,
+    behavior: HitTestBehavior.opaque,
     child: Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             index.toString(),
@@ -78,6 +80,7 @@ Widget dietPlanFoodItem({
             flex: 3,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.start,
               children: [
                 Text(
                   foodName,

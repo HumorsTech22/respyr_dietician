@@ -4,6 +4,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:respyr_dietitian/client-dashboard/data/model/client_profile_model.dart';
+import 'package:respyr_dietitian/client-dashboard/data/model/diet_plan_strategy_model.dart';
 import 'package:respyr_dietitian/common/dialogs/cancel_Test_dialog.dart';
 import 'package:respyr_dietitian/common/dialogs/disconnection_dialog.dart';
 import 'package:respyr_dietitian/common/dialogs/exhale_timeout_dialog.dart';
@@ -19,10 +20,11 @@ import 'package:respyr_dietitian/routes/app_routes.dart';
 class BluetoothExhaleScreen extends StatelessWidget {
   final String baseValue;
   final ClientProfileModel clientProfileModel;
+  final DietPlanStrategyModel dietPlanStrategyModel;
   const BluetoothExhaleScreen({
     super.key,
     required this.baseValue,
-    required this.clientProfileModel,
+    required this.clientProfileModel, required this.dietPlanStrategyModel,
   });
 
   Future<bool> showCancelTestDialogBox(BuildContext context) async {
@@ -93,6 +95,7 @@ class BluetoothExhaleScreen extends StatelessWidget {
                 blowDuration: duration,
                 blowValuesList: allValues,
                 clientProfileModel: clientProfileModel,
+                dietPlanStrategyModel: dietPlanStrategyModel,
               );
 
               context.read<BluetoothExhaleCubit>().stop();

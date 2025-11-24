@@ -31,8 +31,7 @@ class TodayTestDataApiService {
     );
 
 
-    print(resp.body);
-    print(dietitianId);
+
     print(resp.body);
 
     // Basic HTTP error check

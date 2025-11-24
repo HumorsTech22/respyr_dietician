@@ -167,6 +167,9 @@ class _DietitianResultScreenState extends State<DietitianResultScreen>
 
   @override
   Widget build(BuildContext context) {
+
+
+
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
@@ -261,7 +264,7 @@ class _DietitianResultScreenState extends State<DietitianResultScreen>
                       ),
                     ),
                     Text(
-                      _formatDttm(widget.clientProfileModel.dttm),
+                      formatDateTime(widget.result.dateTime),
                       style: GoogleFonts.poppins(
                         color: Colors.white,
                         fontSize: 10,
@@ -287,6 +290,26 @@ class _DietitianResultScreenState extends State<DietitianResultScreen>
     );
   }
 
+
+  String formatDateTime(DateTime input) {
+
+    print(input);
+    final months = [
+      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+    ];
+
+    String day = input.day.toString().padLeft(2, '0');
+    String month = months[input.month - 1];
+    String year = input.year.toString();
+
+    int hour = input.hour % 12 == 0 ? 12 : input.hour % 12;
+    String minute = input.minute.toString().padLeft(2, '0');
+    String ampm = input.hour >= 12 ? "PM" : "AM";
+
+    return "$day $month $year, $hour:$minute $ampm";
+  }
+
   // Overview section (top cards + image)
   Widget _buildOverviewSection(
     BuildContext context,
@@ -308,16 +331,90 @@ class _DietitianResultScreenState extends State<DietitianResultScreen>
       age: age,
       gender: gender,
     );
+
+    Color getZoneColor(String zone) {
+      switch (zone.toLowerCase()) {
+        case "poor":
+          return const Color(0xFFDA5747); // red
+        case "fair":
+          return const Color(0xFFF8B10F); // yellow
+        case "good":
+          return const Color(0xFF3FAF58); // green
+        default:
+          return Colors.grey;
+      }
+    }
+
+
     return SliverToBoxAdapter(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                BmiBmrCard(bodyMassIndex: bmi, basalMetabolicRate: bmr),
+                // BmiBmrCard(bodyMassIndex: bmi, basalMetabolicRate: bmr),
+                Container(
+                    width: double.infinity,
+                    decoration: ShapeDecoration(
+                      color: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        side: BorderSide(
+                          width: 1,
+                          color: const Color(0xFFC7C6CE),
+                        ),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    padding: EdgeInsets.symmetric(vertical: 14, horizontal: 17),
+                    child: Row(
+                      spacing: 20,
+                      children: [
+                        Expanded(
+                          flex:2,
+                          child: Text("Overall\nMetabolism Score",
+                            style: GoogleFonts.poppins(
+                              color: const Color(0xFF252525),
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
+                              height: 1.10,
+                              letterSpacing: -0.40,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          flex:1,
+                          child: Column(
+                            children: [
+                              Text("${widget.result.respyrResponse.fatLossMetabolismScore.score.toStringAsFixed(0)}%",
+                                style: GoogleFonts.poppins(
+                                  color: const Color(0xFF252525),
+                                  fontSize: 34,
+                                  fontWeight: FontWeight.w400,
+                                  height: 1.10,
+                                  letterSpacing: -2.04,
+                                ),
+                              ),
+                              Text(
+                                widget.result.respyrResponse.fatLossMetabolismScore.zone,
+                                style: GoogleFonts.poppins(
+                                  color: getZoneColor(widget.result.respyrResponse.fatLossMetabolismScore.zone,),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  height: 1.10,
+                                  letterSpacing: -0.24,
+                                ),
+                              )
+
+                            ],
+                          ),
+                        )
+                      ],
+                    )
+                ),
                 const SizedBox(height: 30),
                 Text(
                   'Scores Overview',

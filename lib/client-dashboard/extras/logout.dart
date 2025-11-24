@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../client_login_manager/client_login_manager.dart';
 import '../../routes/app_routes.dart';
@@ -89,26 +90,17 @@ class _ConfirmCard extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Icon header (optional)
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: const Color(0xFFF4F7FF),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(Icons.logout, color: Color(0xFF2F80ED)),
-          ),
+          const SizedBox(height: 20),
+          const Icon(Icons.logout, color: Color(0xFF2F80ED)),
           const SizedBox(height: 14),
-
-          // Title
           Text(
             title,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF252525),
-              letterSpacing: -0.2,
+            style: GoogleFonts.poppins(
+              color: const Color(0xFF252525),
+              fontSize: 17,
+              fontWeight: FontWeight.w600,
+              height: 1.24,
+              letterSpacing: -0.34,
             ),
             textAlign: TextAlign.center,
           ),
@@ -117,19 +109,22 @@ class _ConfirmCard extends StatelessWidget {
           // Message
           Text(
             message,
-            style: const TextStyle(
-              fontSize: 14,
-              color: Color(0xFF535359),
-              height: 1.4,
+            style: GoogleFonts.poppins(
+              color: const Color(0xFF252525),
+              fontSize: 13,
+              fontWeight: FontWeight.w400,
+              letterSpacing: -0.26,
             ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 50),
 
           // Actions
-          Row(
+          Column(
+            mainAxisSize: MainAxisSize.max,
             children: [
-              Expanded(
+              SizedBox(
+                width: double.infinity,
                 child: OutlinedButton(
                   onPressed: onCancel,
                   style: OutlinedButton.styleFrom(
@@ -142,8 +137,9 @@ class _ConfirmCard extends StatelessWidget {
                   child: const Text('Cancel', style: TextStyle(color: Color(0xFF252525))),
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
+              const SizedBox(width: 20),
+              SizedBox(
+                width: double.infinity,
                 child: ElevatedButton(
                   onPressed: onConfirm,
                   style: ElevatedButton.styleFrom(

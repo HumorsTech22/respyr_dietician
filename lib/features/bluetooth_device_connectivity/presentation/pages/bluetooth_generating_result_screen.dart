@@ -4,6 +4,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:respyr_dietitian/client-dashboard/data/model/client_profile_model.dart';
+import 'package:respyr_dietitian/client-dashboard/data/model/diet_plan_strategy_model.dart';
 import 'package:respyr_dietitian/common/dialogs/cancel_Test_dialog.dart';
 import 'package:respyr_dietitian/common/dialogs/disconnection_dialog.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/repository/generating_result_repository.dart';
@@ -15,6 +16,7 @@ import 'package:respyr_dietitian/routes/app_routes.dart';
 
 class BluetoothGeneratingResultScreen extends StatelessWidget {
   final ClientProfileModel clientProfileModel;
+  final DietPlanStrategyModel dietPlanStrategyModel;
   final double maxPressure;
   final double bestPressure;
   final int blowDuration;
@@ -27,6 +29,7 @@ class BluetoothGeneratingResultScreen extends StatelessWidget {
     required this.blowDuration,
     required this.blowValuesList,
     required this.clientProfileModel,
+    required this.dietPlanStrategyModel,
   });
 
   Future<bool> showCancelTestDialogBox(BuildContext context) async {
@@ -47,10 +50,6 @@ class BluetoothGeneratingResultScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    print("MaxPressure: $maxPressure");
-    print("bestPressure: $bestPressure");
-    print("BlowDuration: $blowDuration");
-    print("BlowValueList: $blowValuesList");
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
@@ -69,7 +68,7 @@ class BluetoothGeneratingResultScreen extends StatelessWidget {
               blowDuration: blowDuration,
               blowValuesList: blowValuesList,
               clientProfileModel: clientProfileModel,
-              repository: context.read<GeneratingResultRepository>(),
+              repository: context.read<GeneratingResultRepository>(), dietPlanStrategyModel: dietPlanStrategyModel,
             ),
         child: BlocConsumer<
           BluetoothGeneratingResultCubit,
@@ -87,7 +86,7 @@ class BluetoothGeneratingResultScreen extends StatelessWidget {
                       .read<BluetoothGeneratingResultCubit>()
                       .setCancelOrDisconnectFlag();
 
-                  context.go(
+                  context.push(
                     AppRoutes.clientDashboard,
                     extra: clientProfileModel,
                   );

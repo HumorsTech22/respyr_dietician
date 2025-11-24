@@ -48,7 +48,7 @@ class DietPlanCard extends StatelessWidget {
               const SizedBox(height: 10),
               _SubtleText('Not yet updated'),
               const SizedBox(height: 23),
-              PlanCard(activeData: [], completedData: [], canceledData: [], clientProfileModel: clientProfileModel,),
+              PlanCard(activeData: [], completedData: [], canceledData: [], clientProfileModel: clientProfileModel, dietitianDetailModel: dietitianDetailModel,),
               const SizedBox(height: 15),
               _GoalsSection(goals: const []),
               const _Hr(),
@@ -56,7 +56,6 @@ class DietPlanCard extends StatelessWidget {
               const SizedBox(height: 36),
               const _Hr(),
               _ViewButton(onTap: () {
-
 
               }),
               const SizedBox(height: 10),
@@ -85,7 +84,7 @@ class DietPlanCard extends StatelessWidget {
                 PlanCard(
                   activeData: activeData,
                   completedData: completedData,
-                  canceledData: canceledData, clientProfileModel: clientProfileModel,
+                  canceledData: canceledData, clientProfileModel: clientProfileModel, dietitianDetailModel: dietitianDetailModel,
                 ),
                 const SizedBox(height: 15),
                 _GoalsSection(goals: model.goals.map((g) => g.name).toList()),
@@ -101,7 +100,7 @@ class DietPlanCard extends StatelessWidget {
                     MaterialPageRoute(builder: (context) => DietPlanScreen(
                       dieticianId: dietitianDetailModel.dietitianId,
                       profileId: clientProfileModel.profileId,
-                      dietPlanId: activeData[0].id.toString(), dietPlanStrategyModel: activeData.first,)),
+                      dietPlanStrategyModel: activeData.first,)),
                   );
 
 

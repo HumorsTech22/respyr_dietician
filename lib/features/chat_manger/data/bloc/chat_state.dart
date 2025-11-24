@@ -8,7 +8,10 @@ class ChatLoaded extends ChatState {
   final List<ChatMessage> messages;
   final List<ChatUser> typingUsers;
 
-  ChatLoaded({required this.messages, required this.typingUsers});
+  ChatLoaded({
+    required this.messages,
+    required this.typingUsers,
+  });
 }
 
 class ChatError extends ChatState {

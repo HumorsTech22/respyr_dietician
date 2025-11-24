@@ -53,21 +53,23 @@ class SectionWidget extends StatelessWidget {
     final metabolism = result.respyrResponse.metabolismScoreAnalysis;
     final markers = result.respyrResponse.breathMarkerAnalysis;
 
-    int ppm = 0;
+    double ppm = 0;
     String mainMarker = '';
+
+
 
     switch (metabolismType) {
       case "Gut":
         mainMarker = "Hydrogen";
-        ppm = markers.hydrogen.ppm;
+        ppm = double.parse(markers.hydrogen.ppm.toStringAsFixed(2));
         break;
       case "Fat":
         mainMarker = "Acetone";
-        ppm = markers.acetone.ppm;
+        ppm = double.parse(markers.acetone.ppm.toStringAsFixed(2));
         break;
       case "Liver":
         mainMarker = "Ethanol";
-        ppm = markers.ethanol.ppm;
+        ppm = double.parse(markers.ethanol.ppm.toStringAsFixed(2));
         break;
     }
 
@@ -87,6 +89,8 @@ class SectionWidget extends StatelessWidget {
 
     final metab1Score = metab1.score;
     final metab2Score = metab2.score;
+
+    print(mainMarker);
 
     return Container(
       key: sectionKey,

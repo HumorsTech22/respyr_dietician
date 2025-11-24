@@ -52,7 +52,7 @@ class ProfileCubit extends Cubit<ProfileState> {
   /// Save selected dietician id into state
   void updateDietitian(String dietitianId) =>
       emit(state.copyWith(
-          dietitianId: dietitianId,
+        dietitianId: dietitianId,
       ));
 
   // Validators

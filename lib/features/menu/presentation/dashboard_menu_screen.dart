@@ -7,6 +7,8 @@ import '../../../common/widgets/client_profile_avatar.dart';
 import '../../client_profile/presentation/pages/client_profile.dart';
 import '../../diet_plan/data/diet_plan_model.dart';
 import '../../diet_plan/presentation/pages/diet_plan_screen.dart';
+import '../../webview/presentation/screens/webview_screen.dart';
+import '../../webview/utils/urls.dart';
 
 class DashboardMenuScreen extends StatefulWidget {
   final ClientProfileModel clientProfileModel;
@@ -190,6 +192,16 @@ class _DashboardMenuScreenState extends State<DashboardMenuScreen> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
                 child: GestureDetector(
+                  onTap: (){
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            WebViewScreen(url: WebViewUrls.privacyPolicy),
+                      ),
+                    );
+
+                  },
                   child: Row(
                     children: [
                       SvgPicture.asset("assets/images/icons/ic_help.svg"),

@@ -1,35 +1,62 @@
+import 'dart:convert';
 import 'package:intl/intl.dart';
 import 'package:respyr_dietitian/client-dashboard/today_result/today_test_data_api_service.dart';
 
-import '../../features/test_history/test_history_by_date/data/models/test_data_record.dart';
-
+import '../../features/bluetooth_device_connectivity/data/model/generating_result_model.dart';
 
 class TodayTestDataRepository {
   final TodayTestDataApiService api;
   TodayTestDataRepository(this.api);
 
-  /// Fetch records for a specific day (IST).
-  /// If [date] is null, the API should return “today” (per your PHP).
-  Future<List<TestDataRecord>> fetchDay({
+  Future<GeneratingResultModel?> fetchDay({
     required String profileId,
     required String dietitianId,
-    DateTime? date, // pass when you want a specific day
+    DateTime? date,
   }) async {
-    String? day;
-    if (date != null) {
-      // format YYYY-MM-DD
-      day = DateFormat('yyyy-MM-dd').format(date);
+    // format date -> YYYY-MM-DD
+    final String day = DateFormat('yyyy-MM-dd').format(date ?? DateTime.now());
+
+    final jsonMap = await api.fetchForDay(
+      profileId: profileId,
+      dietitianId: dietitianId,
+      dateYYYYMMDD: day,
+    );
+
+    if (jsonMap['success'] != true) {
+      return null;
     }
 
-    final jsonMap = await api.fetchForDay(profileId: profileId, dateYYYYMMDD: day!, dietitianId: dietitianId);
-    final data = (jsonMap['data'] as List?) ?? [];
+    // ✅ CASE 1: new API already returns respyr_response at root
+    if (jsonMap.containsKey('respyr_response')) {
+      return GeneratingResultModel.fromJson(jsonMap);
+    }
 
-    // If data is empty, you might still want to return a dummy record
-    // to indicate "no test taken". Your UI can decide based on count.
-    final isTakenTest = data.isNotEmpty;
+    // ✅ CASE 2: old API: { success, count, data: [ { ... , test_json: "..." } ] }
+    final List<dynamic>? dataList = jsonMap['data'] as List<dynamic>?;
+    if (dataList == null || dataList.isEmpty) return null;
 
-    return data.map<TestDataRecord>((e) {
-      return TestDataRecord.fromJson(e as Map<String, dynamic>, isTakenTest);
-    }).toList();
+    final first = dataList.first as Map<String, dynamic>;
+
+    // test_json is a JSON string
+    Map<String, dynamic> inner = {};
+    final raw = first['test_json']?.toString();
+    if (raw != null && raw.trim().isNotEmpty) {
+      try {
+        inner = jsonDecode(raw) as Map<String, dynamic>;
+      } catch (_) {
+        inner = {};
+      }
+    }
+
+    final mapped = <String, dynamic>{
+      'success': jsonMap['success'] ?? true,
+      'message': jsonMap['message'] ?? 'Record fetched',
+      'test_id': first['test_id'] ?? 0,
+      'date_time': first['date_time'] ?? '',
+      'url_called': jsonMap['url_called'] ?? '',
+      'respyr_response': inner,
+    };
+
+    return GeneratingResultModel.fromJson(mapped);
   }
 }

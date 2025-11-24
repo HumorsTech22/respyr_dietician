@@ -4,6 +4,8 @@ class GeneratingResultModel {
   final int testId;
   final String urlCalled;
   final RespyrResponse respyrResponse;
+  final DateTime dateTime;
+
 
   GeneratingResultModel({
     required this.success,
@@ -11,14 +13,29 @@ class GeneratingResultModel {
     required this.testId,
     required this.urlCalled,
     required this.respyrResponse,
+    required this.dateTime,
   });
 
   factory GeneratingResultModel.fromJson(Map<String, dynamic> json) {
+    // Safely parse date_time string => DateTime
+    final String? dtStr = json['date_time'];
+    DateTime parsedDateTime;
+
+    if (dtStr != null && dtStr.isNotEmpty) {
+      // PHP returns "YYYY-MM-DD HH:MM:SS"
+      // DateTime.parse can handle "2025-11-18 06:27:15"
+      parsedDateTime = DateTime.parse(dtStr.replaceFirst(' ', 'T'));
+    } else {
+      // Fallback if missing
+      parsedDateTime = DateTime.now();
+    }
+
     return GeneratingResultModel(
       success: json['success'] ?? false,
       message: json['message'] ?? '',
       testId: json['test_id'] ?? 0,
       urlCalled: json['url_called'] ?? '',
+      dateTime: parsedDateTime,
       respyrResponse: RespyrResponse.fromJson(json['respyr_response'] ?? {}),
     );
   }
@@ -133,7 +150,7 @@ class BreathMarkerAnalysis {
 
 class MarkerItem {
   final String marker;
-  final int ppm;
+  final double ppm;
   final String interpretation;
   final String intervention;
   final String zone;
@@ -157,18 +174,18 @@ class MarkerItem {
   factory MarkerItem.fromJson(Map<String, dynamic> json) {
     return MarkerItem(
       marker: json['marker'] ?? '',
-      ppm: (json['ppm'] ?? 0).toInt(),
+      ppm: (json['ppm'] ?? 0).toDouble(),
       interpretation: json['interpretation'] ?? '',
       intervention: json['intervention'] ?? '',
       zone: json['zone'] ?? '',
       diabetic: json['diabetic'] ?? false,
       userGoal: json['user_goal'] ?? '',
-      ratios:
-          json['ratios'] != null
-              ? Map<String, dynamic>.from(json['ratios'])
-              : null,
-      advice:
-          json['advice'] != null ? MarkerAdvice.fromJson(json['advice']) : null,
+      ratios: json['ratios'] != null
+          ? Map<String, dynamic>.from(json['ratios'])
+          : null,
+      advice: json['advice'] != null
+          ? MarkerAdvice.fromJson(json['advice'])
+          : null,
     );
   }
 }
