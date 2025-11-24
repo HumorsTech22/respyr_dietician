@@ -1,19 +1,27 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:respyr_dietitian/client-dashboard/data/model/client_profile_model.dart';
+import 'package:respyr_dietitian/client-dashboard/data/model/diet_plan_strategy_model.dart';
 import 'package:respyr_dietitian/features/menu/presentation/pages/profile.dart';
 import '../../../../client-dashboard/data/bloc/client_bloc.dart';
-import '../../../../client-dashboard/data/bloc/client_event.dart';
 import '../../../../client-dashboard/data/bloc/client_state.dart';
 import '../../../../client-dashboard/extras/logout.dart';
+import '../../../../client-dashboard/presentation/screens/client_overall_plan_screen.dart';
+import '../../../../routes/app_routes.dart';
 import '../../../profile_info/data/model/dietician_detail_model.dart';
+import '../../../webview/presentation/screens/webview_screen.dart';
+import '../../../webview/utils/urls.dart';
 
 class Settings extends StatefulWidget {
   final ClientProfileModel clientProfileModel;
   final DietitianDetailModel dietitianDetailModel;
-  const Settings({super.key, required this.clientProfileModel, required this.dietitianDetailModel});
+  final List<DietPlanStrategyModel> activeData;
+  final List<DietPlanStrategyModel> completedData;
+  final List<DietPlanStrategyModel> canceledData;
+  const Settings({super.key, required this.clientProfileModel, required this.dietitianDetailModel, required this.activeData, required this.completedData, required this.canceledData});
 
   @override
   State<Settings> createState() => _SettingsState();
@@ -334,9 +342,10 @@ class _SettingsState extends State<Settings> {
               const SizedBox(height: 10),
               _buildProfileSettings(),
               const SizedBox(height: 26),
+
               _buildYourPlans(),
               const SizedBox(height: 26),
-              //_buildNotifications(),
+              _buildNotifications(),
             ],
           ),
         ),
@@ -375,109 +384,123 @@ class _SettingsState extends State<Settings> {
   }
 
   Widget _buildYourPlans() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          "Your Plans",
-          style: GoogleFonts.poppins(
-            color: const Color(0xFF252525),
-            fontSize: 15,
-            fontWeight: FontWeight.w400,
-            height: 1.2,
-            letterSpacing: -0.30,
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+
+      onTap: (){
+        if( widget.activeData.isNotEmpty ){
+
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ClientOverallPlanScreen(
+                activeData: widget.activeData.first,
+                completedData: [], canceledData: [],
+                clientProfileModel: widget.clientProfileModel,
+                dietitianDetailModel: widget.dietitianDetailModel,
+
+
+              ),
+            ),
+          );
+        }
+
+      },
+      child: Column(
+        mainAxisSize: MainAxisSize.max,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "Your Plans",
+            style: GoogleFonts.poppins(
+              color: const Color(0xFF252525),
+              fontSize: 15,
+              fontWeight: FontWeight.w400,
+              height: 1.2,
+              letterSpacing: -0.30,
+            ),
           ),
-        ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            Text(
-              "Your Plans",
-              style: GoogleFonts.poppins(
+          const SizedBox(height: 10),
+          Row(
+            mainAxisSize: MainAxisSize.max,
+            children: [
+              Text(
+                "Your Plans",
+                style: GoogleFonts.poppins(
+                  color: const Color(0xFF535359),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w400,
+                  letterSpacing: -0.24,
+                  height: 1.2,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Container(
+                height: 12,
+                width: 1.5,
                 color: const Color(0xFF535359),
-                fontSize: 12,
-                fontWeight: FontWeight.w400,
-                letterSpacing: -0.24,
-                height: 1.2,
               ),
-            ),
-            const SizedBox(width: 10),
-            Container(
-              height: 12,
-              width: 1.5,
-              color: const Color(0xFF535359),
-            ),
-            const SizedBox(width: 10),
-            Text(
-              "Active",
-              style: GoogleFonts.poppins(
-                color: const Color(0xFF3EAF58),
-                fontSize: 12,
-                fontWeight: FontWeight.w400,
-                letterSpacing: -0.24,
-              ),
-            )
-          ],
-        )
-      ],
+              const SizedBox(width: 10),
+              Text(
+                widget.activeData.isNotEmpty ? "Active" : "Not active",
+                style: GoogleFonts.poppins(
+                  color:  widget.activeData.isNotEmpty ? Color(0xFF3EAF58) : Colors.red,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w400,
+                  letterSpacing: -0.24,
+                ),
+              )
+            ],
+          )
+        ],
+      ),
     );
   }
 
   Widget _buildNotifications() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: (){
+        context.push(
+          AppRoutes.notificationScreen,
+          extra: widget.clientProfileModel,
+        );
+      },
+      child: Visibility(
+        visible: false,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          mainAxisSize: MainAxisSize.max,
           children: [
-            Text(
-              "Notifications",
-              style: GoogleFonts.poppins(
-                color: const Color(0xFF252525),
-                fontSize: 15,
-                fontWeight: FontWeight.w400,
-                height: 1.2,
-                letterSpacing: -0.30,
-              ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Notifications",
+                  style: GoogleFonts.poppins(
+                    color: const Color(0xFF252525),
+                    fontSize: 15,
+                    fontWeight: FontWeight.w400,
+                    height: 1.2,
+                    letterSpacing: -0.30,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  "Daily diet and test reminders",
+                  style: GoogleFonts.poppins(
+                    color: const Color(0xFF535359),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w400,
+                    letterSpacing: -0.24,
+                    height: 1.2,
+                  ),
+                )
+              ],
             ),
-            const SizedBox(height: 10),
-            Text(
-              "Daily diet and test reminders",
-              style: GoogleFonts.poppins(
-                color: const Color(0xFF535359),
-                fontSize: 12,
-                fontWeight: FontWeight.w400,
-                letterSpacing: -0.24,
-                height: 1.2,
-              ),
-            )
           ],
         ),
-        CupertinoSwitch(
-          value: value,
-          onChanged: (v) {
-            context.read<ClientBloc>().add(
-              UpdateNotificationEvent(
-                profileId: widget.clientProfileModel.profileId,
-                isEnabled: v,
-              ),
-            );
-            setState(() => value = v);
-            debugPrint("🔄 Toggle pressed -> $v (optimistic)");
-          },
-          activeTrackColor: const Color(0xFF308BF9),
-          thumbColor: const Color(0xFFCAE1FF),
-          trackOutlineWidth: MaterialStateProperty.resolveWith(
-                (states) => states.contains(MaterialState.selected) ? 1 : 1,
-          ),
-          inactiveThumbColor: const Color(0xFFA1A1A1),
-          trackOutlineColor: MaterialStateProperty.resolveWith(
-                (states) => states.contains(MaterialState.selected)
-                ? Colors.transparent
-                : const Color(0xFFA1A1A1),
-          ),
-        ),
-      ],
+      ),
     );
   }
 
@@ -499,24 +522,24 @@ class _SettingsState extends State<Settings> {
             children: [
               const SizedBox(height: 10),
               GestureDetector(
-                onTap: (){
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Coming soon'),
-                    ),
-                  );
-                },
+                  onTap: (){
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Coming soon'),
+                      ),
+                    );
+                  },
                   child: _buildMenuItem("FAQ")
               ),
               const SizedBox(height: 26),
               GestureDetector(
-                onTap: (){
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Coming soon'),
-                    ),
-                  );
-                },
+                  onTap: (){
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Coming soon'),
+                      ),
+                    );
+                  },
                   child: _buildMenuItem("Report An Issue")
               ),
             ],
@@ -544,26 +567,39 @@ class _SettingsState extends State<Settings> {
             children: [
               const SizedBox(height: 10),
               GestureDetector(
+                behavior: HitTestBehavior.opaque,   // 👈 IMPORTANT
                 onTap: (){
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Coming soon'),
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          WebViewScreen(url: WebViewUrls.privacyPolicy),
                     ),
                   );
                 },
-                  child: _buildMenuItem("Privacy Policy")
+                child: SizedBox(
+                  width: double.infinity,
+                  child: _buildMenuItem("Privacy Policy"),
+                ),
               ),
               const SizedBox(height: 26),
               GestureDetector(
-                onTap: (){
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Coming soon'),
+                behavior: HitTestBehavior.opaque,   // 👈 IMPORTANT
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          WebViewScreen(url: WebViewUrls.termsAndConditions),
                     ),
                   );
                 },
-                  child: _buildMenuItem("Terms of Service")
-              ),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: _buildMenuItem("Terms of Service"),
+                ),
+              )
+
             ],
           ),
         ),

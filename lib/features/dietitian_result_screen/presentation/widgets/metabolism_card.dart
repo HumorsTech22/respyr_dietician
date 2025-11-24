@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:respyr_dietitian/core/utils/score_utils.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/model/generating_result_model.dart';
 import 'package:respyr_dietitian/features/dietitian_result_screen/presentation/cubit/dietitian_result_state.dart';
 
 class MetabolismCard extends StatelessWidget {
-  final String metabolismType;
+  final String metabolismType; // "Gut" | "Fat" | "Liver"
   final DietitianResultState state;
   final GeneratingResultModel result;
 
@@ -17,18 +16,21 @@ class MetabolismCard extends StatelessWidget {
     required this.result,
   });
 
+  // Icons
   static final Map<String, String> _metabolismIcon = {
     "Gut": "assets/images/result_screen/dietitian_gut_outline.svg",
     "Fat": "assets/images/result_screen/dietitian_pancreas_outline.svg",
     "Liver": "assets/images/result_screen/dietitian_liver_outline.svg",
   };
 
+  // Titles
   static final Map<String, String> _metabolismTitle = {
     "Gut": "Gut Fermentation Metabolism",
     "Fat": "Glucose\n-Vs-\nFat Metabolism",
     "Liver": "Liver Hepatic Metabolism",
   };
 
+  // Subtype labels
   static final Map<String, String> _metabolismSubTypeOne = {
     "Gut": "Absorptive Metabolism Score",
     "Fat": "Fat Metabolism Score",
@@ -41,11 +43,9 @@ class MetabolismCard extends StatelessWidget {
     "Liver": "Detoxification Metabolism Score",
   };
 
+  /// 🔢 Scores from API (as int %)
   Map<String, int> _getScores(GeneratingResultModel result) {
-    if (result == null) return {"one": 0, "two": 0};
-
     final metabolism = result.respyrResponse.metabolismScoreAnalysis;
-
     int toInt(num? value) => (value ?? 0).toInt();
 
     switch (metabolismType) {
@@ -69,20 +69,58 @@ class MetabolismCard extends StatelessWidget {
     }
   }
 
+  /// 🏷️ Zones from API ("Good", "Fair", "Poor")
+  Map<String, String> _getZones(GeneratingResultModel result) {
+    final metabolism = result.respyrResponse.metabolismScoreAnalysis;
+    String safe(String? v) => v ?? '';
+
+    switch (metabolismType) {
+      case "Gut":
+        return {
+          "one": safe(metabolism.absorption.zone),
+          "two": safe(metabolism.fermentation.zone),
+        };
+      case "Fat":
+        return {
+          "one": safe(metabolism.fatMetabolism.zone),
+          "two": safe(metabolism.glucoseMetabolism.zone),
+        };
+      case "Liver":
+        return {
+          "one": safe(metabolism.hepaticStress.zone),
+          "two": safe(metabolism.detoxification.zone),
+        };
+      default:
+        return {"one": '', "two": ''};
+    }
+  }
+
+  /// 🎨 Color based on zone
+  Color _zoneColor(String zone) {
+    switch (zone.toLowerCase()) {
+      case 'poor':
+        return const Color(0xFFEA5455); // red
+      case 'fair':
+        return const Color(0xFFFFC412); // yellow
+      case 'good':
+        return const Color(0xFF3EAF58); // green
+      default:
+        return const Color(0xFF252525); // fallback
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final scores = _getScores(result);
     final score1 = scores["one"] ?? 0;
     final score2 = scores["two"] ?? 0;
 
-    final info1 = getScoreLevel(
-      score1,
-      _metabolismSubTypeOne[metabolismType] ?? "",
-    );
-    final info2 = getScoreLevel(
-      score2,
-      _metabolismSubTypeTwo[metabolismType] ?? "",
-    );
+    final zones = _getZones(result);
+    final zone1 = zones["one"] ?? '';
+    final zone2 = zones["two"] ?? '';
+
+    final zoneColor1 = _zoneColor(zone1);
+    final zoneColor2 = _zoneColor(zone2);
 
     return Container(
       width: MediaQuery.of(context).size.width * 0.55,
@@ -165,9 +203,9 @@ class MetabolismCard extends StatelessWidget {
                         ),
                         Container(height: 10, width: 1, color: Colors.black),
                         Text(
-                          info1.label,
+                          zone1, // 👉 Good / Fair / Poor from API
                           style: GoogleFonts.poppins(
-                            color: info1.color,
+                            color: zoneColor1,
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
                             height: 1.10,
@@ -215,9 +253,9 @@ class MetabolismCard extends StatelessWidget {
                         ),
                         Container(height: 10, width: 1, color: Colors.black),
                         Text(
-                          info2.label,
+                          zone2,
                           style: GoogleFonts.poppins(
-                            color: info2.color,
+                            color: zoneColor2,
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
                             height: 1.10,

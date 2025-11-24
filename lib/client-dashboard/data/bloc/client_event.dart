@@ -20,6 +20,5 @@ class FetchClientProfile extends ClientEvent {
 class UpdateNotificationEvent extends ClientEvent {
   final String profileId;
   final bool isEnabled;
-
   UpdateNotificationEvent({required this.profileId, required this.isEnabled});
 }

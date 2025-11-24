@@ -4,6 +4,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:respyr_dietitian/client-dashboard/data/model/client_profile_model.dart';
+import 'package:respyr_dietitian/client-dashboard/data/model/diet_plan_strategy_model.dart';
 import 'package:respyr_dietitian/common/widgets/audio_helper.dart';
 import 'package:respyr_dietitian/common/widgets/internet_connectivity_handler.dart';
 import 'package:respyr_dietitian/core/services/shared_prefs_profile_data.dart';
@@ -16,7 +17,8 @@ import 'package:respyr_dietitian/routes/app_routes.dart';
 
 class BluetoothBreatheTube extends StatelessWidget {
   final ClientProfileModel clientProfileModel;
-  const BluetoothBreatheTube({super.key, required this.clientProfileModel});
+  final DietPlanStrategyModel dietPlanStrategyModel;
+  const BluetoothBreatheTube({super.key, required this.clientProfileModel, required this.dietPlanStrategyModel});
 
   Future<bool> _showCancelTestDialogBox(BuildContext context) async {
     bool didCancel = false;
@@ -56,9 +58,12 @@ class BluetoothBreatheTube extends StatelessWidget {
 
           if (state.isCompleted) {
             cubit.close();
-            context.pushReplacement(
+            context.push(
               AppRoutes.bluetoothCalibrationScreen,
-              extra: clientProfileModel,
+              extra: {
+                "client" : clientProfileModel,
+                "strategy" : dietPlanStrategyModel,
+              },
             );
           }
         },

@@ -20,8 +20,11 @@ class DietPlanStrategyModel {
   final List<String> approaches;  // from key: "approach"
   final String status;            // active/completed/cancelled/other
   final DietitianModel? dietitianInfo;
+  final bool isDiabetic;
+  final int testNoAssigned;
+  final String dietType;
 
-  DietPlanStrategyModel({
+  DietPlanStrategyModel( {
     required this.id,
     required this.dietitianId,
     required this.clientId,
@@ -38,7 +41,10 @@ class DietPlanStrategyModel {
     required this.goals,
     required this.approaches,
     required this.status,
-    this.dietitianInfo,
+    required this.dietitianInfo,
+    required this.isDiabetic,
+    required this.testNoAssigned,
+    required this.dietType,
   });
 
   static DateTime _d(dynamic v) =>
@@ -78,6 +84,7 @@ class DietPlanStrategyModel {
     dietitianId: json['dietitian_id']?.toString() ?? '',
     clientId: json['client_id']?.toString() ?? '',
     planTitle: json['plan_title']?.toString() ?? '',
+    dietType: json['diet_type']?.toString() ?? '',
     planStartDate: _d(json['plan_start_date']),
     planEndDate: _d(json['plan_end_date']),
     updatedAt: _d(json['updated_at']),
@@ -85,8 +92,10 @@ class DietPlanStrategyModel {
     proteinTarget: _i(json['protein_target']),
     fiberTarget: _i(json['fiber_target']),
     carbsTarget: _i(json['carbs_target']),
+    testNoAssigned: _i(json['test_no_assigned']),
     fatTarget: _i(json['fat_target']),
     waterTarget: _f(json['water_target']),
+    isDiabetic: (json['diabetic']?.toString() == "1"),
     goals: _parseGoals(json['goal'] ?? json['goals']),
     approaches: _parseApproach(json['approach']),
     status: json['status']?.toString().toLowerCase() ?? 'other',

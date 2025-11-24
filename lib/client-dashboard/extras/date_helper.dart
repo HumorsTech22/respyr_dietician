@@ -2,6 +2,10 @@ String formatToDayMonth(DateTime date) {
   return "${date.day} ${_monthName(date.month)}";
 }
 
+String formatToDayShortMonth(DateTime date) {
+  return "${date.day} ${_monthShort(date.month)}";
+}
+
 String formatToDateTimeString(DateTime date) {
   final day = date.day.toString().padLeft(2, '0');
   final month = _monthShort(date.month);

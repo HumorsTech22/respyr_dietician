@@ -71,8 +71,8 @@ class CreateProfileCubit extends Cubit<CreateProfileState> {
       'location': _asString(data['location']),
       'dttm': _asString(data['dttm']),
 
-      // 🔥 Added this line — required by your model
       'is_notification_enabled': _asInt(data['is_notification_enabled'], def: 1),
+      'is_dietitian_linked': _asInt(data['is_dietitian_linked'], def: 1),
     };
   }
 
@@ -103,7 +103,7 @@ class CreateProfileCubit extends Cubit<CreateProfileState> {
 
       final uri = Uri.parse(UrlManager().urlCreateClientProfile);
       final request = http.MultipartRequest('POST', uri)
-        ..fields['dietitian_id'] = dietitianId
+        ..fields['dietitian_id'] = "NA"
         ..fields['phone_no'] = "NA"
         ..fields['email'] = email
         ..fields['profile_name'] = profileName

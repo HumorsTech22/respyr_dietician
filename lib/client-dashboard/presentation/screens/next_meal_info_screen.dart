@@ -2,11 +2,27 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../extras/meal_time_helper.dart';
+import '../../extras/pick_current_meal.dart';
+
 class NextMealInfoScreen extends StatelessWidget {
-  const NextMealInfoScreen({super.key});
+  final Map<String, dynamic> todayData;
+  const NextMealInfoScreen({super.key, required this.todayData});
 
   @override
   Widget build(BuildContext context) {
+
+    final dayKey = (todayData['dayKey'] ?? '').toString();
+    final totals = (todayData['totals'] ?? {}) as Map<String, dynamic>;
+    final meals = (todayData['meals'] ?? const []) as List;
+
+
+    Map<String, dynamic>? picked = CurrentMeal().pickUpcomingMeal(meals);
+    final time = (picked?['time'] ?? '').toString();
+    final mTotals = (picked?['totals'] ?? {}) as Map<String, dynamic>;
+    final items = (picked!['items'] ?? const []) as List;
+
+
     return Container(
       width: double.infinity,
       padding: EdgeInsets.symmetric(vertical: 25),
@@ -37,7 +53,7 @@ class NextMealInfoScreen extends StatelessWidget {
           SizedBox(height: 20,),
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 33),
-            child: Text("Mid-morning",
+            child: Text(MealTimeHelper().getMealName(time),
               style: GoogleFonts.poppins(
                   color: const Color(0xFF252525),
                   fontSize: 25,
@@ -52,7 +68,7 @@ class NextMealInfoScreen extends StatelessWidget {
             child: Row(
               spacing: 10,
               children: [
-                Text("11:00 AM",
+                Text(MealTimeHelper().getMealTime(time),
                   style: GoogleFonts.poppins(
                     color: const Color(0xFF252525),
                     fontSize: 12,
@@ -61,7 +77,7 @@ class NextMealInfoScreen extends StatelessWidget {
                   ),
                 ),
                 Container(height: 12, width: 1,color: Color(0xFF252525),),
-                Text("3 Items",
+                Text("${items.length} Items",
                   style: GoogleFonts.poppins(
                     color: const Color(0xFF252525),
                     fontSize: 12,
@@ -91,13 +107,13 @@ class NextMealInfoScreen extends StatelessWidget {
                 children: [
                   SizedBox(height: 20,),
                   ListView.separated(
-                    itemCount: 5,
+                    itemCount: items.length,
                     shrinkWrap: true,
                     physics: NeverScrollableScrollPhysics(),
                     separatorBuilder: (context, index) => SizedBox(height: 20,),
                     padding: EdgeInsets.symmetric(horizontal: 20, vertical: 0),
                     itemBuilder: (context, index) {
-                      return NextFoodItem(index: index+1, foodType: 'food', foodName: 'Rice', foodCalories: '230',);
+                      return NextFoodItem(index: index+1, foodName: items[index]['name'] ?? '', foodCalories: items[index]['calories_kcal'] ?? 0, foodPortion:  items[index]['portion'],);
                     },
                   ),
                   SizedBox(height: 20,),
@@ -143,23 +159,34 @@ class NextMealInfoScreen extends StatelessWidget {
 
 class NextFoodItem extends StatelessWidget {
   final int index;
-  final String foodType;
   final String foodName;
-  final String foodCalories;
-  const NextFoodItem({super.key, required this.index, required this.foodType, required this.foodName, required this.foodCalories});
+  final int foodCalories;
+  final String foodPortion;
+  const NextFoodItem({super.key, required this.index,  required this.foodName, required this.foodCalories, required this.foodPortion});
 
   @override
   Widget build(BuildContext context) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.start,
+
       children: [
-        SvgPicture.asset("assets/images/icons/ic_food_drink.svg", width: 32,height: 32,color: const Color(0xFFA1A1A1)),
+        Text("$index.",
+          style: GoogleFonts.poppins(
+            color: Colors.black,
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            height: 1.26,
+            letterSpacing: -0.30,
+          ),
+        ),
         SizedBox(width: 14,),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              Text("$index. $foodName",
+              Text(foodName,
                 style: GoogleFonts.poppins(
                   color: Colors.black,
                   fontSize: 15,
@@ -168,22 +195,18 @@ class NextFoodItem extends StatelessWidget {
                   letterSpacing: -0.30,
                 ),
               ),
-              SizedBox(height: 4,),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 9),
-                child: Text("2 ladles (60g each)",
-                  style: GoogleFonts.poppins(
-                    color: const Color(0xFF252525),
-                    fontSize: 10,
-                    fontWeight: FontWeight.w400,
-                    letterSpacing: -0.20,
-                  ),
+              Text(foodPortion,
+                style: GoogleFonts.poppins(
+                  color: const Color(0xFF252525),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w400,
+                  letterSpacing: -0.20,
                 ),
               )
             ],
           ),
         ),
-        Text("220 kcal",
+        Text("$foodCalories kcal",
           style: GoogleFonts.poppins(
             color: const Color(0xFF535359),
             fontSize: 15,

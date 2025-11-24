@@ -29,6 +29,8 @@ class DietPlanRepository {
     }
 
     final data = json['data'];
+
+
     List<DietPlanStrategyModel> parseList(dynamic v) {
       if (v is List) {
         return v.map((e) => DietPlanStrategyModel.fromJson(Map<String, dynamic>.from(e))).toList();

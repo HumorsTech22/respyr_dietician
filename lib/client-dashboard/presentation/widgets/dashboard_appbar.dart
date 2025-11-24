@@ -1,11 +1,16 @@
+import 'package:dash_chat_2/dash_chat_2.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:respyr_dietitian/client-dashboard/data/model/client_profile_model.dart';
+import 'package:respyr_dietitian/client-dashboard/data/model/diet_plan_strategy_model.dart';
 import 'package:respyr_dietitian/features/profile_info/data/model/dietician_detail_model.dart';
 
 import '../../../core/utils/date_helper.dart';
+import '../../../features/chat_manger/data/bloc/chat_bloc.dart';
+import '../../../features/chat_manger/data/repository/chat_repository.dart';
+import '../../../features/chat_manger/presentation/screen/chat_screen.dart';
 import '../../../features/menu/presentation/pages/settings.dart';
 import '../../data/bloc/client_bloc.dart';
 import '../../extras/meal_type_helper.dart';
@@ -14,8 +19,11 @@ class DashboardAppbar extends StatelessWidget {
 
   final ClientProfileModel clientProfileModel;
   final DietitianDetailModel dietitianDetailModel;
+  final List<DietPlanStrategyModel> activeData;
+  final List<DietPlanStrategyModel> completedData;
+  final List<DietPlanStrategyModel> canceledData;
   final bool isDefaultColor;
-  const DashboardAppbar({super.key, required this.clientProfileModel,  this.isDefaultColor=false, required this.dietitianDetailModel});
+  const DashboardAppbar({super.key, required this.clientProfileModel,  this.isDefaultColor=false, required this.dietitianDetailModel,required this.activeData, required this.completedData, required this.canceledData});
 
   @override
   Widget build(BuildContext context) {
@@ -46,7 +54,32 @@ class DashboardAppbar extends StatelessWidget {
         ),
         Spacer(),
         IconButton(
-            onPressed: (){},
+            onPressed: (){
+
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => BlocProvider(
+                    create: (context) => ChatBloc(
+                      repository: ChatRepository(
+                        sender: ChatUser(
+                          id: clientProfileModel.profileId,
+                          firstName: clientProfileModel.profileName,
+                        ),
+                        receiver: ChatUser(
+                          id: dietitianDetailModel.dietitianId,
+                          firstName: dietitianDetailModel.name,
+                        ),
+                      ),
+                    ),
+                    child: ChatScreen(
+                      dietitianModel: dietitianDetailModel,
+                      clientProfileModel: clientProfileModel,
+
+                    ),
+                  ),
+                ),
+              );
+            },
             style: IconButton.styleFrom(
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(24),
@@ -65,7 +98,10 @@ class DashboardAppbar extends StatelessWidget {
                     value: clientBloc, // reuse the existing instance
                     child: Settings(
                       clientProfileModel: clientProfileModel,              // your current arg
-                      dietitianDetailModel: dietitianDetailModel,  // your current arg
+                      dietitianDetailModel: dietitianDetailModel,
+                      activeData: activeData,
+                      completedData: completedData,
+                      canceledData: canceledData,// your current arg
                     ),
                   ),
                 ),

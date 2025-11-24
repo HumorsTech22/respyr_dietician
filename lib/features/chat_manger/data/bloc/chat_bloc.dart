@@ -18,50 +18,77 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     on<SendMessage>(_onSendMessage);
     on<UpdateTyping>(_onUpdateTyping);
 
-    // Start polling
-    pollingTimer = Timer.periodic(Duration(seconds: 5), (_) {
+    // Start polling every 5 seconds
+    pollingTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       add(FetchMessages());
     });
 
-    // Immediately fetch
+    // Immediately fetch once
     add(FetchMessages());
   }
 
-  Future<void> _onFetchMessages(FetchMessages event, Emitter<ChatState> emit) async {
+  Future<void> _onFetchMessages(
+      FetchMessages event,
+      Emitter<ChatState> emit,
+      ) async {
     try {
       messages = await repository.fetchMessages();
-      emit(ChatLoaded(messages: messages, typingUsers: typingUsers));
+      emit(ChatLoaded(
+        messages: messages,
+        typingUsers: List.from(typingUsers),
+      ));
     } catch (e) {
       emit(ChatError("Failed to fetch messages"));
     }
   }
 
-  Future<void> _onSendMessage(SendMessage event, Emitter<ChatState> emit) async {
+  Future<void> _onSendMessage(
+      SendMessage event,
+      Emitter<ChatState> emit,
+      ) async {
     try {
       final newMessage = await repository.sendMessage(event.text);
       messages.insert(0, newMessage);
       typingUsers.remove(repository.sender);
-      emit(ChatLoaded(messages: messages, typingUsers: typingUsers));
+      emit(ChatLoaded(
+        messages: messages,
+        typingUsers: List.from(typingUsers),
+      ));
     } catch (e) {
+
+      print("e=>" + e.toString());
       emit(ChatError("Failed to send message"));
     }
   }
 
-  void _onUpdateTyping(UpdateTyping event, Emitter<ChatState> emit) {
+  void _onUpdateTyping(
+      UpdateTyping event,
+      Emitter<ChatState> emit,
+      ) {
     final sender = repository.sender;
 
     if (event.isTyping && !typingUsers.contains(sender)) {
+      // user started typing
       typingUsers.add(sender);
-      emit(ChatLoaded(messages: messages, typingUsers: typingUsers));
+      emit(ChatLoaded(
+        messages: messages,
+        typingUsers: List.from(typingUsers),
+      ));
 
+      // cancel any previous timer
       typingTimer?.cancel();
-      typingTimer = Timer(Duration(seconds: 2), () {
-        typingUsers.remove(sender);
-        emit(ChatLoaded(messages: messages, typingUsers: typingUsers));
+
+      // after 2 seconds, dispatch a new event instead of calling emit here
+      typingTimer = Timer(const Duration(seconds: 2), () {
+        add(UpdateTyping(false)); // ✅ safe, no emit in Timer
       });
     } else if (!event.isTyping && typingUsers.contains(sender)) {
+      // user stopped typing
       typingUsers.remove(sender);
-      emit(ChatLoaded(messages: messages, typingUsers: typingUsers));
+      emit(ChatLoaded(
+        messages: messages,
+        typingUsers: List.from(typingUsers),
+      ));
     }
   }
 

@@ -5,6 +5,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:respyr_dietitian/client-dashboard/data/model/client_profile_model.dart';
+import 'package:respyr_dietitian/client-dashboard/data/model/diet_plan_strategy_model.dart';
 import 'package:respyr_dietitian/common/widgets/audio_helper.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/params/exhale_screen_params.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/repository/bluetooth_repository.dart';
@@ -16,7 +17,8 @@ import 'package:respyr_dietitian/routes/app_routes.dart';
 
 class BluetoothInhaleScreen extends StatelessWidget {
   final ClientProfileModel clientProfileModel;
-  const BluetoothInhaleScreen({super.key, required this.clientProfileModel});
+  final DietPlanStrategyModel dietPlanStrategyModel;
+  const BluetoothInhaleScreen({super.key, required this.clientProfileModel, required this.dietPlanStrategyModel});
 
   @override
   Widget build(BuildContext context) {
@@ -26,14 +28,15 @@ class BluetoothInhaleScreen extends StatelessWidget {
             ctx.read<BluetoothRepository>(),
             AudioHelper(),
           ),
-      child: _BluetoothInhaleView(clientProfileModel: clientProfileModel),
+      child: _BluetoothInhaleView(clientProfileModel: clientProfileModel, dietPlanStrategyModel: dietPlanStrategyModel,),
     );
   }
 }
 
 class _BluetoothInhaleView extends StatelessWidget {
   final ClientProfileModel clientProfileModel;
-  const _BluetoothInhaleView({required this.clientProfileModel});
+  final DietPlanStrategyModel dietPlanStrategyModel;
+  const _BluetoothInhaleView({required this.clientProfileModel, required this.dietPlanStrategyModel});
 
   Future<bool> showCancelTestDialogBox(BuildContext context) async {
     bool didCancel = false;
@@ -98,18 +101,18 @@ class _BluetoothInhaleView extends StatelessWidget {
 
           if (state.navigateToExhaleScreen &&
               state.lastExtractedValue != null) {
-            // context.pushReplacement(
-            //   AppRoutes.bluetoothExhaleScreen,
-            //   extra: state.lastExtractedValue!,
-            // );
-            // Where you previously had Navigator.push
-            context.pushReplacement(
+
+
+            context.push(
               AppRoutes.bluetoothExhaleScreen,
               extra: ExhaleScreenParams(
                 clientProfileModel: clientProfileModel,
                 baseValue: state.lastExtractedValue ?? '',
+                dietPlanStrategyModel: dietPlanStrategyModel,
               ),
             );
+
+
           }
         },
         buildWhen:

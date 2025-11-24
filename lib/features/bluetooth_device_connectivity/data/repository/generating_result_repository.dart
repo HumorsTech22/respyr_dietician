@@ -12,6 +12,7 @@ class GeneratingResultRepository {
     int debug = 1,
     required String dietitianId,
     required String profileId,
+    required String dietPlanId,
   }) async {
     final url = Uri.parse(
       'https://humorstech.com/dietitian/api/app/daily_result.php',
@@ -26,6 +27,7 @@ class GeneratingResultRepository {
       "debug": debug,
       "dietitian_id": dietitianId,
       "profile_id": profileId,
+      "diet_plan_id": dietPlanId,
     };
 
     final response = await http.post(

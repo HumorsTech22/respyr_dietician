@@ -4,6 +4,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:respyr_dietitian/client-dashboard/data/model/client_profile_model.dart';
+import 'package:respyr_dietitian/client-dashboard/data/model/diet_plan_strategy_model.dart';
 import 'package:respyr_dietitian/common/widgets/audio_helper.dart';
 import 'package:respyr_dietitian/core/audio/audio_cubit.dart';
 import 'package:respyr_dietitian/core/audio/audio_state.dart';
@@ -16,9 +17,11 @@ import 'package:respyr_dietitian/routes/app_routes.dart';
 
 class BluetoothCalibrationScreen extends StatelessWidget {
   final ClientProfileModel clientProfileModel;
+  final DietPlanStrategyModel dietPlanStrategyModel;
   const BluetoothCalibrationScreen({
     super.key,
     required this.clientProfileModel,
+    required this.dietPlanStrategyModel,
   });
 
   @override
@@ -33,7 +36,7 @@ class BluetoothCalibrationScreen extends StatelessWidget {
 
     final List<String> progressMessage = [
       "Cleaning inner\nChamber of Device",
-      "Verifying Cleanlliness",
+      "Verifying Cleanliness",
       "Initialing Calibration",
       "Activating Sensors",
       "Getting Device Ready",
@@ -88,11 +91,15 @@ class BluetoothCalibrationScreen extends StatelessWidget {
             if (state.navigateToInhaleScreen) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 cubit.close();
-                // context.go(AppRoutes.bluetoothInhaleScreen);
-                context.pushReplacement(
+
+                context.push(
                   AppRoutes.bluetoothInhaleScreen,
-                  extra: clientProfileModel,
+                  extra: {
+                    "client" : clientProfileModel,
+                    "strategy" : dietPlanStrategyModel,
+                  },
                 );
+
               });
             }
 

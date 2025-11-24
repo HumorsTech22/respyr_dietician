@@ -8,9 +8,11 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../client-dashboard/presentation/screens/client_dashboard.dart';
+import '../../../../client_login_manager/client_login_manager.dart';
 import '../../../../routes/app_routes.dart';
 import '../../../profile_info/presentation/widgets/profile_bottom_navigation.dart';
 import '../../data/services/check_profile_client.dart';
+import '../../data/services/download_network_image_service.dart';
 import '../../data/services/send_otp_email.dart';
 import '../widgets/otp_view.dart';
 
@@ -208,31 +210,52 @@ class _EmailOtpState extends State<EmailOtp> {
     });
 
     try {
+
+      Fluttertoast.showToast(
+        msg: "OTP verified successfully!",
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.TOP,
+        backgroundColor: Colors.green,
+        textColor: Colors.white,
+      );
+
+
       final profile = await checkClientProfile(widget.enteredEmail, "");
-      if (!mounted) return;
-
       setState(() => isLoading = false);
-
       if (profile != null) {
-        Fluttertoast.showToast(
-          msg: "OTP verified successfully!",
-          toastLength: Toast.LENGTH_SHORT,
-          gravity: ToastGravity.TOP,
-          backgroundColor: Colors.green,
-          textColor: Colors.white,
-        );
+        bool isSaved = await ClientLoginManager().saveClientProfile(profile);
+        if (isSaved && mounted) {
+          context.go(
+            AppRoutes.clientDashboard,
+            extra: profile,
+          );
+        } else {
+          _showSnackBar('Failed to save client profile.');
+        }
+      }else {
 
-        await Future.delayed(const Duration(milliseconds: 100));
-        if (!mounted) return;
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) =>  ClientDashboard(clientProfileModel: profile,)));
+        if(mounted){
+          context.push(
+            AppRoutes.dietitianScreen,
+            extra: {
+              "enteredEmail": widget.enteredEmail,
+              "profileImage": "NA",
+              "profileName": "NA",
+            },
+          );
+        }
 
-      } else {
-
-        context.go(AppRoutes.dietitianScreen ,extra: {
-          "enteredEmail": widget.enteredEmail,
-        },);
 
       }
+
+
+
+
+
+
+
+
+
     } catch (e) {
       setState(() => isLoading = false);
       Fluttertoast.showToast(
@@ -243,6 +266,13 @@ class _EmailOtpState extends State<EmailOtp> {
         textColor: Colors.white,
       );
     }
+  }
+
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
   bool _isValidEmail(String email) {

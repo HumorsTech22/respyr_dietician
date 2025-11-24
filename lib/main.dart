@@ -27,9 +27,15 @@ import 'package:respyr_dietitian/features/profile_info/domain/usecases/calculate
 import 'package:respyr_dietitian/features/profile_info/presentation/cubit/profile_cubit.dart';
 import 'package:respyr_dietitian/routes/app_router.dart';
 
+import 'features/bluetooth_device_connectivity/presentation/widgets/global_ble_popup_manager.dart';
+import 'features/profile_info/presentation/cubit/create_profile_cubit.dart';
+
+// 🔹 Global navigator key for showing dialogs from anywhere
+final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
+
 // 🔹 Local notifications
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-    FlutterLocalNotificationsPlugin();
+FlutterLocalNotificationsPlugin();
 
 // 🔹 Background FCM handler
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -46,12 +52,16 @@ Future<void> main() async {
   // 🔹 FCM background handler
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-  // 🔹 Request FCM permission
+  // 🔹 Request FCM permission (iOS / web)
   await FirebaseMessaging.instance.requestPermission();
+
+  // 🔹 Android 13+ notification permission
+  await Permission.notification.request();
 
   // 🔹 Local notifications setup
   const AndroidInitializationSettings androidInit =
-      AndroidInitializationSettings('@mipmap/ic_launcher');
+  AndroidInitializationSettings('@mipmap/ic_launcher'); // safe default
+
   const InitializationSettings initSettings = InitializationSettings(
     android: androidInit,
   );
@@ -79,31 +89,53 @@ Future<void> main() async {
     },
   );
 
-  // 🔹 Show local notification when message received in foreground
-  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+  // 🔹 Foreground messages → show local notification (status bar)
+  FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
     final notification = message.notification;
     final android = message.notification?.android;
+
     if (notification != null && android != null) {
-      flutterLocalNotificationsPlugin.show(
+      // --- Pick icons based on title ---
+      String smallIcon;
+      AndroidBitmap<Object>? largeIcon;
+
+      if (notification.title == "New Message") {
+        // TODO: ensure ic_notif_message exists in res/drawable if you use it
+        smallIcon = '@mipmap/launcher_icon';
+        largeIcon = const DrawableResourceAndroidBitmap('launcher_icon');
+      } else {
+        smallIcon = '@mipmap/launcher_icon';
+        largeIcon = const DrawableResourceAndroidBitmap('launcher_icon');
+      }
+
+      final androidDetails = AndroidNotificationDetails(
+        'default_channel',
+        'Default Notifications',
+        channelDescription: 'Default notification channel',
+        importance: Importance.max,
+        priority: Priority.high,
+        icon: smallIcon, // small status icon
+        largeIcon: largeIcon, // large icon in expanded view
+      );
+
+      final platformDetails = NotificationDetails(android: androidDetails);
+
+      await flutterLocalNotificationsPlugin.show(
         notification.hashCode,
         notification.title,
         notification.body,
-        const NotificationDetails(
-          android: AndroidNotificationDetails(
-            'default_channel',
-            'Default',
-            importance: Importance.max,
-            priority: Priority.high,
-          ),
-        ),
+        platformDetails,
         payload: jsonEncode(message.data),
       );
     }
   });
 
-  // 🔹 Handle when app opened from notification tap
+  // 🔹 App opened from system tray notification
   FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
     final data = message.data;
+
+    print(data['screen']);
+
     if (data['screen'] == 'chat-screen') {
       appRouter.pushNamed('chat', extra: data['chatUserId']);
     } else {
@@ -124,38 +156,43 @@ Future<void> main() async {
   final dieticianRepository = DietitianRepository();
   final usbService = UsbCommunicationService();
   final usbRepository = UsbRepositoryImpl(usbService);
-
   final dietitianDashboardRepository = DietitianDashboardRepository();
+
+  // ✅ ONE shared instance of UuidBluetoothManager for whole app
+  final uuidBleManager = UuidBluetoothManager();
+
+  // ✅ Global listener for BLE data → popup on any screen
+  GlobalBlePopupManager.init(
+    manager: uuidBleManager,
+    navigatorKey: rootNavigatorKey,
+  );
 
   runApp(
     MultiRepositoryProvider(
       providers: [
         RepositoryProvider<BluetoothRepository>(
-          create: (_) => BluetoothRepositoryImpl(UuidBluetoothManager()),
+          create: (_) => BluetoothRepositoryImpl(uuidBleManager),
         ),
         RepositoryProvider<GeneratingResultRepository>(
           create: (_) => GeneratingResultRepository(),
         ),
+        // you can add usbRepository etc here if needed
       ],
       child: MultiBlocProvider(
         providers: [
+          BlocProvider(create: (_) => CreateProfileCubit()),
           BlocProvider(
-            create:
-                (_) => ProfileCubit(
-                  calculateBMI,
-                  calculateBMR,
-                  dieticianRepository,
-                ),
+            create: (_) => ProfileCubit(
+              calculateBMI,
+              calculateBMR,
+              dieticianRepository,
+            ),
           ),
-
           BlocProvider(create: (_) => AudioCubit()),
           BlocProvider(create: (_) => TestTimerCubit()),
-
           BlocProvider(
-            create:
-                (_) =>
-                    DietitianDashboardCubit(dietitianDashboardRepository)
-                      ..loadDietitianDashboard(DateTime.now()),
+            create: (_) => DietitianDashboardCubit(dietitianDashboardRepository)
+              ..loadDietitianDashboard(DateTime.now()),
           ),
         ],
         child: const MyApp(),

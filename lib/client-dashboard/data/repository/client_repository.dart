@@ -16,7 +16,6 @@ class ClientRepository {
     try {
       final response = await dio.post(
         'get_clients.php',
-        // ✅ use plain map for x-www-form-urlencoded
         data: {
           'profile_id': profileId,
         },
@@ -28,11 +27,13 @@ class ClientRepository {
       );
 
       // Helpful debug:
-      // print('HTTP ${response.statusCode} -> ${response.data}');
+      print('HTTP ${response.statusCode} -> ${response.data}');
 
       if (response.statusCode != 200) {
         throw Exception('HTTP ${response.statusCode}: ${response.data}');
       }
+
+
 
       // Some hosts return string body; normalize to Map
       final body = response.data is String

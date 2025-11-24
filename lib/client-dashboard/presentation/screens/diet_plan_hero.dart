@@ -16,7 +16,10 @@ import '../widgets/diet_food_item_card.dart';
 class DietPlanHero extends StatelessWidget {
   final ClientProfileModel clientProfileModel;
   final DietitianDetailModel dietitianDetailModel;
-  final DietPlanStrategyModel dietPlanStrategyModel;
+
+  final List<DietPlanStrategyModel> activeData;
+  final List<DietPlanStrategyModel> completedData;
+  final List<DietPlanStrategyModel> canceledData;
 
   /// plain map passed from FutureBuilder (NOT an AsyncSnapshot)
   final Map<String, dynamic> todayData;
@@ -25,8 +28,7 @@ class DietPlanHero extends StatelessWidget {
     super.key,
     required this.clientProfileModel,
     required this.dietitianDetailModel,
-    required this.dietPlanStrategyModel,
-    required this.todayData,
+    required this.todayData, required this.activeData, required this.completedData, required this.canceledData,
   });
 
   @override
@@ -49,7 +51,11 @@ class DietPlanHero extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-            child: DashboardAppbar(clientProfileModel: clientProfileModel,isDefaultColor: false, dietitianDetailModel: dietitianDetailModel,),
+            child: DashboardAppbar(
+              clientProfileModel: clientProfileModel,
+              isDefaultColor: false,
+              dietitianDetailModel: dietitianDetailModel, activeData: activeData, completedData: [], canceledData: [],
+            ),
           ),
           SizedBox(height: 80,),
           SizedBox(
@@ -211,8 +217,9 @@ class DietPlanHero extends StatelessWidget {
                                     context,
                                     MaterialPageRoute(builder: (context) => DietPlanScreen(
                                       dieticianId: dietitianDetailModel.dietitianId,
-                                      profileId: clientProfileModel.profileId,
-                                      dietPlanId: dietPlanStrategyModel.id.toString(), dietPlanStrategyModel: dietPlanStrategyModel, )),
+                                      profileId: clientProfileModel.profileId, dietPlanStrategyModel: activeData.first,
+                                    
+                                    )),
                                   );
 
 
@@ -247,8 +254,7 @@ class DietPlanHero extends StatelessWidget {
                                     MaterialPageRoute(
                                       builder: (_) => FoodLogByDayScreen(
                                         clientProfileModel: clientProfileModel,
-                                        dietitianModel: dietitianDetailModel,
-                                        dietPlanStrategyModel: dietPlanStrategyModel,
+                                        dietitianModel: dietitianDetailModel, dietPlanStrategyModel: activeData.first,
                                       ),
                                     ),
                                   );

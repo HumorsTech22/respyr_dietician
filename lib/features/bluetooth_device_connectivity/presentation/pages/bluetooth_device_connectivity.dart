@@ -5,6 +5,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:respyr_dietitian/client-dashboard/data/model/client_profile_model.dart';
+import 'package:respyr_dietitian/client-dashboard/data/model/diet_plan_strategy_model.dart';
 import 'package:respyr_dietitian/common/dialogs/bluetooth_enable_dialog.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/repository/bluetooth_repository.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_connection_cubit/bluetooth_connection_cubit.dart';
@@ -14,9 +15,10 @@ import 'package:respyr_dietitian/routes/app_routes.dart';
 
 class BluetoothDeviceConnectivity extends StatelessWidget {
   final ClientProfileModel clientProfileModel;
+  final DietPlanStrategyModel dietPlanStrategyModel;
   const BluetoothDeviceConnectivity({
     super.key,
-    required this.clientProfileModel,
+    required this.clientProfileModel, required this.dietPlanStrategyModel,
   });
 
   @override
@@ -26,7 +28,7 @@ class BluetoothDeviceConnectivity extends StatelessWidget {
           (ctx) =>
               BluetoothConnectionCubit(ctx.read<BluetoothRepository>())..init(),
       child: _BluetoothDeviceConnectivityView(
-        clientProfileModel: clientProfileModel,
+        clientProfileModel: clientProfileModel, dietPlanStrategyModel: dietPlanStrategyModel,
       ),
     );
   }
@@ -34,7 +36,8 @@ class BluetoothDeviceConnectivity extends StatelessWidget {
 
 class _BluetoothDeviceConnectivityView extends StatefulWidget {
   final ClientProfileModel clientProfileModel;
-  const _BluetoothDeviceConnectivityView({required this.clientProfileModel});
+  final DietPlanStrategyModel dietPlanStrategyModel;
+  const _BluetoothDeviceConnectivityView({required this.clientProfileModel, required this.dietPlanStrategyModel});
 
   @override
   State<_BluetoothDeviceConnectivityView> createState() =>
@@ -47,6 +50,7 @@ class __BluetoothDeviceConnectivityViewState
 
   @override
   Widget build(BuildContext context) {
+
     return StreamBuilder<fbp.BluetoothAdapterState>(
       stream: fbp.FlutterBluePlus.adapterState,
       initialData: fbp.BluetoothAdapterState.unknown,
@@ -164,7 +168,10 @@ class __BluetoothDeviceConnectivityViewState
                                       ? () {
                                         context.push(
                                           AppRoutes.bluetoothBreatheTube,
-                                          extra: widget.clientProfileModel,
+                                          extra: {
+                                            "client" : widget.clientProfileModel,
+                                            "strategy" : widget.dietPlanStrategyModel,
+                                          },
                                         );
                                       }
                                       : null,

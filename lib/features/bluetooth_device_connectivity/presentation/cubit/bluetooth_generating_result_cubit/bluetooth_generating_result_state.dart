@@ -45,8 +45,7 @@ class BluetoothGeneratingResultState extends Equatable {
       hasInternet: hasInternet ?? this.hasInternet,
       isBluetoothConnected: isBluetoothConnected ?? this.isBluetoothConnected,
       isDialogShown: isDialogShown ?? this.isDialogShown,
-      navigateToResultScreen:
-          navigateToResultScreen ?? this.navigateToResultScreen,
+      navigateToResultScreen: navigateToResultScreen ?? this.navigateToResultScreen,
       acetone: acetone ?? this.acetone,
       ethanol: ethanol ?? this.ethanol,
       hydrogen: hydrogen ?? this.hydrogen,

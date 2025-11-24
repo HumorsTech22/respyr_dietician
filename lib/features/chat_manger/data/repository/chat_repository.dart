@@ -41,6 +41,8 @@ class ChatRepository {
     });
 
     final data = jsonDecode(response.body);
+
+    print(response.body);
     if (data['success']) {
       final inserted = data['data'];
       return ChatMessage(

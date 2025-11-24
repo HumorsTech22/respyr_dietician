@@ -83,7 +83,7 @@ class _DashboardState extends State<GiftingDashboard> {
           children: [
             DashboardAppbar(),
             SizedBox(height: 20,),
-            TestResultHistory(testDataRecord: dummyRecord,),
+          //  TestResultHistory(testDataRecord: dummyRecord, clientProfileModel: widget.clientProfileModel,),
 
           ],
         ),

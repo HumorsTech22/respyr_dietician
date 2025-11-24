@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:http/http.dart' as http;
+import 'package:respyr_dietitian/client-dashboard/data/model/diet_plan_strategy_model.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/repository/bluetooth_repository.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/repository/generating_result_repository.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_generating_result_cubit/bluetooth_generating_result_state.dart';
@@ -17,6 +18,7 @@ class BluetoothGeneratingResultCubit
   final int blowDuration;
   final List<double> blowValuesList;
   final ClientProfileModel clientProfileModel;
+  final DietPlanStrategyModel dietPlanStrategyModel;
   final GeneratingResultRepository repository;
   StreamSubscription<bool>? _connSub;
   StreamSubscription<String>? _dataSub;
@@ -36,6 +38,7 @@ class BluetoothGeneratingResultCubit
     required this.blowValuesList,
     required this.clientProfileModel,
     required this.repository,
+    required this.dietPlanStrategyModel,
   }) : super(const BluetoothGeneratingResultState()) {
     _init();
   }
@@ -71,6 +74,7 @@ class BluetoothGeneratingResultCubit
     required String goal,
     required String dietitianId,
     required String profileId,
+    required String dietPlanId,
   }) async {
     try {
       final result = await repository.fetchResults(
@@ -80,7 +84,7 @@ class BluetoothGeneratingResultCubit
         diabetic: diabetic,
         goal: goal,
         dietitianId: dietitianId,
-        profileId: profileId,
+        profileId: profileId, dietPlanId: dietPlanId,
       );
 
       emit(state.copyWith(dietitianResult: result, textError: null));
@@ -184,10 +188,11 @@ class BluetoothGeneratingResultCubit
           acetone: acetone,
           ethanol: ethanol,
           hydrogen: hydrogen,
-          diabetic: false,
+          diabetic: dietPlanStrategyModel.isDiabetic,
           goal: "fat_loss",
           dietitianId: clientProfileModel.dietitianId,
           profileId: clientProfileModel.profileId,
+          dietPlanId: dietPlanStrategyModel.id.toString(),
         );
 
         emit(state.copyWith(navigateToResultScreen: true));
@@ -224,6 +229,7 @@ class BluetoothGeneratingResultCubit
         'height': clientProfileModel.height.toString(),
         'blow_region': 'south_indian',
         'blow_raw_values': blowValues,
+        'diet_plan_id': dietPlanStrategyModel.id.toString(),
       };
 
       // ✅ Print all request parameters neatly

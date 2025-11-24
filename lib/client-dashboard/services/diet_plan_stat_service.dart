@@ -21,9 +21,16 @@ class DietPlanStatService {
       }),
     );
 
+
+
+
+
+
     if (resp.statusCode != 200) {
       throw Exception('HTTP ${resp.statusCode}: ${resp.body}');
     }
+
+    print("resp :" + resp.statusCode.toString());
 
     final Map<String, dynamic> jsonMap = jsonDecode(resp.body) as Map<String, dynamic>;
     return DietPlanStatApi.fromJson(jsonMap);

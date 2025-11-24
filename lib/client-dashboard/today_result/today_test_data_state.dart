@@ -1,32 +1,32 @@
 import 'package:equatable/equatable.dart';
 
-import '../../features/test_history/test_history_by_date/data/models/test_data_record.dart';
+import '../../features/bluetooth_device_connectivity/data/model/generating_result_model.dart';
 
 enum TestDataStatus { initial, loading, success, empty, failure }
 
 class TestDataState extends Equatable {
   final TestDataStatus status;
-  final List<TestDataRecord> records;
+  final GeneratingResultModel? result;
   final String? errorMessage;
 
   const TestDataState({
     this.status = TestDataStatus.initial,
-    this.records = const [],
+    this.result,
     this.errorMessage,
   });
 
   TestDataState copyWith({
     TestDataStatus? status,
-    List<TestDataRecord>? records,
+    GeneratingResultModel? result,
     String? errorMessage,
   }) {
     return TestDataState(
       status: status ?? this.status,
-      records: records ?? this.records,
+      result: result ?? this.result,
       errorMessage: errorMessage,
     );
   }
 
   @override
-  List<Object?> get props => [status, records, errorMessage];
+  List<Object?> get props => [status, result, errorMessage];
 }
