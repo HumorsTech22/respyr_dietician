@@ -3,25 +3,41 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+
 import 'package:respyr_dietitian/client-dashboard/data/model/client_profile_model.dart';
 import 'package:respyr_dietitian/client-dashboard/data/model/diet_plan_strategy_model.dart';
+
 import 'package:respyr_dietitian/features/menu/presentation/pages/profile.dart';
+
 import '../../../../client-dashboard/data/bloc/client_bloc.dart';
 import '../../../../client-dashboard/data/bloc/client_state.dart';
 import '../../../../client-dashboard/extras/logout.dart';
 import '../../../../client-dashboard/presentation/screens/client_overall_plan_screen.dart';
+import '../../../../common/dialogs/floating_message.dart';
 import '../../../../routes/app_routes.dart';
+
+import '../../../dashboard/bloc/dashboard_bloc.dart';
+import '../../../dashboard/bloc/dashboard_event.dart';
+import '../../../dashboard/bloc/dashboard_state.dart';
 import '../../../profile_info/data/model/dietician_detail_model.dart';
 import '../../../webview/presentation/screens/webview_screen.dart';
 import '../../../webview/utils/urls.dart';
 
 class Settings extends StatefulWidget {
   final ClientProfileModel clientProfileModel;
-  final DietitianDetailModel dietitianDetailModel;
+  final DietitianDetailModel? dietitianDetailModel;
   final List<DietPlanStrategyModel> activeData;
   final List<DietPlanStrategyModel> completedData;
   final List<DietPlanStrategyModel> canceledData;
-  const Settings({super.key, required this.clientProfileModel, required this.dietitianDetailModel, required this.activeData, required this.completedData, required this.canceledData});
+
+  const Settings({
+    super.key,
+    required this.clientProfileModel,
+    this.dietitianDetailModel,
+    required this.activeData,
+    required this.completedData,
+    required this.canceledData,
+  });
 
   @override
   State<Settings> createState() => _SettingsState();
@@ -35,6 +51,16 @@ class _SettingsState extends State<Settings> {
   void initState() {
     super.initState();
     value = widget.clientProfileModel.isNotificationEnabled == 1;
+
+    // 🔥 Fetch dietitian link status once when Settings opens
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final dashboardBloc = context.read<DashboardBloc>();
+      dashboardBloc.add(
+        CheckDietitianLinkStatus(
+          widget.clientProfileModel.profileId.toString(),
+        ),
+      );
+    });
   }
 
   @override
@@ -113,6 +139,8 @@ class _SettingsState extends State<Settings> {
     );
   }
 
+  // --------------------- SECTIONS ---------------------
+
   Widget _buildSectionTitle(String title) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 17),
@@ -149,7 +177,7 @@ class _SettingsState extends State<Settings> {
               const SizedBox(height: 26),
               _buildInfoRow("Email", widget.clientProfileModel.email),
               const SizedBox(height: 26),
-              _buildConsultantInfo(),
+              _buildConsultantInfo(context),
             ],
           ),
         ),
@@ -214,7 +242,8 @@ class _SettingsState extends State<Settings> {
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
                       value: loadingProgress.expectedTotalBytes != null
-                          ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                          ? loadingProgress.cumulativeBytesLoaded /
+                          loadingProgress.expectedTotalBytes!
                           : null,
                     ),
                   ),
@@ -262,7 +291,23 @@ class _SettingsState extends State<Settings> {
     );
   }
 
-  Widget _buildConsultantInfo() {
+  // ----------------- CONSULTANT INFO ------------------
+
+  Widget _buildConsultantInfo(BuildContext context) {
+    // 1️⃣ Get dashboard bloc state
+    final dashState = context.watch<DashboardBloc>().state;
+
+    String? linkStatus;
+    String? dietitianName;
+    if (dashState is DashboardReady) {
+      linkStatus = dashState.dietitianLinkStatus;
+      dietitianName = dashState.dietitianLinkData?["dietitian_name"];
+    }
+
+    // 2️⃣ Is dietitian actually linked to client?
+    final hasDietitian = widget.dietitianDetailModel != null &&
+        widget.dietitianDetailModel!.name != "NA";
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -277,21 +322,37 @@ class _SettingsState extends State<Settings> {
           ),
         ),
         const SizedBox(height: 10),
-        Visibility(
-          visible: widget.dietitianDetailModel.name != "NA",
-          replacement: Text(
-            "Not Linked",
-            style: GoogleFonts.poppins(
-              color: Colors.red,
-              fontSize: 12,
-              fontWeight: FontWeight.w400,
-              letterSpacing: -0.24,
+
+
+        if (!hasDietitian) ...[
+
+          if (linkStatus == "PENDING" || linkStatus == "REJECTED") ...[
+
+            RichText(
+                text: TextSpan(
+                  text:dietitianName
+                )
             ),
-          ),
-          child: Row(
+
+          ] else ...[
+            Text(
+              "Not Linked",
+              style: GoogleFonts.poppins(
+                color: Colors.red,
+                fontSize: 12,
+                fontWeight: FontWeight.w400,
+                letterSpacing: -0.24,
+              ),
+            ),
+          ]
+        ]
+
+
+        else ...[
+          Row(
             children: [
               Text(
-                widget.dietitianDetailModel.name,
+                widget.dietitianDetailModel!.name,
                 style: GoogleFonts.poppins(
                   color: const Color(0xFF535359),
                   fontSize: 12,
@@ -315,13 +376,15 @@ class _SettingsState extends State<Settings> {
                   fontWeight: FontWeight.w400,
                   letterSpacing: -0.24,
                 ),
-              )
+              ),
             ],
           ),
-        )
+        ],
       ],
     );
   }
+
+  // ----------------- GENERAL SECTION ------------------
 
   Widget _buildGeneralSection() {
     return Padding(
@@ -342,7 +405,6 @@ class _SettingsState extends State<Settings> {
               const SizedBox(height: 10),
               _buildProfileSettings(),
               const SizedBox(height: 26),
-
               _buildYourPlans(),
               const SizedBox(height: 26),
               _buildNotifications(),
@@ -386,25 +448,26 @@ class _SettingsState extends State<Settings> {
   Widget _buildYourPlans() {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-
-      onTap: (){
-        if( widget.activeData.isNotEmpty ){
+      onTap: () {
+        if (widget.activeData.isNotEmpty) {
+          if (widget.dietitianDetailModel == null) {
+            FloatingMessage.show(context, message: "Dietitian not linked");
+            return;
+          }
 
           Navigator.push(
             context,
             MaterialPageRoute(
               builder: (_) => ClientOverallPlanScreen(
                 activeData: widget.activeData.first,
-                completedData: [], canceledData: [],
+                completedData: [],
+                canceledData: [],
                 clientProfileModel: widget.clientProfileModel,
-                dietitianDetailModel: widget.dietitianDetailModel,
-
-
+                dietitianDetailModel: widget.dietitianDetailModel!,
               ),
             ),
           );
         }
-
       },
       child: Column(
         mainAxisSize: MainAxisSize.max,
@@ -444,7 +507,9 @@ class _SettingsState extends State<Settings> {
               Text(
                 widget.activeData.isNotEmpty ? "Active" : "Not active",
                 style: GoogleFonts.poppins(
-                  color:  widget.activeData.isNotEmpty ? Color(0xFF3EAF58) : Colors.red,
+                  color: widget.activeData.isNotEmpty
+                      ? const Color(0xFF3EAF58)
+                      : Colors.red,
                   fontSize: 12,
                   fontWeight: FontWeight.w400,
                   letterSpacing: -0.24,
@@ -460,14 +525,14 @@ class _SettingsState extends State<Settings> {
   Widget _buildNotifications() {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: (){
+      onTap: () {
         context.push(
           AppRoutes.notificationScreen,
           extra: widget.clientProfileModel,
         );
       },
       child: Visibility(
-        visible: false,
+        visible: true, // currently hidden as per your earlier code
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           mainAxisSize: MainAxisSize.max,
@@ -504,6 +569,8 @@ class _SettingsState extends State<Settings> {
     );
   }
 
+  // ----------------- HELP CENTER ------------------
+
   Widget _buildHelpCenterSection() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -522,25 +589,25 @@ class _SettingsState extends State<Settings> {
             children: [
               const SizedBox(height: 10),
               GestureDetector(
-                  onTap: (){
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Coming soon'),
-                      ),
-                    );
-                  },
-                  child: _buildMenuItem("FAQ")
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Coming soon'),
+                    ),
+                  );
+                },
+                child: _buildMenuItem("FAQ"),
               ),
               const SizedBox(height: 26),
               GestureDetector(
-                  onTap: (){
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Coming soon'),
-                      ),
-                    );
-                  },
-                  child: _buildMenuItem("Report An Issue")
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Coming soon'),
+                    ),
+                  );
+                },
+                child: _buildMenuItem("Report An Issue"),
               ),
             ],
           ),
@@ -548,6 +615,8 @@ class _SettingsState extends State<Settings> {
       ),
     );
   }
+
+  // ----------------- ABOUT SECTION ------------------
 
   Widget _buildAboutSection() {
     return Padding(
@@ -567,8 +636,8 @@ class _SettingsState extends State<Settings> {
             children: [
               const SizedBox(height: 10),
               GestureDetector(
-                behavior: HitTestBehavior.opaque,   // 👈 IMPORTANT
-                onTap: (){
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -584,7 +653,7 @@ class _SettingsState extends State<Settings> {
               ),
               const SizedBox(height: 26),
               GestureDetector(
-                behavior: HitTestBehavior.opaque,   // 👈 IMPORTANT
+                behavior: HitTestBehavior.opaque,
                 onTap: () {
                   Navigator.push(
                     context,
@@ -598,8 +667,7 @@ class _SettingsState extends State<Settings> {
                   width: double.infinity,
                   child: _buildMenuItem("Terms of Service"),
                 ),
-              )
-
+              ),
             ],
           ),
         ),
@@ -619,6 +687,8 @@ class _SettingsState extends State<Settings> {
       ),
     );
   }
+
+  // ----------------- LOGOUT & VERSION ------------------
 
   Widget _buildLogoutButton() {
     return Padding(

@@ -8,7 +8,6 @@ import '../../../core/url-manager/url_manager.dart';
 class DietitianRepository {
 
 
-
   Future<DietitianModel> fetchDietitian() async {
     final response = await http.get(Uri.parse(UrlManager().urlGetDietitianDetails));
 

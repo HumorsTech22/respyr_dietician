@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -12,7 +11,7 @@ Widget notificationItem(
     ){
   return Container(
     decoration: ShapeDecoration(
-      color: isSeen ?  Color(0xFFEAF3FF) : Colors.white,
+      color: !isSeen ?  Color(0xFFEAF3FF) : Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
       ),
@@ -26,7 +25,7 @@ Widget notificationItem(
           width: 4,
           height: 4,
           decoration: ShapeDecoration(
-            color: isSeen ?  Color(0xFF308BF9) : Colors.transparent,
+            color: !isSeen ?  Color(0xFF308BF9) : Colors.transparent,
             shape: OvalBorder(),
           ),
         ),
@@ -54,6 +53,7 @@ Widget notificationItem(
             )
           ],
         )),
+        SizedBox(width: 20,),
         Text(timeAgo,
           style: GoogleFonts.poppins(
             color: const Color(0xFF535359),

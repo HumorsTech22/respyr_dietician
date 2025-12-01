@@ -1,6 +1,5 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:respyr_dietitian/features/notification_manager/screens/notification_screen.dart';
 
 import '../../../../../client-dashboard/data/model/client_profile_model.dart';
 import '../../../../test_history/test_history_by_date/data/models/test_data_record.dart';
@@ -43,15 +42,15 @@ class _DashboardState extends State<GiftingDashboard> {
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.white,
         actions: [
-          IconButton(onPressed: (){
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => NotificationScreen(clientProfileModel: widget.clientProfileModel,
-                ),
-              ),
-            );
-          }, icon: Icon(CupertinoIcons.bell)),
+          // IconButton(onPressed: (){
+          //   Navigator.push(
+          //     context,
+          //     MaterialPageRoute(
+          //       builder: (_) => NotificationScreen(clientProfileModel: widget.clientProfileModel,
+          //       ),
+          //     ),
+          //   );
+          // }, icon: Icon(CupertinoIcons.bell)),
           SizedBox(width: 10,),
           InkWell(
             onTap: (){

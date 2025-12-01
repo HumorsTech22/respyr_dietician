@@ -3,16 +3,14 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-
-import '../../../../client-dashboard/presentation/screens/client_dashboard.dart';
 import '../../../../client_login_manager/client_login_manager.dart';
+import '../../../../common/dialogs/floating_message.dart';
+import '../../../../common/widgets/terms_policy_links.dart';
 import '../../../../routes/app_routes.dart';
 import '../../../profile_info/presentation/widgets/profile_bottom_navigation.dart';
 import '../../data/services/check_profile_client.dart';
-import '../../data/services/download_network_image_service.dart';
 import '../../data/services/send_otp_email.dart';
 import '../widgets/otp_view.dart';
 
@@ -111,13 +109,7 @@ class _EmailOtpState extends State<EmailOtp> {
         // prefer API OTP if valid, otherwise fallback to our generated OTP
         _receivedOTP = parsedReturned ?? int.tryParse(generatedOtp);
 
-        Fluttertoast.showToast(
-          msg: "OTP sent successfully!",
-          toastLength: Toast.LENGTH_SHORT,
-          gravity: ToastGravity.TOP,
-          backgroundColor: Colors.green,
-          textColor: Colors.white,
-        );
+        FloatingMessage.show(context, message: "OTP sent to $email", type: FloatingMessageType.success);
 
         // start countdown
         _startCountdown(_initialCountdown);
@@ -126,23 +118,13 @@ class _EmailOtpState extends State<EmailOtp> {
             ? result['message'].toString()
             : "Failed to send OTP";
         setState(() => errorText = message);
-        Fluttertoast.showToast(
-          msg: message,
-          toastLength: Toast.LENGTH_LONG,
-          gravity: ToastGravity.BOTTOM,
-          backgroundColor: Colors.red,
-          textColor: Colors.white,
-        );
+
+        FloatingMessage.show(context, message: message, type: FloatingMessageType.error);
       }
     } catch (e) {
       setState(() => errorText = "Error sending OTP: ${e.toString()}");
-      Fluttertoast.showToast(
-        msg: "Error: ${e.toString()}",
-        toastLength: Toast.LENGTH_LONG,
-        gravity: ToastGravity.BOTTOM,
-        backgroundColor: Colors.red,
-        textColor: Colors.white,
-      );
+
+      FloatingMessage.show(context, message: "Error: $e", type: FloatingMessageType.error);
     } finally {
       if (mounted) setState(() => _isSending = false);
     }
@@ -211,14 +193,7 @@ class _EmailOtpState extends State<EmailOtp> {
 
     try {
 
-      Fluttertoast.showToast(
-        msg: "OTP verified successfully!",
-        toastLength: Toast.LENGTH_SHORT,
-        gravity: ToastGravity.TOP,
-        backgroundColor: Colors.green,
-        textColor: Colors.white,
-      );
-
+      FloatingMessage.show(context, message: 'OTP verified successfully!', type: FloatingMessageType.success);
 
       final profile = await checkClientProfile(widget.enteredEmail, "");
       setState(() => isLoading = false);
@@ -230,7 +205,7 @@ class _EmailOtpState extends State<EmailOtp> {
             extra: profile,
           );
         } else {
-          _showSnackBar('Failed to save client profile.');
+          FloatingMessage.show(context, message: 'Failed to save client profile.');
         }
       }else {
 
@@ -245,35 +220,16 @@ class _EmailOtpState extends State<EmailOtp> {
           );
         }
 
-
       }
-
-
-
-
-
-
-
-
 
     } catch (e) {
       setState(() => isLoading = false);
-      Fluttertoast.showToast(
-        msg: "Error: ${e.toString()}",
-        toastLength: Toast.LENGTH_LONG,
-        gravity: ToastGravity.BOTTOM,
-        backgroundColor: Colors.red,
-        textColor: Colors.white,
-      );
+      FloatingMessage.show(context, message: "Error: ${e.toString()}", type: FloatingMessageType.error);
     }
   }
 
 
-  void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
-  }
+
 
   bool _isValidEmail(String email) {
     final emailRegex = RegExp(r"^[\w\.\-]+@([\w\-]+\.)+[a-zA-Z]{2,}$");
@@ -332,21 +288,22 @@ class _EmailOtpState extends State<EmailOtp> {
                   ),
                 ),
               ),
-              const SizedBox(height: 25),
+              const SizedBox(height: 10),
               Row(
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: [
                   OtpTextField(
                     numberOfFields: 4,
                     alignment: Alignment.centerLeft,
-                    borderColor:
-                    error ? Colors.red : const Color(0xFFF0F0F0),
-                    focusedBorderColor:
-                    error ? Colors.red : const Color(0xFFF0F0F0),
+                    borderColor: error ? Colors.red : const Color(0xFFF0F0F0),
+                    focusedBorderColor: error ? Colors.red : const Color(0xFFF0F0F0),
                     borderWidth: 2,
                     borderRadius: BorderRadius.circular(10),
                     fillColor: const Color(0xFFF0F0F0),
-                    filled: true,
+                    filled: false,
+                    textStyle: GoogleFonts.poppins(
+                      color: error ? Colors.red :  const Color(0xFF535359)
+                    ),
                     fieldHeight: 60,
                     fieldWidth: 60,
                     showFieldAsBox: true,
@@ -367,7 +324,7 @@ class _EmailOtpState extends State<EmailOtp> {
                 const SizedBox(height: 5),
                 Text(errorText!, style: errorStyle),
               ],
-              const SizedBox(height: 30),
+              const SizedBox(height: 20),
               RichText(
                 text: TextSpan(
                   children: [
@@ -437,28 +394,24 @@ class _EmailOtpState extends State<EmailOtp> {
                   ),
                 ],
               ),
-              const Spacer(),
-              Center(
-                child: RichText(
-                  textAlign: TextAlign.center,
-                  text: TextSpan(
-                    children: [
-                      TextSpan(
-                          text: "By continuing, you agree to our ",
-                          style: greyTextStyle),
-                      TextSpan(text: "Terms and Conditions", style: linkTextStyle),
-                    ],
-                  ),
-                ),
-              ),
             ],
           ),
         ),
       ),
+
       bottomNavigationBar: SafeArea(
-        child: ProfileBottomNavigation(
-          onBack: () => Navigator.pop(context),
-          onNext: isLoading ? null : validateOTP,
+        child: IntrinsicHeight(
+          child: Column(
+            spacing: 10,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TermsPolicyWidgets().termsPolicyFooter(),
+              ProfileBottomNavigation(
+                onBack: () => Navigator.pop(context),
+                onNext: isLoading ? null : validateOTP,
+              ),
+            ],
+          ),
         ),
       ),
     );

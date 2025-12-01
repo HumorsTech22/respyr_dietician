@@ -12,6 +12,7 @@ import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/p
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_generating_result_cubit/bluetooth_generating_result_cubit.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/pages/bluetooth_device_connectivity.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/pages/bluetooth_generating_result_screen.dart';
+import 'package:respyr_dietitian/features/dashboard/presentation/screens/dashboard.dart';
 import 'package:respyr_dietitian/features/dietitian_result_screen/presentation/pages/overall_metabolism_score.dart';
 import 'package:respyr_dietitian/features/profile_info/presentation/pages/age_screen.dart';
 import 'package:respyr_dietitian/features/profile_info/presentation/pages/dietician_screen.dart';
@@ -36,6 +37,8 @@ import '../features/client_login/presentation/screens/sign_in_options.dart';
 import '../features/client_login/presentation/screens/sign_in_with_email.dart';
 import '../features/dietitian_result_screen/presentation/cubit/dietitian_result_cubit.dart';
 import '../features/dietitian_result_screen/presentation/pages/dietitian_result_screen.dart';
+import '../features/notification/data/bloc/notification_bloc.dart' show NotificationBloc;
+import '../features/notification/data/repository/notification_repository.dart';
 import '../features/notification/presentation/screens/notification_screen.dart';
 import '../features/profile_info/presentation/cubit/profile_cubit.dart';
 import '../features/profile_info/presentation/widgets/dietician_detail_screen.dart';
@@ -57,7 +60,7 @@ final GoRouter appRouter = GoRouter(
         if (extra == null || extra is! ClientProfileModel) {
           return _errorScreen('Missing or invalid client profile data.');
         }
-        return ClientDashboard(clientProfileModel: extra);
+        return Dashboard(clientProfileModel: extra);
       },
     ),
 
@@ -405,9 +408,19 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.notificationScreen,
       builder: (context, state) {
         final client = state.extra as ClientProfileModel;
-        return NotificationScreen(clientProfileModel: client);
+
+        return BlocProvider<NotificationBloc>(
+          create: (_) => NotificationBloc(
+            repository: NotificationRepository(
+            ),
+          ),
+          child: NotificationScreen(
+            clientProfileModel: client,
+          ),
+        );
       },
     ),
+
 
     GoRoute(
       path:  AppRoutes.completeTestHistory,

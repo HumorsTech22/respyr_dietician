@@ -28,6 +28,9 @@ class DietPlanService {
 
 
 
+    print(res.body);
+    print(dietitianId);
+    print(clientId);
 
 
     if (res.statusCode >= 200 && res.statusCode < 300) {

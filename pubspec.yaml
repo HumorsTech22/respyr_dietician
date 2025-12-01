@@ -80,6 +80,7 @@ dependencies:
   webview_flutter: ^4.7.0
   flutter_launcher_icons: ^0.13.1
   cupertino_battery_indicator: ^1.2.1
+  shimmer: ^3.0.0
 
 
 
