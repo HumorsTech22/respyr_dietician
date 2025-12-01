@@ -14,9 +14,6 @@ class DietitianRepository {
     );
 
 
-    print(response.body);
-    print(identifier);
-
     if (response.statusCode == 200) {
       final jsonResponse = json.decode(response.body);
       if (jsonResponse['success'] == true) {

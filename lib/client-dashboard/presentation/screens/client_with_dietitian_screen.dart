@@ -58,11 +58,7 @@ class _ClientWithDietitianScreenState extends State<ClientWithDietitianScreen> {
       String profileId,
       String dietPlanId,
       ) async {
-    final body = jsonEncode({
-      'login_id': dietitianId,
-      'profile_id': profileId,
-      'diet_plan_id': dietPlanId,
-    });
+    final body = jsonEncode({'login_id': dietitianId, 'profile_id': profileId, 'diet_plan_id': dietPlanId,});
 
     final res = await http.post(
       Uri.parse("https://humorstech.com/dietitian/api/app/get_diet_plan.php"),
@@ -165,10 +161,7 @@ class _ClientWithDietitianScreenState extends State<ClientWithDietitianScreen> {
             DietPlanRepository(DietPlanService()),
           )
             ..add(
-              FetchPlans(
-                dietitianId: widget.clientProfileModel.dietitianId,
-                clientId: widget.clientProfileModel.profileId,
-              ),
+              FetchPlans(dietitianId: widget.clientProfileModel.dietitianId, clientId: widget.clientProfileModel.profileId,),
             ),
         ),
         BlocProvider<TodayTestDataBloc>(
@@ -215,7 +208,7 @@ class _ClientWithDietitianScreenState extends State<ClientWithDietitianScreen> {
       ClientProfileModel clientProfileModel,
       ) {
     // 🔹 Local refresh handler (has access to Bloc context)
-    Future<void> _onRefresh() async {
+    Future<void> onRefresh() async {
       context.read<DietPlanBloc>().add(
         FetchPlans(
           dietitianId: widget.clientProfileModel.dietitianId,
@@ -269,7 +262,7 @@ class _ClientWithDietitianScreenState extends State<ClientWithDietitianScreen> {
             ),
           ),
           body: RefreshIndicator(
-            onRefresh: _onRefresh,
+            onRefresh: onRefresh,
             child: SafeArea(
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
@@ -286,7 +279,7 @@ class _ClientWithDietitianScreenState extends State<ClientWithDietitianScreen> {
                         dietitianDetailModel: widget.dietitianModel,
                       ),
                       const SizedBox(height: 30),
-                      BlocBuilder<TodayTestDataBloc, TestDataState>(
+                     BlocBuilder<TodayTestDataBloc, TestDataState>(
                         builder: (context, testState) {
                           final hasResult = testState.status == TestDataStatus.success &&
                               testState.result != null;
@@ -342,7 +335,7 @@ class _ClientWithDietitianScreenState extends State<ClientWithDietitianScreen> {
           ),
         ),
         body: RefreshIndicator(
-          onRefresh: _onRefresh,
+          onRefresh: onRefresh,
           child: SafeArea(
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
@@ -409,7 +402,6 @@ class _ClientWithDietitianScreenState extends State<ClientWithDietitianScreen> {
                                 );
                               },
                             ),
-
                             const SizedBox(height: 50),
                             DietPlanCard(
                               activeData: categorized.active,
@@ -448,7 +440,7 @@ class _ClientWithDietitianScreenState extends State<ClientWithDietitianScreen> {
                         testState.result != null;
 
                 // 👉 Show swipe button only when there is NO result
-                if (!hasResult) {
+                if (!hasResult ) {
                   return Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [

@@ -2,19 +2,12 @@ import 'package:dash_chat_2/dash_chat_2.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:respyr_dietitian/client-dashboard/data/model/client_profile_model.dart';
 import 'package:respyr_dietitian/features/profile_info/data/model/dietician_detail_model.dart';
-
 import '../../../features/chat_manger/data/bloc/chat_bloc.dart';
 import '../../../features/chat_manger/data/repository/chat_repository.dart';
 import '../../../features/chat_manger/presentation/screen/chat_screen.dart';
-import '../../data/model/dietitian_model.dart';
-
-
-
-
 
 class ConsultantInfoCard extends StatefulWidget {
   final DietitianDetailModel dietitianModel;
@@ -25,20 +18,14 @@ class ConsultantInfoCard extends StatefulWidget {
   State<ConsultantInfoCard> createState() => _ConsultantInfoCardState();
 }
 
-class _ConsultantInfoCardState extends State<ConsultantInfoCard>
-    with TickerProviderStateMixin {
-  bool isExpanded = false;
+class _ConsultantInfoCardState extends State<ConsultantInfoCard> with TickerProviderStateMixin {
+  bool isExpanded = true;
 
 
 
 
   @override
   Widget build(BuildContext context) {
-
-    if(widget.clientProfileModel.dietitianId=="NA"){
-      return SizedBox.shrink();
-    }
-
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -106,7 +93,6 @@ class _ConsultantInfoCardState extends State<ConsultantInfoCard>
                           fontWeight: FontWeight.w600,
                           letterSpacing: -0.80,
                           height: 1.2,
-
                         ),
                       ),
                       SizedBox(height: 8,),
@@ -203,71 +189,58 @@ class _ConsultantInfoCardState extends State<ConsultantInfoCard>
               ],
             ),
           ),
-          SizedBox(height: 0,),
-          SizedBox(
-            height: 61,
-            child: ElevatedButton(
-                onPressed: (){
-
-                  // Navigator.pushReplacement(
-                  //   context,
-                  //   MaterialPageRoute(
-                  //     builder: (_) => ChatScreen(
-                  //       dietitianModel: widget.dietitianModel!, clientProfileModel: widget.clientProfileModel,
-                  //     ),
-                  //   ),
-                  // );
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => BlocProvider(
-                        create: (context) => ChatBloc(
-                          repository: ChatRepository(
-                            sender: ChatUser(
-                              id: widget.clientProfileModel.profileId,
-                              firstName: widget.clientProfileModel.profileName,
-                            ),
-                            receiver: ChatUser(
-                              id: widget.dietitianModel.dietitianId,
-                              firstName: widget.dietitianModel.name,
-                            ),
+          SizedBox(height: 42,),
+          ElevatedButton(
+              onPressed: (){
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => BlocProvider(
+                      create: (context) => ChatBloc(
+                        repository: ChatRepository(
+                          sender: ChatUser(
+                            id: widget.clientProfileModel.profileId,
+                            firstName: widget.clientProfileModel.profileName,
+                          ),
+                          receiver: ChatUser(
+                            id: widget.dietitianModel.dietitianId,
+                            firstName: widget.dietitianModel.name,
                           ),
                         ),
-                        child: ChatScreen(
-                          dietitianModel: widget.dietitianModel,
-                          clientProfileModel: widget.clientProfileModel,
-                        ),
+                      ),
+                      child: ChatScreen(
+                        dietitianModel: widget.dietitianModel,
+                        clientProfileModel: widget.clientProfileModel,
                       ),
                     ),
-                  );
-
-                },
-                style: ElevatedButton.styleFrom(
-                  elevation: 0,
-                  shadowColor: Colors.transparent,
-                  surfaceTintColor: Colors.transparent,
-                  backgroundColor: const Color(0xFF308BF9),
-                  padding: EdgeInsets.symmetric(vertical: 20, horizontal: 20),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-
                   ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                elevation: 0,
+                shadowColor: Colors.transparent,
+                backgroundColor: const Color(0xFF308BF9),
+                padding: EdgeInsets.symmetric(vertical: 12, horizontal: 20),   // removes inner padding
+                minimumSize: Size(0, 0),    // removes minimum size
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap, // removes extra height
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text("Send message",
-                      style: GoogleFonts.poppins(
-                        color: Colors.white,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        height: 1.10,
-                        letterSpacing: -0.30,
-                      ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text("Send message",
+                    style: GoogleFonts.poppins(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      height: 1.10,
+                      letterSpacing: -0.30,
                     ),
-                    Icon(Icons.keyboard_arrow_right_outlined, color: Colors.white,)
-                  ],
-                )
-            ),
+                  ),
+                  Icon(Icons.keyboard_arrow_right_outlined,size: 24, color: Colors.white,)
+                ],
+              )
           )
         ],
       ),

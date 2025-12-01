@@ -4,8 +4,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:respyr_dietitian/features/client_login/presentation/screens/sign_in_with_email.dart';
 import '../../../../client_login_manager/client_login_manager.dart';
+import '../../../../common/dialogs/floating_message.dart';
 import '../../../../routes/app_routes.dart';
 import '../../../profile_info/presentation/cubit/profile_cubit.dart';
 import '../../data/services/check_profile_client.dart';
@@ -24,7 +24,6 @@ class SignInOptions extends StatefulWidget {
 class _SignInOptionsState extends State<SignInOptions> {
   bool _isLoading = false;
 
-  static const _horizontalPadding = EdgeInsets.symmetric(horizontal: 10, vertical: 25);
   static const _googleButtonColor = Color(0xFF252525);
   static const _emailBorderColor = Color(0xFFC7C6CE);
   static const _titleColor = Color(0xFF252525);
@@ -36,9 +35,8 @@ class _SignInOptionsState extends State<SignInOptions> {
   }
 
   Future<void> _handleEmailSignIn() async {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const SignInWithEmail()),
+    context.push(
+      AppRoutes.signInWithEmail,
     );
   }
 
@@ -51,13 +49,12 @@ class _SignInOptionsState extends State<SignInOptions> {
       if (!mounted) return;
 
       if (user == null) {
-        _showSnackBar('Google sign-in was cancelled.');
+        FloatingMessage.show(context, message: "Sign in canceled", type: FloatingMessageType.error);
         return;
       }
 
       final clientProfile = await checkClientProfile(user.email, "");
       if (!mounted) return;
-
       if (clientProfile != null) {
         bool isSaved = await ClientLoginManager().saveClientProfile(clientProfile);
         if (isSaved && mounted) {
@@ -66,10 +63,9 @@ class _SignInOptionsState extends State<SignInOptions> {
             extra: clientProfile,
           );
         } else {
-          _showSnackBar('Failed to save client profile.');
+          FloatingMessage.show(context, message: "Failed to save client profile.", type: FloatingMessageType.error);
         }
       } else {
-
         String localPath = await downloadAndCacheImage(user.photoUrl??"assets/images/icons/default2.png");
         if(mounted){
           context.push(
@@ -83,17 +79,13 @@ class _SignInOptionsState extends State<SignInOptions> {
         }
       }
     } catch (e) {
-      _showSnackBar('Google sign-in failed. Please try again.');
+      FloatingMessage.show(context, message: "Google sign-in failed. Please try again.", type: FloatingMessageType.error);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
-  }
+
 
   Widget _buildCustomButton({
     required String text,
@@ -199,10 +191,7 @@ class _SignInOptionsState extends State<SignInOptions> {
                 leading: Image.asset("assets/images/icons/ic_google.png", width: 24),
               ),
 
-              if (_isLoading) ...[
-                const SizedBox(height: 24),
-                const Center(child: CircularProgressIndicator()),
-              ],
+
             ],
           ),
         ),

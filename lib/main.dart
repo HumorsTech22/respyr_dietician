@@ -30,6 +30,11 @@ import 'package:respyr_dietitian/routes/app_router.dart';
 import 'features/bluetooth_device_connectivity/presentation/widgets/global_ble_popup_manager.dart';
 import 'features/profile_info/presentation/cubit/create_profile_cubit.dart';
 
+// ✅ ADD THIS IMPORT (update path if yours differs)
+import 'package:respyr_dietitian/features/dashboard/bloc/dashboard_bloc.dart';
+// If you have dashboard_event.dart and want init event, keep it.
+// import 'package:respyr_dietitian/features/dashboard/bloc/dashboard_event.dart';
+
 // 🔹 Global navigator key for showing dialogs from anywhere
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -49,18 +54,12 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
 
-  // 🔹 FCM background handler
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-
-  // 🔹 Request FCM permission (iOS / web)
   await FirebaseMessaging.instance.requestPermission();
-
-  // 🔹 Android 13+ notification permission
   await Permission.notification.request();
 
-  // 🔹 Local notifications setup
   const AndroidInitializationSettings androidInit =
-  AndroidInitializationSettings('@mipmap/ic_launcher'); // safe default
+  AndroidInitializationSettings('@mipmap/ic_launcher');
 
   const InitializationSettings initSettings = InitializationSettings(
     android: androidInit,
@@ -89,18 +88,15 @@ Future<void> main() async {
     },
   );
 
-  // 🔹 Foreground messages → show local notification (status bar)
   FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
     final notification = message.notification;
     final android = message.notification?.android;
 
     if (notification != null && android != null) {
-      // --- Pick icons based on title ---
       String smallIcon;
       AndroidBitmap<Object>? largeIcon;
 
       if (notification.title == "New Message") {
-        // TODO: ensure ic_notif_message exists in res/drawable if you use it
         smallIcon = '@mipmap/launcher_icon';
         largeIcon = const DrawableResourceAndroidBitmap('launcher_icon');
       } else {
@@ -114,8 +110,8 @@ Future<void> main() async {
         channelDescription: 'Default notification channel',
         importance: Importance.max,
         priority: Priority.high,
-        icon: smallIcon, // small status icon
-        largeIcon: largeIcon, // large icon in expanded view
+        icon: smallIcon,
+        largeIcon: largeIcon,
       );
 
       final platformDetails = NotificationDetails(android: androidDetails);
@@ -130,7 +126,6 @@ Future<void> main() async {
     }
   });
 
-  // 🔹 App opened from system tray notification
   FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
     final data = message.data;
 
@@ -143,14 +138,12 @@ Future<void> main() async {
     }
   });
 
-  // 🔹 Request Bluetooth/location permissions
   await [
     Permission.bluetoothScan,
     Permission.bluetoothConnect,
     Permission.locationWhenInUse,
   ].request();
 
-  // 🔹 Core dependencies
   final calculateBMI = CalculateBMI();
   final calculateBMR = CalculateBMR();
   final dieticianRepository = DietitianRepository();
@@ -158,10 +151,8 @@ Future<void> main() async {
   final usbRepository = UsbRepositoryImpl(usbService);
   final dietitianDashboardRepository = DietitianDashboardRepository();
 
-  // ✅ ONE shared instance of UuidBluetoothManager for whole app
   final uuidBleManager = UuidBluetoothManager();
 
-  // ✅ Global listener for BLE data → popup on any screen
   GlobalBlePopupManager.init(
     manager: uuidBleManager,
     navigatorKey: rootNavigatorKey,
@@ -176,7 +167,6 @@ Future<void> main() async {
         RepositoryProvider<GeneratingResultRepository>(
           create: (_) => GeneratingResultRepository(),
         ),
-        // you can add usbRepository etc here if needed
       ],
       child: MultiBlocProvider(
         providers: [
@@ -190,9 +180,17 @@ Future<void> main() async {
           ),
           BlocProvider(create: (_) => AudioCubit()),
           BlocProvider(create: (_) => TestTimerCubit()),
+
           BlocProvider(
             create: (_) => DietitianDashboardCubit(dietitianDashboardRepository)
               ..loadDietitianDashboard(DateTime.now()),
+          ),
+
+          // ✅ ADD THIS PROVIDER
+          BlocProvider(
+              create: (_) => DashboardBloc()
+            // If you have init event:
+            // ..add(DashboardInitEvent()),
           ),
         ],
         child: const MyApp(),

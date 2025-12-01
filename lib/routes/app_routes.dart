@@ -20,6 +20,7 @@ abstract class AppRoutes {
   static const chatScreen = '/chat';
 
 
+
   static const bluetoothDeviceConnectivity = '/bluetooth-device-connectivity';
   static const bluetoothBreatheTube = '/bluetooth-breathe-tube';
   static const bluetoothCalibrationScreen = '/bluetooth-calibration-screen';
