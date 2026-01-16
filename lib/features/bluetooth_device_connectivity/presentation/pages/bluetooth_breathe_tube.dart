@@ -15,10 +15,15 @@ import 'package:respyr_dietitian/common/dialogs/cancel_Test_dialog.dart';
 import 'package:respyr_dietitian/common/dialogs/disconnection_dialog.dart';
 import 'package:respyr_dietitian/routes/app_routes.dart';
 
+import '../../../../common/widgets/battery_indicator_widget.dart';
+import '../../../../core/battery/device_battery_manager.dart';
+
 class BluetoothBreatheTube extends StatelessWidget {
   final ClientProfileModel clientProfileModel;
   final DietPlanStrategyModel dietPlanStrategyModel;
-  const BluetoothBreatheTube({super.key, required this.clientProfileModel, required this.dietPlanStrategyModel});
+  final double minRange;
+  final double maxRange;
+  const BluetoothBreatheTube({super.key, required this.clientProfileModel, required this.dietPlanStrategyModel, required this.minRange, required this.maxRange});
 
   Future<bool> _showCancelTestDialogBox(BuildContext context) async {
     bool didCancel = false;
@@ -63,6 +68,8 @@ class BluetoothBreatheTube extends StatelessWidget {
               extra: {
                 "client" : clientProfileModel,
                 "strategy" : dietPlanStrategyModel,
+                "min_range" : minRange,
+                "max_range" : maxRange,
               },
             );
           }
@@ -104,27 +111,47 @@ class BluetoothBreatheTube extends StatelessWidget {
                               ),
                             ),
                             const Spacer(),
-                            IconButton(
-                              onPressed: () {
-                                context
-                                    .read<BluetoothBreatheTubeCubit>()
-                                    .audioHelper
-                                    .toggleMute();
+                            FutureBuilder<double>(
+                              future: DeviceBatteryManager.getBatteryPercentage(),
+                              builder: (context, snapshot) {
+                                if (!snapshot.hasData || snapshot.data! <= 0) {
+                                  return const SizedBox.shrink();
+                                }
+
+                                return Row(
+                                  children: [
+                                    BatteryIconWidget(
+                                      batteryPercentage: snapshot.data!,
+                                    ),
+                                    const SizedBox(width: 20),
+                                  ],
+                                );
                               },
-                              icon: BlocBuilder<
-                                BluetoothBreatheTubeCubit,
-                                BluetoothBreatheTubeState
-                              >(
-                                builder: (context, state) {
-                                  return Icon(
-                                    context
-                                            .read<BluetoothBreatheTubeCubit>()
-                                            .audioHelper
-                                            .isMuted
-                                        ? Icons.volume_off
-                                        : Icons.volume_up,
-                                  );
+                            ),
+                            Visibility(
+                              visible: false,
+                              child: IconButton(
+                                onPressed: () {
+                                  context
+                                      .read<BluetoothBreatheTubeCubit>()
+                                      .audioHelper
+                                      .toggleMute();
                                 },
+                                icon: BlocBuilder<
+                                  BluetoothBreatheTubeCubit,
+                                  BluetoothBreatheTubeState
+                                >(
+                                  builder: (context, state) {
+                                    return Icon(
+                                      context
+                                              .read<BluetoothBreatheTubeCubit>()
+                                              .audioHelper
+                                              .isMuted
+                                          ? Icons.volume_off
+                                          : Icons.volume_up,
+                                    );
+                                  },
+                                ),
                               ),
                             ),
                           ],

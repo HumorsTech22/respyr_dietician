@@ -1,25 +1,152 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_svg/svg.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:respyr_dietitian/common/widgets/battery_indicator_widget.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_connection_cubit/bluetooth_connection_cubit.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_connection_cubit/bluetooth_connection_state.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/widgets/device_list.dart';
-import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/widgets/radar_animation.dart';
+
+import '../../../../common/widgets/assets_video_play.dart';
 
 class DeviceSection extends StatelessWidget {
   final BluetoothConnectionState state;
 
   const DeviceSection({super.key, required this.state});
 
+  bool get isConnected =>
+      state.isConnected || state.status == BluetoothConnectionStatus.connected;
+
+  bool get isScanning =>
+      state.isScanning || state.status == BluetoothConnectionStatus.scanning;
+
+  bool get hasDevices => state.devices.isNotEmpty;
+
+  bool get validDeviceId =>
+      state.connectingDeviceId != null &&
+          RegExp(r'^\d+$').hasMatch(state.connectingDeviceId!);
+
   @override
   Widget build(BuildContext context) {
-    Widget content;
+    return Column(
+      children: [
+        const SizedBox(height: 82),
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: _buildTopVisualSmooth(),
+        ),
+        if (!isConnected) _buildContent(context),
+        if (isConnected) ...[
+          const SizedBox(height: 20),
+          if (validDeviceId)
+            _buildDeviceInfo()
+          else
+            Text(
+              "Checking battery info...",
+              style: GoogleFonts.poppins(
+                color: const Color(0xFF535359),
+                fontSize: 12,
+                fontWeight: FontWeight.w400,
+                height: 1.10,
+                letterSpacing: -0.24,
+              ),
+            ),
+          const SizedBox(height: 30),
+          Text(
+            "Device Connected",
+            style: GoogleFonts.poppins(
+              color: const Color(0xFF252525),
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+        if (!isConnected) ...[
+          const SizedBox(height: 20),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: DeviceList(state: state),
+          ),
+        ],
+      ],
+    );
+  }
 
-    if (state.isScanning) {
-      content = Center(
+  Widget _buildTopVisualSmooth() {
+    final Widget child = _buildTopVisualWithThumbnailFallback();
+
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 300),
+      switchInCurve: Curves.easeOut,
+      switchOutCurve: Curves.easeIn,
+      transitionBuilder: (child, animation) {
+        return FadeTransition(
+          opacity: animation,
+          child: child,
+        );
+      },
+      child: SizedBox(
+        key: ValueKey<String>(_topVisualKey()),
+        width: double.infinity,
+        child: child,
+      ),
+    );
+  }
+
+  String _topVisualKey() {
+    if (isConnected) return "connected";
+    if (isScanning) return "scanning";
+    return "not_connected";
+  }
+
+  Widget _buildTopVisualWithThumbnailFallback() {
+    const thumb =
+        "assets/images/device_connection/new_device_not_connected.png";
+
+    if (isConnected) {
+      return Image.asset(
+        "assets/images/device_connection/new_device_connected.png",
+        fit: BoxFit.contain,
+      );
+    }
+
+    if (isScanning) {
+      return Stack(
+        alignment: Alignment.center,
+        children: const [
+          Image(
+            image: AssetImage(thumb),
+            fit: BoxFit.contain,
+          ),
+          AssetVideoWidget(
+            videoPath: 'assets/images/device_connection/device_scanning.mp4',
+            thumbnailPath: thumb,
+          ),
+        ],
+      );
+    }
+
+    return Stack(
+      alignment: Alignment.center,
+      children: const [
+        Image(
+          image: AssetImage(thumb),
+          fit: BoxFit.contain,
+        ),
+        AssetVideoWidget(
+          videoPath:
+          'assets/images/device_connection/device_not_connected_video.mp4',
+          thumbnailPath: thumb,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildContent(BuildContext context) {
+    if (isScanning) {
+      return Center(
         child: Text(
-          "Searching...",
+          "Finding...",
           style: GoogleFonts.poppins(
             color: const Color(0xFF252525),
             fontSize: 20,
@@ -27,103 +154,48 @@ class DeviceSection extends StatelessWidget {
           ),
         ),
       );
-    } else if (!state.isScanning && state.devices.isEmpty) {
-      content = _buildNoDevice(context);
-    } else {
-      content = _buildDeviceList(context);
     }
 
-    final validDeviceId = state.connectingDeviceId != null && RegExp(r'^\d+$').hasMatch(state.connectingDeviceId!);
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              if (!state.isConnected && state.isScanning)
-                const RadarAnimation(color: Color(0xFF308BF9), size: 300),
-              SvgPicture.asset(
-                state.isConnected
-                    ? "assets/images/device_connection/connected.svg"
-                    : "assets/images/device_connection/bluetooth_disconnected.svg",
-              ),
+    if (!hasDevices) {
+      return _buildNoDevice(context);
+    }
 
-              if (state.devices.isNotEmpty && !state.isConnected)
-                Positioned(
-                  right: 110,
-                  top: 110,
-                  child: CircleAvatar(
-                    backgroundColor: const Color(0xFF308BF9),
-                    radius: 20,
-                    child: Text(
-                      '${state.devices.length}',
-                      style: GoogleFonts.roboto(
-                        color: Colors.white,
-                        fontSize: 18,
-                      ),
-                    ),
-                  ),
-                ),
-            ],
+    return _buildDeviceList(context);
+  }
+
+  Widget _buildDeviceInfo() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        SvgPicture.asset('assets/images/device_connection/device_id.svg'),
+        const SizedBox(width: 4),
+        Text(
+          'Device Id:',
+          style: GoogleFonts.poppins(
+            color: const Color(0xFF535359),
+            fontSize: 12,
+            fontWeight: FontWeight.w400,
+            height: 1.10,
+            letterSpacing: -0.24,
           ),
-          const SizedBox(height: 30),
-          if (!state.isConnected) content,
-          if (state.isConnected && validDeviceId)
-            Container(
-              width: MediaQuery.of(context).size.width * 0.5,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                color: const Color(0xFFD9D9D9),
-                border: Border.all(color: const Color(0xFFB9B9B9)),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  SvgPicture.asset(
-                    'assets/images/device_connection/device_id.svg',
-                  ),
-                  Text(
-                    'Device Id:',
-                    style: GoogleFonts.poppins(
-                      color: const Color(0xFF535359),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w400,
-                      height: 1.10,
-                      letterSpacing: -0.24,
-                    ),
-                  ),
-                  Text(
-                    'RESPYR${state.connectingDeviceId ?? ""}',
-                    style: GoogleFonts.poppins(
-                      color: const Color(0xFF535359),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w400,
-                      height: 1.10,
-                      letterSpacing: -0.24,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-          if (state.isConnected)
-            Text(
-              'Device Connected',
-              textAlign: TextAlign.center,
-              style: GoogleFonts.poppins(
-                color: const Color(0xFF252525),
-                fontSize: 25,
-                fontWeight: FontWeight.w600,
-                letterSpacing: -1,
-              ),
-            ),
-          const SizedBox(height: 30),
-          if (!state.isConnected) DeviceList(state: state),
-        ],
-      ),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          'RESPYR${state.connectingDeviceId}',
+          style: GoogleFonts.poppins(
+            color: const Color(0xFF535359),
+            fontSize: 12,
+            fontWeight: FontWeight.w400,
+            height: 1.10,
+            letterSpacing: -0.24,
+          ),
+        ),
+        const SizedBox(width: 10),
+        if ((state.batteryPercentage ?? 0) > 0)
+          BatteryIconWidget(
+            batteryPercentage: state.batteryPercentage!,
+          ),
+      ],
     );
   }
 
@@ -139,26 +211,7 @@ class DeviceSection extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 10),
-        InkWell(
-          onTap: () {
-            context.read<BluetoothConnectionCubit>().startScan();
-          },
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SvgPicture.asset("assets/images/device_connection/retry.svg"),
-              const SizedBox(width: 5),
-              Text(
-                'Retry',
-                style: GoogleFonts.poppins(
-                  color: const Color(0xFF308BF9),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
+        _retryButton(context),
       ],
     );
   }
@@ -175,27 +228,31 @@ class DeviceSection extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 10),
-        InkWell(
-          onTap: () {
-            context.read<BluetoothConnectionCubit>().startScan();
-          },
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SvgPicture.asset("assets/images/device_connection/retry.svg"),
-              const SizedBox(width: 5),
-              Text(
-                'Retry',
-                style: GoogleFonts.poppins(
-                  color: const Color(0xFF308BF9),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
+        _retryButton(context),
       ],
+    );
+  }
+
+  Widget _retryButton(BuildContext context) {
+    return InkWell(
+      onTap: () {
+        context.read<BluetoothConnectionCubit>().startScan();
+      },
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SvgPicture.asset("assets/images/device_connection/retry.svg"),
+          const SizedBox(width: 5),
+          Text(
+            'Retry',
+            style: GoogleFonts.poppins(
+              color: const Color(0xFF308BF9),
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

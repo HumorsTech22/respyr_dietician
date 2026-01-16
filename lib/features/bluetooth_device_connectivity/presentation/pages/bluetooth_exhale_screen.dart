@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:respyr_dietitian/client-dashboard/data/model/client_profile_model.dart';
 import 'package:respyr_dietitian/client-dashboard/data/model/diet_plan_strategy_model.dart';
 import 'package:respyr_dietitian/common/dialogs/cancel_Test_dialog.dart';
@@ -15,32 +13,35 @@ import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/p
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/repository/bluetooth_repository.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_exhale_cubit.dart/bluetooth_exhale_cubit.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_exhale_cubit.dart/bluetooth_exhale_state.dart';
+import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/widgets/new_exhale_screen.dart';
+import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/widgets/old_exhale_screen.dart';
 import 'package:respyr_dietitian/routes/app_routes.dart';
 
 class BluetoothExhaleScreen extends StatelessWidget {
   final String baseValue;
   final ClientProfileModel clientProfileModel;
   final DietPlanStrategyModel dietPlanStrategyModel;
+  final double minRange;
+  final double maxRange;
+
   const BluetoothExhaleScreen({
     super.key,
     required this.baseValue,
-    required this.clientProfileModel, required this.dietPlanStrategyModel,
+    required this.clientProfileModel,
+    required this.dietPlanStrategyModel,
+    required this.minRange, required this.maxRange,
   });
 
   Future<bool> showCancelTestDialogBox(BuildContext context) async {
     bool didCancel = false;
-
     showCancelTestDialog(context, () {
       context.read<BluetoothExhaleCubit>().sendAbort();
       Future.microtask(() async {
-        if (!context.read<BluetoothExhaleCubit>().isClosed)
-          await context
-              .read<BluetoothExhaleCubit>()
-              .setCancelOrDisconnectFlag();
+        if (!context.read<BluetoothExhaleCubit>().isClosed) {
+          await context.read<BluetoothExhaleCubit>().setCancelOrDisconnectFlag();
+        }
       });
-
       context.go(AppRoutes.clientDashboard, extra: clientProfileModel);
-
       context.read<BluetoothExhaleCubit>().dialogDismissed();
     });
 
@@ -49,41 +50,45 @@ class BluetoothExhaleScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
+
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
         if (!didPop) {
           final shouldExit = await showCancelTestDialogBox(context);
-
           if (shouldExit) {}
         }
       },
       child: BlocProvider(
-        create:
-            (ctx) => BluetoothExhaleCubit(
-              processor: BluetoothBlowProcessor(),
-              repo: ctx.read<BluetoothRepository>(),
-              baseValue: baseValue,
-              audioHelper: AudioHelper(),
-            ),
+        create: (ctx) => BluetoothExhaleCubit(
+          processor: BluetoothBlowProcessor(),
+          repo: ctx.read<BluetoothRepository>(),
+          baseValue: baseValue,
+          audioHelper: AudioHelper(),
+        ),
         child: BlocConsumer<BluetoothExhaleCubit, BluetoothExhaleState>(
-          listener: (context, state) {
+          listener: (context, state) async {
             if (!context.mounted) return;
+
+            // ✅ If not current route, do nothing (prevents dialog/navigation glitches)
+            if (ModalRoute.of(context)?.isCurrent != true) return;
+
+            // ✅ PRIORITY 1: navigate to results, and STOP listener flow
             if (state.exhaleComplete) {
               final processor = context.read<BluetoothExhaleCubit>().processor;
 
-              final maxPR =
-                  processor.blowValuesList.isNotEmpty
-                      ? processor.blowValuesList.reduce((a, b) => a > b ? a : b)
-                      : 0.0;
+              final maxPR = processor.blowValuesList.isNotEmpty
+                  ? processor.blowValuesList.reduce((a, b) => a > b ? a : b)
+                  : 0.0;
 
-              final bestPR =
-                  processor.blowValuesList.isNotEmpty
-                      ? processor.blowValuesList.reduce((a, b) => a + b) /
-                          processor.blowValuesList.length
-                      : 0.0;
+              final bestPR = processor.blowValuesList.isNotEmpty
+                  ? processor.blowValuesList.reduce((a, b) => a + b) /
+                  processor.blowValuesList.length
+                  : 0.0;
 
               final duration = processor.blowDuration;
+
               final allValues = [
                 ...processor.baseBlowValueList,
                 ...processor.blowValuesList,
@@ -96,82 +101,84 @@ class BluetoothExhaleScreen extends StatelessWidget {
                 blowValuesList: allValues,
                 clientProfileModel: clientProfileModel,
                 dietPlanStrategyModel: dietPlanStrategyModel,
+                minRange: minRange,
+                maxRange: maxRange,
               );
 
               context.read<BluetoothExhaleCubit>().stop();
-              context.read<BluetoothExhaleCubit>().close();
               if (!context.mounted) return;
               if (ModalRoute.of(context)?.isCurrent != true) return;
+
               context.pushReplacement(
                 AppRoutes.bluetoothGeneratingResultScreen,
                 extra: params,
               );
+
+              return;
             }
 
+            // ✅ PRIORITY 2: dialogs only if exhaleComplete is false
             switch (state.activeDialog) {
               case ActiveDialog.disconnect:
-                if (ModalRoute.of(context)?.isCurrent != true) return;
+                Future.microtask(() async {
+                  if (!context.read<BluetoothExhaleCubit>().isClosed) {
+                    context.read<BluetoothExhaleCubit>().stop();
+                    context.read<BluetoothExhaleCubit>().dialogDismissed();
+                    context.read<BluetoothExhaleCubit>().setCancelOrDisconnectFlag();
+                  }
+                });
 
                 showDeviceDisconnectedBox(
                   context: context,
                   onButtonPressed: () async {
-                    context.read<BluetoothExhaleCubit>().stop();
-                    context.read<BluetoothExhaleCubit>().dialogDismissed();
-                    Future.microtask(() async {
-                      if (!context.read<BluetoothExhaleCubit>().isClosed)
-                        await context
-                            .read<BluetoothExhaleCubit>()
-                            .setCancelOrDisconnectFlag();
-                    });
-
                     context.go(
                       AppRoutes.clientDashboard,
                       extra: clientProfileModel,
                     );
                   },
-                ).then(
-                  (_) => context.read<BluetoothExhaleCubit>().dialogDismissed(),
-                );
+                ).then((_) {
+                  if (context.mounted) {
+                    context.read<BluetoothExhaleCubit>().dialogDismissed();
+                  }
+                });
                 break;
 
               case ActiveDialog.timeout:
-                if (ModalRoute.of(context)?.isCurrent != true) return;
+
+                Future.microtask(() async {
+                  if (!context.read<BluetoothExhaleCubit>().isClosed) {
+                    context.read<BluetoothExhaleCubit>().stop();
+                    context.read<BluetoothExhaleCubit>().dialogDismissed();
+                    context.read<BluetoothExhaleCubit>().setCancelOrDisconnectFlag();
+                  }
+                });
 
                 showExhaleSessionTimeOutDialog(
                   context: context,
                   onButtonPressed: () async {
-                    context.read<BluetoothExhaleCubit>().stop();
-                    context.read<BluetoothExhaleCubit>().dialogDismissed();
-                    Future.microtask(() async {
-                      if (!context.read<BluetoothExhaleCubit>().isClosed)
-                        await context
-                            .read<BluetoothExhaleCubit>()
-                            .setCancelOrDisconnectFlag();
-                    });
                     context.go(
                       AppRoutes.clientDashboard,
                       extra: clientProfileModel,
                     );
                   },
-                ).then(
-                  (_) => context.read<BluetoothExhaleCubit>().dialogDismissed(),
-                );
+                ).then((_) {
+                  if (context.mounted) {
+                    context.read<BluetoothExhaleCubit>().dialogDismissed();
+                  }
+                });
                 break;
 
               case ActiveDialog.improper:
-                if (!context.mounted) return;
-                if (ModalRoute.of(context)?.isCurrent != true) return;
+                Future.microtask(() async {
+                  if (!context.read<BluetoothExhaleCubit>().isClosed) {
+                    context.read<BluetoothExhaleCubit>().abortBlow();
+                    context.read<BluetoothExhaleCubit>().dialogDismissed();
+                    context.read<BluetoothExhaleCubit>().setCancelOrDisconnectFlag();
+                  }
+                });
                 showImproperExhale(
                   context: context,
                   tryAgainButtonClicked: () async {
-                    context.read<BluetoothExhaleCubit>().abortBlow();
-                    context.read<BluetoothExhaleCubit>().dialogDismissed();
-                    Future.microtask(() async {
-                      if (!context.read<BluetoothExhaleCubit>().isClosed)
-                        await context
-                            .read<BluetoothExhaleCubit>()
-                            .setCancelOrDisconnectFlag();
-                    });
                     context.go(
                       AppRoutes.clientDashboard,
                       extra: clientProfileModel,
@@ -201,223 +208,26 @@ class BluetoothExhaleScreen extends StatelessWidget {
 
             return Scaffold(
               backgroundColor: Colors.white,
+              appBar: AppBar(
+                leading: IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () {
+                    showCancelTestDialogBox(context);
+                  },
+                ),
+                backgroundColor: Colors.white,
+                surfaceTintColor: Colors.white,
+              ),
 
               body: SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Stack(
-                        children: [
-                          SizedBox(
-                            height: 350,
-                            width: MediaQuery.of(context).size.width * 0.96,
-                            child: Image.asset(
-                              'assets/images/gif_images/exhale.gif',
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                IconButton(
-                                  onPressed:
-                                      () => showCancelTestDialogBox(context),
-
-                                  icon: Container(
-                                    height: 20,
-                                    width: 20,
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(5),
-                                      color: Colors.white,
-                                    ),
-                                    child: SvgPicture.asset(
-                                      "assets/images/common/closeicon.svg",
-                                    ),
-                                  ),
-                                ),
-                                const Spacer(),
-                                IconButton(
-                                  onPressed: () {},
-                                  icon: Icon(Icons.volume_up),
-                                ),
-                              ],
-                            ),
-                          ),
-                          if (state.progress > 0.2 && state.progress < 0.49)
-                            Positioned(
-                              bottom: 50,
-                              left: 40,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 15,
-                                  vertical: 10,
-                                ),
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(25),
-                                  color: Colors.white,
-                                ),
-                                child: Row(
-                                  children: [
-                                    Text(
-                                      "Having trouble with exhale?\t",
-                                      textAlign: TextAlign.center,
-                                      style: GoogleFonts.mulish(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        color: Color(0xFF595959),
-                                      ),
-                                    ),
-                                    InkWell(
-                                      onTap: () {},
-                                      child: Text(
-                                        "Try practice test",
-                                        textAlign: TextAlign.center,
-                                        style: GoogleFonts.mulish(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w600,
-                                          color: Color(0xFF308BF9),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 10),
-                        child: RichText(
-                          textAlign: TextAlign.center,
-                          text: TextSpan(
-                            style: GoogleFonts.poppins(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w400,
-                              color: Colors.grey,
-                            ),
-                            children: [
-                              const TextSpan(
-                                text: "Exhale into device until scale turns ",
-                              ),
-                              TextSpan(
-                                text: "GREEN",
-                                style: GoogleFonts.poppins(
-                                  color: const Color(0xFF3EAF58),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-
-                      Stack(
-                        children: [
-                          SizedBox(
-                            width: MediaQuery.of(context).size.width,
-                            height: 60,
-                            child: ClipRRect(
-                              borderRadius: const BorderRadius.all(
-                                Radius.circular(10),
-                              ),
-
-                              child: LinearProgressIndicator(
-                                value: state.progress,
-
-                                backgroundColor: const Color(0xFFF3F3F3),
-
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  state.progress < 0.10
-                                      ? Colors.grey
-                                      : state.progress <
-                                          (state.thresholdPercentage ?? 1) / 120
-                                      ? Colors.red
-                                      : Colors.green,
-                                ),
-                              ),
-                            ),
-                          ),
-                          Positioned(
-                            left:
-                                ((state.thresholdPercentage ?? 0) / 120) *
-                                MediaQuery.of(context).size.width,
-                            top: 0,
-                            bottom: 0,
-                            child: Container(width: 2, color: Colors.black),
-                          ),
-                        ],
-                      ),
-
-                      Text(
-                        _getInfoText(state),
-                        style: GoogleFonts.poppins(
-                          fontSize: 25,
-                          color:
-                              state.progress < 0.10
-                                  ? Colors.grey
-                                  : state.progress <
-                                      (state.thresholdPercentage ?? 1) / 120
-                                  ? Colors.red
-                                  : Colors.green,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-
-                      Column(
-                        children: [
-                          Text(
-                            "${state.secondsRemaining}",
-                            style: GoogleFonts.roboto(
-                              fontSize: 40,
-                              fontWeight: FontWeight.w400,
-                              color:
-                                  state.secondsRemaining <= 10
-                                      ? Colors.red
-                                      : Colors.black,
-                            ),
-                          ),
-                          Text(
-                            'sec',
-                            style: GoogleFonts.roboto(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w400,
-                              color:
-                                  state.secondsRemaining <= 10
-                                      ? Colors.red
-                                      : Colors.black,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
+                child: NewExhaleScreen(state: state, onCloseButtonPressed: (){
+                  showCancelTestDialogBox(context);
+                }),
               ),
             );
           },
         ),
       ),
     );
-  }
-
-  String _getInfoText(BluetoothExhaleState state) {
-    if (state.thresholdPercentage == null) return 'Start Exhaling...';
-
-    final threshold = state.thresholdPercentage! / 120;
-    final progress = state.progress;
-
-    if (progress < 0.10) {
-      return 'Start Exhaling...';
-    } else if (progress < threshold) {
-      return 'Exhale Harder';
-    } else {
-      return 'Keep Exhaling';
-    }
   }
 }

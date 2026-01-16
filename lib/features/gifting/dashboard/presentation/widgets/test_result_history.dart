@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:respyr_dietitian/client-dashboard/data/model/client_profile_model.dart';
 import '../../../../bluetooth_device_connectivity/data/model/generating_result_model.dart';
+import '../../../../dashboard/test_history/score_trend/bloc/score_trend_bloc.dart';
+import '../../../../dashboard/test_history/score_trend/bloc/score_trend_event.dart';
+import '../../../../dashboard/test_history/score_trend/data/repository/score_trend_repository.dart';
+import '../../../../dashboard/test_history/score_trend/presentation/widgets/score_trend_view.dart';
 import '../../../../dietitian_result_screen/presentation/pages/overall_metabolism_score.dart';
 
 class TestResultHistory extends StatefulWidget {
-  final GeneratingResultModel? result; // from latest test
+  final GeneratingResultModel? result;
   final ClientProfileModel clientProfileModel;
 
   const TestResultHistory({
@@ -54,7 +59,7 @@ class _TestResultHistoryState extends State<TestResultHistory> {
     final String interpretation =
         fatLossScoreModel?.clientInterpretation ?? "-";
 
-    final DateTime? testDateTime = result?.dateTime; // if your model has this
+    final DateTime? testDateTime = result?.dateTime;
     final String formattedDate =
     testDateTime == null ? "" : formatDate(testDateTime);
 
@@ -298,6 +303,15 @@ class _TestResultHistoryState extends State<TestResultHistory> {
               ],
             ),
           ),
+
+
+          SizedBox(height: 44,),
+          // Wrap ScoreTrendView with BlocProvider
+          BlocProvider(
+            create: (_) => ScoreTrendBloc(ScoreTrendRepository())..add(FetchMetabolismData(widget.clientProfileModel.profileId)),
+            child: ScoreTrendView(clientProfileModel: widget.clientProfileModel),
+          ),
+
         ],
       ),
     );

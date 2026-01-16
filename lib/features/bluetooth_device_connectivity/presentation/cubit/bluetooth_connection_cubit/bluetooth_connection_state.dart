@@ -18,6 +18,10 @@ class BluetoothConnectionState extends Equatable {
   final String? lastData;
   final String? textError;
   final String? connectingDeviceId;
+  final double? batteryPercentage;
+
+  // ✅ NEW: device error info for UI (optional)
+  final String? deviceErrorMessage;
 
   const BluetoothConnectionState({
     this.status = BluetoothConnectionStatus.initial,
@@ -27,6 +31,8 @@ class BluetoothConnectionState extends Equatable {
     this.lastData,
     this.textError,
     this.connectingDeviceId,
+    this.batteryPercentage,
+    this.deviceErrorMessage,
   });
 
   BluetoothConnectionState copyWith({
@@ -35,17 +41,23 @@ class BluetoothConnectionState extends Equatable {
     bool? isScanning,
     bool? isConnected,
     String? lastData,
-    String? error,
+    String? textError,
     String? connectingDeviceId,
-  }) => BluetoothConnectionState(
-    status: status ?? this.status,
-    devices: devices ?? this.devices,
-    isScanning: isScanning ?? this.isScanning,
-    isConnected: isConnected ?? this.isConnected,
-    lastData: lastData ?? this.lastData,
-    textError: textError,
-    connectingDeviceId: connectingDeviceId ?? this.connectingDeviceId,
-  );
+    double? batteryPercentage,
+    String? deviceErrorMessage,
+  }) {
+    return BluetoothConnectionState(
+      status: status ?? this.status,
+      devices: devices ?? this.devices,
+      isScanning: isScanning ?? this.isScanning,
+      isConnected: isConnected ?? this.isConnected,
+      lastData: lastData ?? this.lastData,
+      textError: textError ?? this.textError,
+      connectingDeviceId: connectingDeviceId ?? this.connectingDeviceId,
+      batteryPercentage: batteryPercentage ?? this.batteryPercentage,
+      deviceErrorMessage: deviceErrorMessage,
+    );
+  }
 
   @override
   List<Object?> get props => [
@@ -56,5 +68,7 @@ class BluetoothConnectionState extends Equatable {
     lastData,
     textError,
     connectingDeviceId,
+    batteryPercentage,
+    deviceErrorMessage,
   ];
 }

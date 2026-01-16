@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:respyr_dietitian/client-dashboard/data/model/client_profile_model.dart';
-import 'package:respyr_dietitian/client-dashboard/data/model/dietitian_model.dart';
 import 'package:respyr_dietitian/features/profile_info/data/model/dietician_detail_model.dart';
 import '../../data/model/diet_plan_strategy_model.dart';
 

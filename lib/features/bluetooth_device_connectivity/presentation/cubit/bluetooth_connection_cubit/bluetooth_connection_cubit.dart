@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/model/bluetooth_device_model.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/repository/bluetooth_repository.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_connection_cubit/bluetooth_connection_state.dart';
+import '../../../../../core/battery/device_battery_manager.dart';
 
 class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
   final BluetoothRepository repo;
@@ -13,9 +14,23 @@ class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
   StreamSubscription<bool>? _readySub;
   Timer? _scanTimer;
 
+  Completer<void>? _batteryDoneCompleter;
+  Timer? _batteryTimeoutTimer;
+
+  bool _isWaitingBattery = false;
+  bool _batteryAlreadyReceived = false;
+
+  DateTime? _lastBatteryStopSentAt;
+
+  Future<void>? _batteryFetchTask;
+  DateTime? _lastBatteryStartSentAt;
+  static const Duration _batteryStartCooldown = Duration(milliseconds: 600);
+
+  static const String _batteryStartCmd = "@";
+  static const String _batteryStopCmd = "@";
+
   BluetoothConnectionCubit(this.repo) : super(const BluetoothConnectionState());
 
-  // ✅ Safe emit wrapper
   void safeEmit(BluetoothConnectionState newState) {
     if (!isClosed) emit(newState);
   }
@@ -24,7 +39,6 @@ class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
     _listenConnection();
     _listenData();
 
-    // ✅ Check if already connected before scanning
     final connectedDeviceId = await repo.getAlreadyConnectedDeviceId();
 
     if (connectedDeviceId != null) {
@@ -36,9 +50,11 @@ class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
         ),
       );
 
-      // Send "!" to reinitialize communication
       await Future.delayed(const Duration(milliseconds: 300));
-      await sendCommand("!");
+
+      await _fetchBatteryOnce();
+
+      if (!isClosed) await sendCommand("!");
     } else {
       startScan();
     }
@@ -57,24 +73,22 @@ class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
       ),
     );
 
-    _scanSub = repo
-        .scan(timeout: timeout)
-        .listen(
+    _scanSub = repo.scan(timeout: timeout).listen(
           (devices) {
-            if (isClosed) return;
-            safeEmit(state.copyWith(devices: devices));
-          },
-          onError: (e) {
-            if (isClosed) return;
-            safeEmit(
-              state.copyWith(
-                status: BluetoothConnectionStatus.textError,
-                isScanning: false,
-                error: '$e',
-              ),
-            );
-          },
+        if (isClosed) return;
+        safeEmit(state.copyWith(devices: devices));
+      },
+      onError: (e) {
+        if (isClosed) return;
+        safeEmit(
+          state.copyWith(
+            status: BluetoothConnectionStatus.textError,
+            isScanning: false,
+            textError: '$e',
+          ),
         );
+      },
+    );
 
     _scanTimer = Timer(timeout, () {
       if (isClosed) return;
@@ -105,7 +119,7 @@ class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
           isConnected: false,
           connectingDeviceId: null,
           status: BluetoothConnectionStatus.textError,
-          error: e.toString(),
+          textError: e.toString(),
         ),
       );
       startScan();
@@ -114,12 +128,11 @@ class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
 
   void _listenConnection() {
     _connSub?.cancel();
+
     _connSub = repo.connectionStatusStream().listen((connected) async {
       if (isClosed) return;
 
       if (connected) {
-        print("✅ Bluetooth Connected");
-
         safeEmit(
           state.copyWith(
             isConnected: true,
@@ -127,16 +140,19 @@ class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
           ),
         );
 
-        await for (final ready in repo.deviceReadyStream()) {
-          if (isClosed) return;
-          if (ready) {
-            print("✅ Device Ready – Sending initial command '!'");
-            await sendCommand("!");
-            break;
-          }
-        }
+        _readySub?.cancel();
+        _readySub = repo.deviceReadyStream().listen((ready) async {
+          if (isClosed || !ready) return;
+
+          await _fetchBatteryOnce();
+
+          if (!isClosed) await sendCommand("!");
+
+          await _readySub?.cancel();
+        });
       } else {
-        print("❌ Disconnected – restarting scan...");
+        _cancelBatteryWaiters();
+
         safeEmit(
           state.copyWith(
             isConnected: false,
@@ -146,66 +162,144 @@ class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
           ),
         );
 
-        // Wait a short delay before scanning to avoid overlap
         await Future.delayed(const Duration(seconds: 1));
         if (!isClosed) startScan();
       }
     });
   }
 
-  Future<void> disconnect() async {
-    print("🔌 Disconnect requested...");
-    await repo.disconnect();
+  Future<void> _sendBatteryStopOnce() async {
+    final now = DateTime.now();
+    if (_lastBatteryStopSentAt != null &&
+        now.difference(_lastBatteryStopSentAt!) <
+            const Duration(milliseconds: 400)) {
+      return;
+    }
 
-    // Cancel all active listeners immediately
-    await _connSub?.cancel();
-    await _dataSub?.cancel();
-    await _scanSub?.cancel();
-    await _readySub?.cancel();
-    _scanTimer?.cancel();
+    _lastBatteryStopSentAt = now;
 
-    safeEmit(
-      state.copyWith(
-        isConnected: false,
-        connectingDeviceId: null,
-        status: BluetoothConnectionStatus.disconnected,
-      ),
-    );
-  }
-
-  Future<void> sendCommand(String data) async {
     try {
-      print("📤 Sending to device: $data");
-      await repo.sendData(data);
-      safeEmit(state.copyWith(lastData: data));
-    } catch (e) {
-      print("❌ Send error: $e");
-      safeEmit(state.copyWith(error: "Send error: $e"));
-    }
+      await repo.sendData(_batteryStopCmd);
+    } catch (_) {}
   }
 
-  void sendAbort() {
-    if (state.isConnected) {
-      print("⚠️ Sending abort '&'");
-      repo.sendData("&");
+  Future<void> _fetchBatteryOnce() {
+    if (isClosed) return Future.value();
+
+    if ((state.batteryPercentage ?? 0) > 0) {
+      return Future.value();
     }
+
+    if (_batteryFetchTask != null) {
+      return _batteryFetchTask!;
+    }
+
+    _batteryFetchTask = _fetchBatteryOnceInternal().whenComplete(() {
+      _batteryFetchTask = null;
+    });
+
+    return _batteryFetchTask!;
+  }
+
+  Future<void> _fetchBatteryOnceInternal() async {
+    if (isClosed || _isWaitingBattery) return;
+
+    final now = DateTime.now();
+    if (_lastBatteryStartSentAt != null &&
+        now.difference(_lastBatteryStartSentAt!) < _batteryStartCooldown) {
+      return;
+    }
+    _lastBatteryStartSentAt = now;
+
+    _isWaitingBattery = true;
+    _batteryAlreadyReceived = false;
+    _batteryDoneCompleter = Completer<void>();
+
+    try {
+      await repo.sendData(_batteryStartCmd);
+    } catch (_) {}
+
+    _batteryTimeoutTimer?.cancel();
+    _batteryTimeoutTimer = Timer(const Duration(seconds: 15), () {
+      if (_batteryDoneCompleter?.isCompleted == false) {
+        _batteryDoneCompleter?.complete();
+      }
+    });
+
+    await _batteryDoneCompleter?.future;
+
+    _batteryTimeoutTimer?.cancel();
+    _batteryTimeoutTimer = null;
+
+    _batteryDoneCompleter = null;
+    _isWaitingBattery = false;
+  }
+
+  void _cancelBatteryWaiters() {
+    _batteryTimeoutTimer?.cancel();
+    _batteryTimeoutTimer = null;
+
+    _isWaitingBattery = false;
+    _batteryAlreadyReceived = false;
+
+    if (_batteryDoneCompleter?.isCompleted == false) {
+      _batteryDoneCompleter?.complete();
+    }
+    _batteryDoneCompleter = null;
+
+    _batteryFetchTask = null;
   }
 
   void _listenData() {
     _dataSub?.cancel();
+
     _dataSub = repo.receivedDataStream().listen(
-      (s) async {
+          (s) async {
         if (isClosed) return;
+
         final clean = s.trim();
-        print("📩 Received: $clean");
+
+        final errorMatch = RegExp(r'^\{ERROR:(\d{3})\}$').firstMatch(clean);
+        if (errorMatch != null) {
+          _cancelBatteryWaiters();
+
+          safeEmit(
+            state.copyWith(
+              deviceErrorMessage:
+              "ERROR:${errorMatch.group(1)} - Please check device",
+            ),
+          );
+          return;
+        }
+
+        final batteryMatch = RegExp(r'^@(\d+(\.\d+)?)@$').firstMatch(clean);
+
+        if (_isWaitingBattery && batteryMatch != null) {
+          final battery = double.tryParse(batteryMatch.group(1)!);
+
+          if (battery != null && !_batteryAlreadyReceived) {
+            _batteryAlreadyReceived = true;
+
+            safeEmit(state.copyWith(batteryPercentage: battery));
+            await DeviceBatteryManager.setBatteryPercentage(battery);
+
+            await _sendBatteryStopOnce();
+
+            _batteryDoneCompleter?.complete();
+          }
+          return;
+        }
+
+        if (!_isWaitingBattery && batteryMatch != null) return;
 
         if (clean.startsWith("H")) {
           final deviceId = clean.substring(1).trim();
-          print("✅ Parsed Device ID: $deviceId");
           safeEmit(
-            state.copyWith(lastData: clean, connectingDeviceId: deviceId),
+            state.copyWith(
+              lastData: clean,
+              connectingDeviceId: deviceId,
+            ),
           );
-          print("🚀 Sending '{' after device ID handshake...");
           await Future.delayed(const Duration(milliseconds: 300));
           if (!isClosed) await sendCommand("{");
         } else {
@@ -213,21 +307,39 @@ class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
         }
       },
       onError: (e) {
-        if (isClosed) return;
-        print("❌ Error receiving data: $e");
-        safeEmit(state.copyWith(error: "Receive error: $e"));
+        if (!isClosed) {
+          safeEmit(state.copyWith(textError: "Receive error: $e"));
+        }
       },
     );
   }
 
+  Future<void> sendCommand(String data) async {
+    try {
+      await repo.sendData(data);
+      safeEmit(state.copyWith(lastData: data));
+    } catch (e) {
+      safeEmit(state.copyWith(textError: "Send error: $e"));
+    }
+  }
+
+  void sendAbort() {
+    if (state.isConnected) {
+      repo.sendData("&");
+    }
+  }
+
   @override
   Future<void> close() async {
-    print("🧹 Closing BluetoothConnectionCubit...");
+    _cancelBatteryWaiters();
+
     await _connSub?.cancel();
     await _dataSub?.cancel();
     await _scanSub?.cancel();
     await _readySub?.cancel();
+
     _scanTimer?.cancel();
+
     return super.close();
   }
 }

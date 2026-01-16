@@ -81,6 +81,13 @@ dependencies:
   flutter_launcher_icons: ^0.13.1
   cupertino_battery_indicator: ^1.2.1
   shimmer: ^3.0.0
+  jwt_decoder: ^2.0.1
+  dotted_border: ^2.1.0
+  internet_connection_checker_plus:
+  video_player:
+  animated_text_kit:
+  flutter_inner_shadow: 0.0.1
+
 
 
 
@@ -127,6 +134,7 @@ flutter:
     - assets/images/icons/
     - assets/images/result_history/
     - assets/images/gif_images/
+    - assets/images/walk_through/
 
 
   # An image asset can refer to one or more resolution-specific "variants", see

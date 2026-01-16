@@ -8,6 +8,8 @@ class GeneratingResultParams {
   final List<double> blowValuesList;
   final ClientProfileModel clientProfileModel;
   final DietPlanStrategyModel dietPlanStrategyModel;
+  final double minRange;
+  final double maxRange;
 
   GeneratingResultParams({
     required this.maxPressure,
@@ -16,5 +18,7 @@ class GeneratingResultParams {
     required this.blowValuesList,
     required this.clientProfileModel,
     required this.dietPlanStrategyModel,
+    required this.minRange,
+    required this.maxRange,
   });
 }

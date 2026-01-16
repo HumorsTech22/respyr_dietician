@@ -1,11 +1,13 @@
 import 'dart:convert';
+import 'dart:async';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 import 'package:respyr_dietitian/core/audio/audio_cubit.dart';
 import 'package:respyr_dietitian/core/services/usb_communication_service.dart';
@@ -17,36 +19,54 @@ import 'package:respyr_dietitian/features/device_connectivity/data/usb_repositor
 
 import 'package:respyr_dietitian/features/dietitian_dashboard/data/repository/dietitian_dashboard_repository.dart';
 import 'package:respyr_dietitian/features/dietitian_dashboard/presentation/cubit/dietitian_dashboard_cubit.dart';
-import 'package:respyr_dietitian/features/dietitian_result_screen/data/repository/dietitian_result_repository.dart';
-import 'package:respyr_dietitian/features/log_food/data/repository/log_food_repository.dart';
-import 'package:respyr_dietitian/features/log_food/presentation/cubit/log_food_cubit.dart';
+
 import 'package:respyr_dietitian/features/log_food/presentation/cubit/test_timer_cubit/test_timer_cubit.dart';
 import 'package:respyr_dietitian/features/profile_info/data/repository/dietician_repository.dart';
 import 'package:respyr_dietitian/features/profile_info/domain/usecases/calculate_bmi.dart';
 import 'package:respyr_dietitian/features/profile_info/domain/usecases/calculate_bmr.dart';
 import 'package:respyr_dietitian/features/profile_info/presentation/cubit/profile_cubit.dart';
-import 'package:respyr_dietitian/routes/app_router.dart';
+import 'package:respyr_dietitian/routes/app_router.dart' hide rootNavigatorKey;
 
+import 'core/global_keys.dart';
+import 'features/bluetooth_device_connectivity/presentation/cubit/global_error_cubit/global_error_cubit.dart';
 import 'features/bluetooth_device_connectivity/presentation/widgets/global_ble_popup_manager.dart';
 import 'features/profile_info/presentation/cubit/create_profile_cubit.dart';
 
-// ✅ ADD THIS IMPORT (update path if yours differs)
 import 'package:respyr_dietitian/features/dashboard/bloc/dashboard_bloc.dart';
-// If you have dashboard_event.dart and want init event, keep it.
-// import 'package:respyr_dietitian/features/dashboard/bloc/dashboard_event.dart';
 
-// 🔹 Global navigator key for showing dialogs from anywhere
-final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
-
-// 🔹 Local notifications
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
 FlutterLocalNotificationsPlugin();
 
-// 🔹 Background FCM handler
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
-  if (kDebugMode) {
-    print('📩 BG message: ${message.notification?.title}');
+}
+
+class InternetCubit extends Cubit<bool> {
+  InternetCubit() : super(true) {
+    _init();
+  }
+
+  final Connectivity _connectivity = Connectivity();
+  StreamSubscription<List<ConnectivityResult>>? _sub;
+
+  Future<void> _init() async {
+    final initial = await _connectivity.checkConnectivity();
+    emit(!_isOffline(initial));
+
+    _sub = _connectivity.onConnectivityChanged.listen((results) {
+      emit(!_isOffline(results));
+    });
+  }
+
+  bool _isOffline(List<ConnectivityResult> results) {
+    if (results.isEmpty) return true;
+    return results.every((r) => r == ConnectivityResult.none);
+  }
+
+  @override
+  Future<void> close() {
+    _sub?.cancel();
+    return super.close();
   }
 }
 
@@ -93,25 +113,14 @@ Future<void> main() async {
     final android = message.notification?.android;
 
     if (notification != null && android != null) {
-      String smallIcon;
-      AndroidBitmap<Object>? largeIcon;
-
-      if (notification.title == "New Message") {
-        smallIcon = '@mipmap/launcher_icon';
-        largeIcon = const DrawableResourceAndroidBitmap('launcher_icon');
-      } else {
-        smallIcon = '@mipmap/launcher_icon';
-        largeIcon = const DrawableResourceAndroidBitmap('launcher_icon');
-      }
-
       final androidDetails = AndroidNotificationDetails(
         'default_channel',
         'Default Notifications',
         channelDescription: 'Default notification channel',
         importance: Importance.max,
         priority: Priority.high,
-        icon: smallIcon,
-        largeIcon: largeIcon,
+        icon: '@mipmap/launcher_icon',
+        largeIcon: const DrawableResourceAndroidBitmap('launcher_icon'),
       );
 
       final platformDetails = NotificationDetails(android: androidDetails);
@@ -128,8 +137,6 @@ Future<void> main() async {
 
   FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
     final data = message.data;
-
-    print(data['screen']);
 
     if (data['screen'] == 'chat-screen') {
       appRouter.pushNamed('chat', extra: data['chatUserId']);
@@ -180,18 +187,13 @@ Future<void> main() async {
           ),
           BlocProvider(create: (_) => AudioCubit()),
           BlocProvider(create: (_) => TestTimerCubit()),
-
           BlocProvider(
             create: (_) => DietitianDashboardCubit(dietitianDashboardRepository)
               ..loadDietitianDashboard(DateTime.now()),
           ),
-
-          // ✅ ADD THIS PROVIDER
-          BlocProvider(
-              create: (_) => DashboardBloc()
-            // If you have init event:
-            // ..add(DashboardInitEvent()),
-          ),
+          BlocProvider(create: (_) => DashboardBloc()),
+          BlocProvider(create: (_) => InternetCubit()),
+          BlocProvider.value(value: globalErrorCubit),
         ],
         child: const MyApp(),
       ),
@@ -202,11 +204,86 @@ Future<void> main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
+  static bool _isDialogShowing = false;
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       routerConfig: appRouter,
+      scaffoldMessengerKey: rootMessengerKey,
+      builder: (context, child) {
+        return MultiBlocListener(
+          listeners: [
+            BlocListener<InternetCubit, bool>(
+              listenWhen: (prev, curr) => prev != curr,
+              listener: (context, hasInternet) {
+                final messenger = rootMessengerKey.currentState;
+                if (messenger == null) return;
+
+                messenger.clearSnackBars();
+
+                if (!hasInternet) {
+                  messenger.showSnackBar(
+                    const SnackBar(
+                      content: Text("No internet connection"),
+                      behavior: SnackBarBehavior.floating,
+                      duration: Duration(days: 1),
+                    ),
+                  );
+                } else {
+                  messenger.showSnackBar(
+                    const SnackBar(
+                      content: Text("Back online"),
+                      behavior: SnackBarBehavior.floating,
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                }
+              },
+            ),
+            BlocListener<GlobalErrorCubit, GlobalErrorState>(
+              listenWhen: (prev, curr) => prev.message != curr.message,
+              listener: (context, state) async {
+                final msg = state.message;
+                if (msg == null) return;
+
+                final navState = rootNavigatorKey.currentState;
+                if (navState == null) return;
+
+                final navContext = navState.overlay!.context;
+
+                if (_isDialogShowing) return;
+                _isDialogShowing = true;
+
+                await showDialog(
+                  context: navContext,
+                  barrierDismissible: false,
+                  builder: (_) => AlertDialog(
+                    title: const Text("Device Error"),
+                    content: Text(msg),
+                    actions: [
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(navContext, rootNavigator: true).pop();
+                        },
+                        child: const Text("OK"),
+                      ),
+                    ],
+                  ),
+                );
+
+                _isDialogShowing = false;
+                globalErrorCubit.clear();
+              },
+            ),
+          ],
+          child: MediaQuery(
+            data: MediaQuery.of(context).copyWith(textScaleFactor: 1.0),
+            child: child!,
+          ),
+        );
+      },
     );
   }
 }

@@ -1,15 +1,18 @@
+// lib/features/dashboard/bloc/dashboard_event.dart
 import 'package:respyr_dietitian/client-dashboard/data/model/client_profile_model.dart';
 
 abstract class DashboardEvent {}
 
+/// 🔹 Load dashboard by email only
 class DashboardInitialized extends DashboardEvent {
-  final ClientProfileModel clientProfileModel;
-  DashboardInitialized(this.clientProfileModel);
+  final String email;
+  DashboardInitialized(this.email);
 }
 
+/// 🔹 Refresh dashboard (also by email)
 class RefreshDashboard extends DashboardEvent {
-  final ClientProfileModel clientProfileModel;
-  RefreshDashboard(this.clientProfileModel);
+  final String email;
+  RefreshDashboard(this.email);
 }
 
 class RequestDietitianLink extends DashboardEvent {
@@ -22,7 +25,6 @@ class RequestDietitianLink extends DashboardEvent {
   });
 }
 
-/// 🔥 Just checks status via API, does NOT reload dashboard
 class CheckDietitianLinkStatus extends DashboardEvent {
   final String profileId;
   CheckDietitianLinkStatus(this.profileId);

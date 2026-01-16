@@ -4,9 +4,11 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../../client-dashboard/data/model/client_profile_model.dart';
 import '../../../../../common/bottom_sheets/respyr_bottom_sheet.dart';
+import '../../../../../common/dialogs/floating_message.dart';
 import '../../bloc/dashboard_operation_bloc.dart';
 import '../../bloc/dashboard_operation_event.dart';
 import '../../bloc/dashboard_operation_state.dart';
+import '../../data/repository/dashboard_operation_repository.dart';
 
 void showWeightUpdateBottomSheet({
   required BuildContext context,
@@ -20,10 +22,51 @@ void showWeightUpdateBottomSheet({
     backgroundColor: Colors.transparent,
     builder: (BuildContext ctx) {
       return BlocProvider(
-        create: (_) => DashboardOperationBloc(initialWeight: double.parse(clientProfile.weight), initialWater: 250, targetWaterMl: 3500),
-        child: BlocBuilder<DashboardOperationBloc, DashboardOperationState>(
-          builder: (bottomSheetContext, state) {
+        // ✅ Use new constructor that fetches currentWeight + targetWeight from API
+        create: (_) => DashboardOperationBloc(
+          profileId: clientProfile.profileId,
+          dietPlanId: 0, // or clientProfile.dietPlanId ?? 0 if you have it
+          date: null,    // or specific date "YYYY-MM-DD" if needed
+        ),
+        child: BlocListener<DashboardOperationBloc, DashboardOperationState>(
+          listenWhen: (previous, current) {
+            if (previous is DashboardOperationLoaded &&
+                current is DashboardOperationLoaded) {
+              return previous.lastWeightLogSaveSuccess !=
+                  current.lastWeightLogSaveSuccess ||
+                  previous.errorMessage != current.errorMessage;
+            }
+            return false;
+          },
+          listener: (listenerContext, state) {
             if (state is DashboardOperationLoaded) {
+              if (state.lastWeightLogSaveSuccess) {
+                FloatingMessage.show(
+                  context,
+                  message: "Weight updated",
+                  type: FloatingMessageType.success,
+                );
+                Navigator.of(ctx).pop();
+              } else if (state.errorMessage != null &&
+                  state.errorMessage!.isNotEmpty) {
+                FloatingMessage.show(
+                  context,
+                  message: state.errorMessage!,
+                  type: FloatingMessageType.error,
+                );
+              }
+            }
+          },
+          child: BlocBuilder<DashboardOperationBloc, DashboardOperationState>(
+            builder: (bottomSheetContext, state) {
+              if (state is! DashboardOperationLoaded) {
+                // While API is fetching initial weight
+                return const SizedBox.shrink();
+              }
+
+              final double currentWeight = state.currentWeight;
+              final double targetWeight = state.targetedWeight;
+
               return AppBottomSheet(
                 onCloseSheet: () {
                   Navigator.of(ctx).pop();
@@ -64,7 +107,6 @@ void showWeightUpdateBottomSheet({
                         // +/- row
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
-                          spacing: 43,
                           children: [
                             // − button
                             IconButton(
@@ -80,7 +122,8 @@ void showWeightUpdateBottomSheet({
                                 ),
                                 minimumSize: Size.zero,
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(25000),
+                                  borderRadius:
+                                  BorderRadius.circular(25000),
                                 ),
                               ),
                               padding: const EdgeInsets.symmetric(
@@ -96,7 +139,9 @@ void showWeightUpdateBottomSheet({
                             // weight display
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 19, vertical: 31),
+                                horizontal: 19,
+                                vertical: 31,
+                              ),
                               decoration: ShapeDecoration(
                                 color: const Color(0xFFF0F0F0),
                                 shape: RoundedRectangleBorder(
@@ -104,10 +149,9 @@ void showWeightUpdateBottomSheet({
                                 ),
                               ),
                               child: Row(
-                                spacing: 10,
                                 children: [
                                   Text(
-                                    state.currentWeight.toString(),
+                                    currentWeight.toString(),
                                     style: GoogleFonts.poppins(
                                       color: const Color(0xFF252525),
                                       fontSize: 28,
@@ -144,7 +188,8 @@ void showWeightUpdateBottomSheet({
                                 ),
                                 minimumSize: Size.zero,
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(25000),
+                                  borderRadius:
+                                  BorderRadius.circular(25000),
                                 ),
                               ),
                               padding: const EdgeInsets.symmetric(
@@ -162,12 +207,28 @@ void showWeightUpdateBottomSheet({
                         const SizedBox(height: 36),
 
                         ElevatedButton(
-                          onPressed: () {},
+                          onPressed: () {
+                            bottomSheetContext
+                                .read<DashboardOperationBloc>()
+                                .add(
+                              SubmitWeightLog(
+                                profileId: clientProfile.profileId,
+                                currentWeight: currentWeight,
+                                // ✅ use target from API instead of hard-coded 23
+                                targetWeight: targetWeight,
+                                loggedBy: 'client',
+                                loggedById: clientProfile.profileId,
+                                notes: 'User logged weight',
+                              ),
+                            );
+                          },
                           style: ElevatedButton.styleFrom(
                             elevation: 0,
                             backgroundColor: const Color(0xFF308BF9),
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 50, vertical: 20),
+                              horizontal: 50,
+                              vertical: 20,
+                            ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(25000),
                             ),
@@ -190,13 +251,17 @@ void showWeightUpdateBottomSheet({
                   ),
                 ),
               );
-            }
-
-
-            return SizedBox.shrink();
-          },
+            },
+          ),
         ),
       );
     },
-  );
+  ).whenComplete(() {
+    BlocProvider.of<DashboardOperationBloc>(context).add(
+      FetchDashboardTrackingStats(
+        profileId: clientProfile.profileId,
+      ),
+      // or: RefreshDashboardTrackingStats()
+    );
+  });
 }

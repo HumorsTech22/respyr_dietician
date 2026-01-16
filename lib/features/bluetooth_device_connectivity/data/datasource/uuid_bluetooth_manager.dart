@@ -263,7 +263,7 @@ class UuidBluetoothManager {
     for (int attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         await _writeChar!.write(bytes, withoutResponse: withoutResponse);
-        if (kDebugMode) print("✅ Write success");
+        if (kDebugMode) print("✅ Write success :" + data);
         return;
       } catch (e) {
         if (kDebugMode) {

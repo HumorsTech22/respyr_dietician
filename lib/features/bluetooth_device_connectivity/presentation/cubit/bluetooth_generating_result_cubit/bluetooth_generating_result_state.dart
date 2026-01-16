@@ -15,6 +15,10 @@ class BluetoothGeneratingResultState extends Equatable {
   final int completedSteps;
   final GeneratingResultModel? dietitianResult;
 
+  // ✅ NEW (timer)
+  final int remainingSeconds; // 300 -> 0
+  final bool isTimedOut;
+
   const BluetoothGeneratingResultState({
     this.textError,
     this.hasInternet = false,
@@ -26,6 +30,10 @@ class BluetoothGeneratingResultState extends Equatable {
     this.hydrogen,
     this.completedSteps = 0,
     this.dietitianResult,
+
+    // ✅ NEW (timer)
+    this.remainingSeconds = 300,
+    this.isTimedOut = false,
   });
 
   BluetoothGeneratingResultState copyWith({
@@ -39,6 +47,10 @@ class BluetoothGeneratingResultState extends Equatable {
     double? hydrogen,
     int? completedSteps,
     GeneratingResultModel? dietitianResult,
+
+    // ✅ NEW (timer)
+    int? remainingSeconds,
+    bool? isTimedOut,
   }) {
     return BluetoothGeneratingResultState(
       textError: textError ?? this.textError,
@@ -51,6 +63,10 @@ class BluetoothGeneratingResultState extends Equatable {
       hydrogen: hydrogen ?? this.hydrogen,
       completedSteps: completedSteps ?? this.completedSteps,
       dietitianResult: dietitianResult ?? this.dietitianResult,
+
+      // ✅ NEW (timer)
+      remainingSeconds: remainingSeconds ?? this.remainingSeconds,
+      isTimedOut: isTimedOut ?? this.isTimedOut,
     );
   }
 
@@ -66,5 +82,9 @@ class BluetoothGeneratingResultState extends Equatable {
     hydrogen,
     completedSteps,
     dietitianResult,
+
+    // ✅ NEW (timer)
+    remainingSeconds,
+    isTimedOut,
   ];
 }

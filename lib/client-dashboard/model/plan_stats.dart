@@ -76,7 +76,7 @@ class DietPlanStatApi {
     return DietPlanStatApi(
       success: (json['success'] ?? false) == true,
       message: (json['message'] ?? '').toString(),
-      data:    PlanStats.fromJson(raw as Map<String, dynamic>),
+      data:    PlanStats.fromJson(raw),
     );
   }
 }

@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:respyr_dietitian/client-dashboard/data/model/client_profile_model.dart';
 import 'package:respyr_dietitian/client-dashboard/data/model/diet_plan_strategy_model.dart';
 import 'package:respyr_dietitian/common/widgets/audio_helper.dart';
@@ -15,41 +13,68 @@ import 'package:respyr_dietitian/common/dialogs/disconnection_dialog.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_inhale_cubit/bluetooth_inhale_state.dart';
 import 'package:respyr_dietitian/routes/app_routes.dart';
 
+import '../../../../common/dialogs/improper_exhale_dialog.dart';
+import '../../domain/processor/bluetooth_blow_processor.dart';
+import '../widgets/device_inhale_screen.dart';
+import '../widgets/inhale_getting_started.dart';
+
 class BluetoothInhaleScreen extends StatelessWidget {
   final ClientProfileModel clientProfileModel;
   final DietPlanStrategyModel dietPlanStrategyModel;
-  const BluetoothInhaleScreen({super.key, required this.clientProfileModel, required this.dietPlanStrategyModel});
+  final double minRange;
+  final double maxRange;
+
+  const BluetoothInhaleScreen({
+    super.key,
+    required this.clientProfileModel,
+    required this.dietPlanStrategyModel,
+    required this.minRange,
+    required this.maxRange,
+  });
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create:
-          (ctx) => BluetoothInhaleCubit(
-            ctx.read<BluetoothRepository>(),
-            AudioHelper(),
-          ),
-      child: _BluetoothInhaleView(clientProfileModel: clientProfileModel, dietPlanStrategyModel: dietPlanStrategyModel,),
+      create: (ctx) => BluetoothInhaleCubit(
+        ctx.read<BluetoothRepository>(),
+        AudioHelper(),
+        BluetoothBlowProcessor(),
+      ),
+      child: _BluetoothInhaleView(
+        clientProfileModel: clientProfileModel,
+        dietPlanStrategyModel: dietPlanStrategyModel,
+        minRange: minRange,
+        maxRange: maxRange,
+      ),
     );
   }
 }
 
+
 class _BluetoothInhaleView extends StatelessWidget {
   final ClientProfileModel clientProfileModel;
   final DietPlanStrategyModel dietPlanStrategyModel;
-  const _BluetoothInhaleView({required this.clientProfileModel, required this.dietPlanStrategyModel});
+  final double minRange;
+  final double maxRange;
 
-  Future<bool> showCancelTestDialogBox(BuildContext context) async {
+  const _BluetoothInhaleView({
+    required this.clientProfileModel,
+    required this.dietPlanStrategyModel,
+    required this.minRange,
+    required this.maxRange,
+  });
+
+  Future<bool> showCancelTestDialogBox(BuildContext context, bool hold) async {
     bool didCancel = false;
 
     showCancelTestDialog(context, () async {
       context.read<BluetoothInhaleCubit>().sendAbort();
-      Future.microtask(() async {
-        if (!context.read<BluetoothInhaleCubit>().isClosed)
-          await context
-              .read<BluetoothInhaleCubit>()
-              .setCancelOrDisconnectFlag();
-      });
-      context.go(AppRoutes.clientDashboard, extra: clientProfileModel);
+      if(hold) await context.read<BluetoothInhaleCubit>().setCancelOrDisconnectFlag();
+      context.go(
+        AppRoutes.clientDashboard,
+        extra: clientProfileModel,
+      );
+
       context.read<BluetoothInhaleCubit>().dialogDismissed();
     });
 
@@ -65,135 +90,115 @@ class _BluetoothInhaleView extends StatelessWidget {
       ),
     );
 
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) async {
-        if (!didPop) {
-          final shouldExit = await showCancelTestDialogBox(context);
+    return Builder(
+      builder: (context) {
+        // ✅ replaces initState
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          context.read<BluetoothInhaleCubit>().startStartCounter(from: 5);
+        });
 
-          if (shouldExit) {}
-        }
-      },
-      child: BlocConsumer<BluetoothInhaleCubit, BluetoothInhaleState>(
-        listenWhen:
-            (prev, curr) =>
-                prev.isDialogShown != curr.isDialogShown ||
-                prev.navigateToExhaleScreen != curr.navigateToExhaleScreen,
-        listener: (context, state) {
-          final cubit = context.read<BluetoothInhaleCubit>();
-          if (state.isDialogShown) {
-            showDeviceDisconnectedBox(
-              context: context,
-              onButtonPressed: () async {
-                context.pop();
-                await cubit.setCancelOrDisconnectFlag();
-                cubit.dialogDismissed();
+        return BlocConsumer<BluetoothInhaleCubit, BluetoothInhaleState>(
+          listenWhen: (prev, curr) =>
+          prev.isDialogShown != curr.isDialogShown ||
+              prev.navigateToExhaleScreen != curr.navigateToExhaleScreen ||
+              prev.improperBlow != curr.improperBlow,
+          listener: (context, state) {
+            final cubit = context.read<BluetoothInhaleCubit>();
 
-                context.go(
-                  AppRoutes.clientDashboard,
-                  extra: clientProfileModel,
-                );
+            // 1️⃣ Improper blow – highest priority
+            if (state.improperBlow && state.isDialogShown) {
+              cubit.sendAbort();
+              context.read<BluetoothInhaleCubit>().setCancelOrDisconnectFlag();
+
+              showImproperExhale(
+                context: context,
+                tryAgainButtonClicked: () async {
+                  cubit.dialogDismissed();
+                  context.go(
+                    AppRoutes.clientDashboard,
+                    extra: clientProfileModel,
+                  );
+                },
+                needHelpButtonCancel: () {
+                  Navigator.pop(context);
+                },
+              );
+
+              return; // ⛔ stop further handling
+            }
+
+            // 2️⃣ Bluetooth disconnected
+            if (state.isDialogShown && !cubit.repo.isConnected) {
+              showDeviceDisconnectedBox(
+                context: context,
+                onButtonPressed: () async {
+                  context.pop();
+                  cubit.dialogDismissed();
+
+                  context.go(
+                    AppRoutes.clientDashboard,
+                    extra: clientProfileModel,
+                  );
+                },
+              );
+
+              return; // ⛔ stop further handling
+            }
+
+            // 3️⃣ Navigate to exhale screen
+            if (state.navigateToExhaleScreen) {
+              context.push(
+                AppRoutes.bluetoothExhaleScreen,
+                extra: ExhaleScreenParams(
+                  clientProfileModel: clientProfileModel,
+                  baseValue: state.blowExhaleBaseValue ?? "",
+                  dietPlanStrategyModel: dietPlanStrategyModel,
+                  minRange: minRange,
+                  maxRange: maxRange,
+                ),
+              );
+            }
+          },
+          buildWhen: (prev, curr) =>
+          prev.startCounter != curr.startCounter ||
+              prev.startCounterFinished != curr.startCounterFinished ||
+              prev.isBluetoothConnected != curr.isBluetoothConnected ||
+              prev.progress != curr.progress ||
+              prev.inhaleStarted != curr.inhaleStarted ||
+              prev.inhaleFinished != curr.inhaleFinished ||
+              prev.holdStarted != curr.holdStarted ||
+              prev.holdFinished != curr.holdFinished ||
+              prev.holdCounter != curr.holdCounter ||
+              prev.perfectSamples != curr.perfectSamples ||
+              prev.navigateToExhaleScreen != curr.navigateToExhaleScreen,
+          builder: (context, state) {
+            return PopScope(
+              canPop: false,
+              onPopInvokedWithResult: (didPop, result) async {
+                if (!didPop) {
+                  await showCancelTestDialogBox(context, state.holdStarted&&state.inhaleFinished&&!state.holdFinished);
+                }
               },
-            ).then((_) {
-              cubit.dialogDismissed();
-            });
-          }
-
-          if (state.navigateToExhaleScreen &&
-              state.lastExtractedValue != null) {
-
-
-            context.push(
-              AppRoutes.bluetoothExhaleScreen,
-              extra: ExhaleScreenParams(
-                clientProfileModel: clientProfileModel,
-                baseValue: state.lastExtractedValue ?? '',
-                dietPlanStrategyModel: dietPlanStrategyModel,
+              child: Scaffold(
+                backgroundColor: Colors.white,
+                appBar: AppBar(
+                  leading: IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () {
+                      showCancelTestDialogBox(context, state.holdStarted&&state.inhaleFinished&&!state.holdFinished);
+                    },
+                  ),
+                  backgroundColor: Colors.white,
+                  surfaceTintColor: Colors.white,
+                ),
+                body: SafeArea(child: DeviceInhaleScreen(state: state)),
               ),
             );
-
-
-          }
-        },
-        buildWhen:
-            (prev, curr) =>
-                prev.counter != curr.counter ||
-                prev.isBluetoothConnected != curr.isBluetoothConnected,
-        builder: (context, state) {
-          return Scaffold(
-            backgroundColor: Colors.white,
-            body: SafeArea(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Stack(
-                    children: [
-                      Center(
-                        child:
-                            state.counter > 4
-                                ? Image.asset(
-                                  'assets/images/gif_images/inhale.gif',
-                                  height: 350,
-                                  width: 375,
-                                )
-                                : SvgPicture.asset(
-                                  "assets/images/device_connection/inhale_hold.svg",
-                                ),
-                      ),
-                      Positioned(
-                        top: 10,
-                        left: 20,
-                        child: IconButton(
-                          onPressed: () => showCancelTestDialogBox(context),
-                          icon: Container(
-                            height: 20,
-                            width: 20,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(5),
-                              color: Colors.white,
-                            ),
-                            child: SvgPicture.asset(
-                              "assets/images/common/closeicon.svg",
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  Text(
-                    state.counter > 4 ? 'Deep Inhale' : 'Hold',
-                    style: GoogleFonts.poppins(
-                      fontSize: 25,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFFA1A1A1),
-                    ),
-                  ),
-                  Column(
-                    children: [
-                      Text(
-                        '0${state.counter}',
-                        style: GoogleFonts.roboto(
-                          fontSize: 40,
-                          fontWeight: FontWeight.w400,
-                          color: Colors.black,
-                        ),
-                      ),
-                      Text(
-                        'sec',
-                        style: GoogleFonts.roboto(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w400,
-                          color: Colors.black,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
+          },
+        );
+      },
     );
   }
 }
+
+

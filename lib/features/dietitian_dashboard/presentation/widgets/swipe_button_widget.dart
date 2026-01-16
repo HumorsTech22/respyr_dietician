@@ -9,7 +9,7 @@ class SwipeButtonWidget extends StatefulWidget {
   const SwipeButtonWidget({
     super.key,
     this.onSwiped,
-    this.cutoffTime = const TimeOfDay(hour: 13, minute: 0),
+    this.cutoffTime = const TimeOfDay(hour: 23, minute: 0),
   });
 
   @override
@@ -18,30 +18,42 @@ class SwipeButtonWidget extends StatefulWidget {
 
 class _SwipeButtonWidgetState extends State<SwipeButtonWidget> {
   double _dragPosition = 0.0;
-  Timer? _timer;
-  String _statusText = "";
+
+  // ⛔ Timer disabled
+  // Timer? _timer;
+
+  String _statusText = "Swipe to continue";
+
+  // ⛔ Time restriction disabled
+  // bool _timeOver = false;
+
   bool _isDisposed = false;
-  bool _timeOver = false;
 
   @override
   void initState() {
     super.initState();
-    _updateStatusText();
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) _updateStatusText();
-    });
+
+    // ⛔ Time based status disabled
+    // _updateStatusText();
+    // _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+    //   if (mounted) _updateStatusText();
+    // });
   }
 
   @override
   void dispose() {
     _isDisposed = true;
-    _timer?.cancel();
+
+    // ⛔ Timer disabled
+    // _timer?.cancel();
+
     super.dispose();
   }
 
+  // ⛔ Entire time logic disabled
+  /*
   void _updateStatusText() {
     final now = DateTime.now();
-
     final target = DateTime(
       now.year,
       now.month,
@@ -53,41 +65,15 @@ class _SwipeButtonWidgetState extends State<SwipeButtonWidget> {
     final diff = target.difference(now);
 
     if (diff.isNegative) {
-      if (_statusText != "You missed" || _timeOver == false) {
-        setState(() {
-          _statusText = "You missed";
-          _timeOver = true;
-          _dragPosition = 0.0;
-        });
-      }
+      setState(() {
+        _statusText = "You missed";
+        _timeOver = true;
+        _dragPosition = 0.0;
+      });
       return;
     }
-
-    final hours = diff.inHours;
-    final minutes = diff.inMinutes % 60;
-    final seconds = diff.inSeconds % 60;
-
-    String newText;
-
-    if (hours > 0) {
-      // ✅ 1 hour or more → no seconds
-      newText = "$hours hr : ${minutes} min left";
-    } else {
-      // ✅ less than 1 hour → show seconds
-      if (minutes > 0) {
-        newText = "$minutes min : ${seconds}s left";
-      } else {
-        newText = "${seconds}s left";
-      }
-    }
-
-    if (newText != _statusText || _timeOver == true) {
-      setState(() {
-        _statusText = newText;
-        _timeOver = false;
-      });
-    }
   }
+  */
 
   @override
   Widget build(BuildContext context) {
@@ -120,7 +106,7 @@ class _SwipeButtonWidgetState extends State<SwipeButtonWidget> {
             ),
           ),
 
-          // TEXT (centered but not behind knob)
+          // TEXT
           Center(
             child: Padding(
               padding: EdgeInsets.only(left: knobSize + 15, right: 15),
@@ -138,49 +124,45 @@ class _SwipeButtonWidgetState extends State<SwipeButtonWidget> {
             ),
           ),
 
-          // DRAGGABLE KNOB
+          // DRAG KNOB
           Positioned(
             left: padding + _dragPosition,
             top: (height - knobSize) / 2,
-            child: AbsorbPointer(
-              absorbing: _timeOver,
-              child: GestureDetector(
-                onHorizontalDragUpdate: (details) {
-                  if (!mounted) return;
-                  setState(() {
-                    _dragPosition += details.delta.dx;
-                    _dragPosition = _dragPosition.clamp(0.0, maxDrag);
-                  });
-                },
-                onHorizontalDragEnd: (_) {
-                  final passed = _dragPosition > (maxDrag * dragThreshold);
-                  if (passed) {
-                    widget.onSwiped?.call();
-                    Future.delayed(Duration.zero, () {
-                      if (!_isDisposed && mounted) {
-                        setState(() => _dragPosition = 0.0);
-                      }
-                    });
-                  } else {
-                    if (mounted) setState(() => _dragPosition = 0.0);
+            child: GestureDetector(
+              onHorizontalDragUpdate: (details) {
+                if (!mounted) return;
+                setState(() {
+                  _dragPosition += details.delta.dx;
+                  _dragPosition = _dragPosition.clamp(0.0, maxDrag);
+                });
+              },
+              onHorizontalDragEnd: (_) {
+                final passed = _dragPosition > (maxDrag * dragThreshold);
+                if (passed) {
+                  widget.onSwiped?.call();
+                }
+
+                Future.delayed(Duration.zero, () {
+                  if (!_isDisposed && mounted) {
+                    setState(() => _dragPosition = 0.0);
                   }
-                },
-                child: Container(
-                  width: knobSize,
-                  height: knobSize,
-                  decoration: BoxDecoration(
-                    color: _timeOver ? Colors.grey : const Color(0xFF308BF9),
-                    shape: BoxShape.circle,
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x3F000000),
-                        blurRadius: 8.4,
-                        offset: Offset(0, 0),
-                      )
-                    ],
-                  ),
-                  child: const Icon(Icons.arrow_forward, color: Colors.white),
+                });
+              },
+              child: Container(
+                width: knobSize,
+                height: knobSize,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF308BF9),
+                  shape: BoxShape.circle,
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x3F000000),
+                      blurRadius: 8.4,
+                      offset: Offset(0, 0),
+                    )
+                  ],
                 ),
+                child: const Icon(Icons.arrow_forward, color: Colors.white),
               ),
             ),
           ),

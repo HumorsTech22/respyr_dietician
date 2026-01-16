@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../../../../client-dashboard/data/model/client_profile_model.dart'
-    show ClientProfileModel;
+import '../../../../../client-dashboard/data/model/client_profile_model.dart' show ClientProfileModel;
 import '../../../../../common/bottom_sheets/respyr_bottom_sheet.dart';
 import '../../../../../common/dialogs/floating_message.dart';
 import '../../../../../common/widgets/water_progress.dart';
@@ -15,8 +14,8 @@ void showUpdateWaterIntakeSheet({
   required BuildContext context,
   required ClientProfileModel clientProfile,
 }) {
-  // 🔹 initial ml used in this sheet
-  const double initialWaterMl = 250; // 1 glass
+  // 🔹 No need of local initialWaterMl / targetWaterMl anymore.
+  //     We will fetch everything from API via DashboardOperationBloc.
 
   showModalBottomSheet(
     context: context,
@@ -26,10 +25,11 @@ void showUpdateWaterIntakeSheet({
     backgroundColor: Colors.transparent,
     builder: (BuildContext ctx) {
       return BlocProvider(
+        // ✅ Use NEW constructor – it will call FetchDashboardTrackingStats internally
         create: (_) => DashboardOperationBloc(
-          initialWeight: double.parse(clientProfile.weight),
-          initialWater: initialWaterMl, // starting from 1 glass
-          targetWaterMl: 3500,          // daily target ml (you can replace with dynamic)
+          profileId: clientProfile.profileId,
+          dietPlanId: 0, // or clientProfile.dietPlanId ?? 0 if you have it
+          date: null,    // or a specific "YYYY-MM-DD" if needed
         ),
 
         // 🔹 Listen for success/error from insert_water_log.php
@@ -37,40 +37,52 @@ void showUpdateWaterIntakeSheet({
           listenWhen: (previous, current) {
             if (previous is DashboardOperationLoaded &&
                 current is DashboardOperationLoaded) {
-              return previous.lastSaveSuccess != current.lastSaveSuccess ||
+              return previous.lastWaterLogSaveSuccess !=
+                  current.lastWaterLogSaveSuccess ||
                   previous.errorMessage != current.errorMessage;
             }
             return false;
           },
           listener: (listenerContext, state) {
             if (state is DashboardOperationLoaded) {
-              if (state.lastSaveSuccess) {
-                FloatingMessage.show(context, message: "Water intake logged", type: FloatingMessageType.success);
+              if (state.lastWaterLogSaveSuccess) {
+                FloatingMessage.show(
+                  context,
+                  message: "Water intake logged",
+                  type: FloatingMessageType.success,
+                );
                 Navigator.of(ctx).pop();
-              }
-              else if (state.errorMessage != null &&
+              } else if (state.errorMessage != null &&
                   state.errorMessage!.isNotEmpty) {
-                FloatingMessage.show(context, message: state.errorMessage!, type: FloatingMessageType.error);
-
+                FloatingMessage.show(
+                  context,
+                  message: state.errorMessage!,
+                  type: FloatingMessageType.error,
+                );
               }
             }
           },
 
-          child: BlocBuilder<DashboardOperationBloc, DashboardOperationState>(
+          child:
+          BlocBuilder<DashboardOperationBloc, DashboardOperationState>(
             builder: (bottomSheetContext, state) {
               if (state is! DashboardOperationLoaded) {
+                // While API fetch is in progress
                 return const SizedBox.shrink();
               }
 
-              // use values from state
+              // ✅ use values from API-driven state
               final double targetWaterMl = state.targetWaterMl;
               final double waterIntake = state.waterIntake;
 
               const int glassSizeMl = 250;
-              final int totalGlasses = (targetWaterMl / glassSizeMl).ceil();
-              final int consumedGlasses = (waterIntake / glassSizeMl).ceil();
+              final int totalGlasses = targetWaterMl > 0
+                  ? (targetWaterMl / glassSizeMl).ceil()
+                  : 0;
+              final int consumedGlasses =
+              (waterIntake / glassSizeMl).ceil();
 
-              final bool isSaving = state.isSaving;
+              final bool isSaving = state.isWaterLogSaving;
               final bool canIncrement = !isSaving;
               final bool canDecrement =
                   !isSaving && waterIntake >= glassSizeMl;
@@ -123,16 +135,18 @@ void showUpdateWaterIntakeSheet({
                                   ? () {
                                 // 1) update local UI
                                 bottomSheetContext
-                                    .read<DashboardOperationBloc>()
+                                    .read<
+                                    DashboardOperationBloc>()
                                     .add(DecrementWater());
 
                                 // 2) send -1 glass log to API
                                 bottomSheetContext
-                                    .read<DashboardOperationBloc>()
+                                    .read<
+                                    DashboardOperationBloc>()
                                     .add(
                                   InsertWaterLog(
-                                    profileId:
-                                    clientProfile.profileId,
+                                    profileId: clientProfile
+                                        .profileId,
                                     consumedMl: -glassSizeMl,
                                     targetedMl:
                                     targetWaterMl.toInt(),
@@ -151,7 +165,8 @@ void showUpdateWaterIntakeSheet({
                                 ),
                                 minimumSize: Size.zero,
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(25000),
+                                  borderRadius:
+                                  BorderRadius.circular(25000),
                                 ),
                               ),
                               padding: const EdgeInsets.symmetric(
@@ -178,16 +193,18 @@ void showUpdateWaterIntakeSheet({
                                   ? () {
                                 // 1) update local UI
                                 bottomSheetContext
-                                    .read<DashboardOperationBloc>()
+                                    .read<
+                                    DashboardOperationBloc>()
                                     .add(IncrementWater());
 
                                 // 2) send +1 glass log to API
                                 bottomSheetContext
-                                    .read<DashboardOperationBloc>()
+                                    .read<
+                                    DashboardOperationBloc>()
                                     .add(
                                   InsertWaterLog(
-                                    profileId:
-                                    clientProfile.profileId,
+                                    profileId: clientProfile
+                                        .profileId,
                                     consumedMl: glassSizeMl,
                                     targetedMl:
                                     targetWaterMl.toInt(),
@@ -206,7 +223,8 @@ void showUpdateWaterIntakeSheet({
                                 ),
                                 minimumSize: Size.zero,
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(25000),
+                                  borderRadius:
+                                  BorderRadius.circular(25000),
                                 ),
                               ),
                               padding: const EdgeInsets.symmetric(
@@ -225,21 +243,23 @@ void showUpdateWaterIntakeSheet({
 
                         /// progress bars
                         Padding(
-                          padding:
-                          const EdgeInsets.symmetric(horizontal: 20),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 20),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             spacing: 10,
                             children: [
                               Row(
-                                children: List.generate(totalGlasses, (index) {
+                                children:
+                                List.generate(totalGlasses, (index) {
                                   return Expanded(
                                     child: Container(
                                       margin:
                                       const EdgeInsets.only(right: 4),
                                       height: 5,
                                       decoration: BoxDecoration(
-                                        color: index + 1 <= consumedGlasses
+                                        color: index + 1 <=
+                                            consumedGlasses
                                             ? const Color(0xFF308BF9)
                                             : const Color(0xFFF0F0F0),
                                         borderRadius:
@@ -291,5 +311,13 @@ void showUpdateWaterIntakeSheet({
         ),
       );
     },
-  );
+  ).whenComplete(() {
+    // 🔁 Refresh main dashboard bloc when bottom sheet is closed
+    BlocProvider.of<DashboardOperationBloc>(context).add(
+      FetchDashboardTrackingStats(
+        profileId: clientProfile.profileId,
+      ),
+      // or: RefreshDashboardTrackingStats()
+    );
+  });
 }

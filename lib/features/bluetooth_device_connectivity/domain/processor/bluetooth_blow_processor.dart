@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 class BluetoothBlowProcessor {
   double? blowBaseValue;
   double? blowThresholdValue;
@@ -23,6 +25,22 @@ class BluetoothBlowProcessor {
   List<double> blowValuesList = [];
   List<double> baseBlowValueList = [];
 
+  bool debugEnabled = true;
+  int blowValueCounter = 0;
+
+  void _debugImproper(String reason, {double? blowValue}) {
+    if (!debugEnabled) return;
+    debugPrint(
+        '[BluetoothBlowProcessor] improperBlow=true | $reason | '
+            'base=$blowBaseValue | blow=${blowValue ?? "NA"} | '
+            'threshold%=$thresholdPercentage | blowP=$blowP | '
+            'isBlown=$isBlown | perfect=$perfectBlowValueCaptured | '
+            'startCaptured=$isBlowStartTimeCaptured | '
+            'start=$blowStartTime | end=$blowEndTime | '
+            'durationAfterThreshold=${(blowEndTime != null && blowStartTime != null) ? (blowEndTime! - blowStartTime!) : 0}ms'
+    );
+  }
+
   void reset() {
     blowBaseValue = null;
     blowThresholdValue = null;
@@ -44,13 +62,14 @@ class BluetoothBlowProcessor {
     blowEndTime = null;
     blowValuesList = [];
     baseBlowValueList = [];
+    blowValueCounter = 0;
   }
 
   void processBlowData(
-    String data,
-    double? Function(double) thresholdPercentageCalc,
-    double Function(double, double) blowPercentageCalc,
-  ) {
+      String data,
+      double? Function(double) thresholdPercentageCalc,
+      double Function(double, double) blowPercentageCalc,
+      ) {
     final baseValueRegex = RegExp(r'/([0-9.]+)/');
     final blowValueRegex = RegExp(r'\{([0-9.]+)\}');
 
@@ -58,7 +77,6 @@ class BluetoothBlowProcessor {
     final blowValueMatch = blowValueRegex.firstMatch(data);
 
     if (baseValueMatch != null && !isBaseValueCaptured) {
-      // Capture base value
       blowBaseValue = double.parse(baseValueMatch.group(1)!);
       baseBlowValueList.add(blowBaseValue!);
       blowThresholdValue = blowBaseValue! + 20;
@@ -71,14 +89,20 @@ class BluetoothBlowProcessor {
     } else if (blowValueMatch != null && isBaseValueCaptured) {
       double blowValue = double.parse(blowValueMatch.group(1)!);
 
+      blowValueCounter++;
+      if(blowValueCounter < 10){
+        return;
+      }
+
+
       if (!firstDataValueCaptured) {
         firstDataValue = blowValue;
         firstDataValueCaptured = true;
       }
 
-      if (blowValue < firstDataValue!) {
-        blowValue = firstDataValue!;
-      }
+      // if (blowValue < firstDataValue!) {
+      //   blowValue = firstDataValue!;
+      // }
 
       blowP = blowPercentageCalc(blowBaseValue!, blowValue);
 
@@ -87,7 +111,6 @@ class BluetoothBlowProcessor {
       if (blowP! >= thresholdPercentage!) {
         perfectBlowValueCaptured = true;
 
-        // Start timer only when first threshold crossing happens
         if (!isBlowStartTimeCaptured) {
           blowStartTime = DateTime.now().millisecondsSinceEpoch;
           isBlowStartTimeCaptured = true;
@@ -97,16 +120,19 @@ class BluetoothBlowProcessor {
         blowValuesList.add(blowValue);
       }
 
-      // Detect abort → user dropped below threshold
-      if (perfectBlowValueCaptured &&
-          isBlown &&
-          blowP! < thresholdPercentage!) {
+
+
+      if (perfectBlowValueCaptured && isBlown && blowP! <= thresholdPercentage!) {
         blowEndTime = DateTime.now().millisecondsSinceEpoch;
 
         final durationAfterThreshold = blowEndTime! - (blowStartTime ?? 0);
 
-        if (durationAfterThreshold < 1500) {
+        if (durationAfterThreshold <= 1500) {
           improperBlow = true;
+          _debugImproper(
+            'Dropped below threshold too quickly (<1500ms)',
+            blowValue: blowValue,
+          );
         } else {
           moveToResults = true;
         }
@@ -117,7 +143,6 @@ class BluetoothBlowProcessor {
   }
 
   bool get isBlowComplete => moveToResults;
-
   bool get isImproperBlow => improperBlow;
 
   int get blowDuration {
@@ -125,22 +150,3 @@ class BluetoothBlowProcessor {
     return DateTime.now().millisecondsSinceEpoch - (blowStartTime ?? 0);
   }
 }
-
-// class Thresholds {
-//   static const double blowThreshold = 1.0;
-//   static const double abortDifference = 1500;
-
-//   static double calculateThresholdPercentage(double baseValue) {
-//     double valueThreshold = baseValue + blowThreshold;
-//     double valueDiff = valueThreshold - baseValue;
-//     return (valueDiff / (valueDiff * 2)) * 100;
-//   }
-
-//   static double calculateBlowPercentage(double baseValue, double blowValue) {
-//     double valueThreshold = baseValue + blowThreshold;
-//     double valueDiff1 = valueThreshold - blowValue;
-//     valueDiff1 = blowThreshold - valueDiff1;
-//     double valueDiff = valueThreshold - baseValue;
-//     return (valueDiff1 / (valueDiff * 2)) * 100;
-//   }
-// }

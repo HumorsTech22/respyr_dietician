@@ -160,7 +160,7 @@ class _TestResultHistoryState extends State<TestResultHistory> {
                       ),
                       const SizedBox(height: 15),
                       Text(
-                        DateHelper().formatToDateTimeString(widget.testDataRecord.dateTime),
+                        DateHelper.formatToDateTimeString(widget.testDataRecord.dateTime),
                         style: GoogleFonts.poppins(
                           color: const Color(0xFF535359),
                           fontSize: 12,

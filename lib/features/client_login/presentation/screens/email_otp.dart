@@ -195,7 +195,7 @@ class _EmailOtpState extends State<EmailOtp> {
 
       FloatingMessage.show(context, message: 'OTP verified successfully!', type: FloatingMessageType.success);
 
-      final profile = await checkClientProfile(widget.enteredEmail, "");
+      final profile = await checkClientProfile(userEmail: widget.enteredEmail);
       setState(() => isLoading = false);
       if (profile != null) {
         bool isSaved = await ClientLoginManager().saveClientProfile(profile);

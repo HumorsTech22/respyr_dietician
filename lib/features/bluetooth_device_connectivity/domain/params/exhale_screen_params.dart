@@ -5,10 +5,12 @@ class ExhaleScreenParams {
   final ClientProfileModel clientProfileModel;
   final DietPlanStrategyModel dietPlanStrategyModel;
   final String baseValue;
+  final double minRange;
+  final double maxRange;
 
   ExhaleScreenParams({
     required this.clientProfileModel,
     required this.baseValue,
-    required this.dietPlanStrategyModel,
+    required this.dietPlanStrategyModel, required this.minRange, required this.maxRange,
   });
 }

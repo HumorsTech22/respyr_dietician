@@ -74,7 +74,7 @@ Future<bool> showCancelTestDialog(
                       backgroundColor: const Color(0xFFEA5455),
                     ),
                     child: Text(
-                      "Yes, Cancel test",
+                      "Yes, Continue",
                       style: GoogleFonts.mulish(
                         color: Colors.white,
                         fontSize: 12,
