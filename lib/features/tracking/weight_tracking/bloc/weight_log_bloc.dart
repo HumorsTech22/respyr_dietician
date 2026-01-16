@@ -10,6 +10,7 @@ class WeightLogBloc extends Bloc<WeightLogEvent, WeightLogState> {
 
   WeightLogBloc({required this.repository}) : super(WeightLogInitial()) {
     on<LoadWeightLogs>(_onLoadWeightLogs);
+    on<DeleteWeightLog>(_onDeleteWeightLog);
   }
 
   Future<void> _onLoadWeightLogs(
@@ -23,6 +24,30 @@ class WeightLogBloc extends Bloc<WeightLogEvent, WeightLogState> {
       emit(WeightLogLoaded(logs));
     } catch (e) {
       emit(WeightLogError(e.toString()));
+    }
+  }
+
+  Future<void> _onDeleteWeightLog(
+      DeleteWeightLog event,
+      Emitter<WeightLogState> emit,
+      ) async {
+    emit(WeightLogDeleting());
+
+    try {
+      // Call delete API in repository (you need to implement this)
+      await repository.deleteWeightLog(
+        id: event.id,
+        profileId: event.profileId,
+      );
+
+
+      emit(const WeightLogDeleted("Weight log deleted successfully"));
+
+      // Refresh the list after delete
+      final logs = await repository.fetchWeightLogs(event.profileId);
+      emit(WeightLogLoaded(logs));
+    } catch (e) {
+      emit(WeightLogDeleteError(e.toString()));
     }
   }
 }

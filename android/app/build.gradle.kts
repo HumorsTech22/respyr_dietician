@@ -1,8 +1,13 @@
+// This file is the app module's Gradle configuration.
+// The plugin versions are defined in the project-level 'android/build.gradle.kts' file (the root project),
+// so they must NOT be specified here.
+
 plugins {
+    // Apply plugins without specifying versions (versions comes from the root build.gradle.kts)
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("dev.flutter.flutter-gradle-plugin")
-    id("com.google.gms.google-services") // Remove version and apply false here
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -40,9 +45,16 @@ flutter {
 }
 
 dependencies {
-    implementation("com.google.android.gms:play-services-auth:20.7.0")
+    // Desugaring is necessary when using Java 11 with older Android versions
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
-    // Add Firebase dependencies if you're using specific Firebase services
+
+    // Firebase dependencies
+    implementation("com.google.android.gms:play-services-auth:20.7.0")
     implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
     implementation("com.google.firebase:firebase-analytics")
+
+    // Use THESE VERSIONS - they are proven to work:
+    implementation("androidx.core:core-ktx:1.9.0")
+    implementation("androidx.activity:activity-ktx:1.7.2")
+    implementation("androidx.browser:browser:1.5.0")
 }

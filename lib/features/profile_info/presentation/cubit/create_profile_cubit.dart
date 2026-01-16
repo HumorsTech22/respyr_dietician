@@ -103,7 +103,7 @@ class CreateProfileCubit extends Cubit<CreateProfileState> {
 
       final uri = Uri.parse(UrlManager().urlCreateClientProfile);
       final request = http.MultipartRequest('POST', uri)
-        ..fields['dietitian_id'] = "NA"
+        ..fields['dietitian_id'] = dietitianId
         ..fields['phone_no'] = "NA"
         ..fields['email'] = email
         ..fields['profile_name'] = profileName

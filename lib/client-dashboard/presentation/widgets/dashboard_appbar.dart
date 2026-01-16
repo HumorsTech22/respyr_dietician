@@ -58,7 +58,7 @@ class DashboardAppbar extends StatelessWidget {
               ),
             ),
             Text(
-              DateHelper().getGreeting(),
+              DateHelper.getGreeting(),
               style: GoogleFonts.poppins(
                 color: const Color(0xFF252525),
                 fontSize: 25,

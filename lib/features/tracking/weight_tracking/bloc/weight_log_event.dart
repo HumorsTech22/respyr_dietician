@@ -9,6 +9,7 @@ abstract class WeightLogEvent extends Equatable {
   List<Object?> get props => [];
 }
 
+// Load all logs by profile id
 class LoadWeightLogs extends WeightLogEvent {
   final String profileId;
 
@@ -16,4 +17,18 @@ class LoadWeightLogs extends WeightLogEvent {
 
   @override
   List<Object?> get props => [profileId];
+}
+
+// 🔥 Delete a log by id AND profile id
+class DeleteWeightLog extends WeightLogEvent {
+  final int id;
+  final String profileId;
+
+  const DeleteWeightLog({
+    required this.id,
+    required this.profileId,
+  });
+
+  @override
+  List<Object?> get props => [id, profileId];
 }

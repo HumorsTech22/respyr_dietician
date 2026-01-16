@@ -1,7 +1,7 @@
 import 'package:respyr_dietitian/client-dashboard/data/model/client_profile_model.dart';
 import 'package:respyr_dietitian/features/profile_info/data/model/dietician_detail_model.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/model/generating_result_model.dart';
-import '../../../../client-dashboard/data/repositories/diet_plan_repository.dart';
+import 'package:respyr_dietitian/client-dashboard/data/repositories/diet_plan_repository.dart';
 
 abstract class DashboardState {
   final ClientProfileModel? clientProfileModel;
@@ -31,7 +31,7 @@ class DashboardReady extends DashboardState {
   final String? plansError;
   final String? todayDietError;
 
-  /// 🔥 NEW: link status fields
+  /// 🔥 Link status fields
   final bool isCheckingLinkStatus;
   final String? dietitianLinkStatus;          // PENDING / ACCEPTED / REJECTED / NOT_REQUESTED
   final String? dietitianLinkStatusError;
@@ -45,7 +45,6 @@ class DashboardReady extends DashboardState {
         this.todayDietData,
         this.plansError,
         this.todayDietError,
-
         this.isCheckingLinkStatus = false,
         this.dietitianLinkStatus,
         this.dietitianLinkStatusError,
@@ -64,7 +63,6 @@ class DashboardReady extends DashboardState {
     Map<String, dynamic>? todayDietData,
     String? plansError,
     String? todayDietError,
-
     bool? isCheckingLinkStatus,
     String? dietitianLinkStatus,
     String? dietitianLinkStatusError,
@@ -78,7 +76,6 @@ class DashboardReady extends DashboardState {
       todayDietData: todayDietData ?? this.todayDietData,
       plansError: plansError ?? this.plansError,
       todayDietError: todayDietError ?? this.todayDietError,
-
       isCheckingLinkStatus:
       isCheckingLinkStatus ?? this.isCheckingLinkStatus,
       dietitianLinkStatus:

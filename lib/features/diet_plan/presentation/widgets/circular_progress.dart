@@ -89,7 +89,7 @@ class CircularPercent extends StatefulWidget {
     this.decimals = 0,
     this.animate = true,
     this.animateFromLast = true,
-    this.duration = const Duration(milliseconds: 900),
+    this.duration = const Duration(milliseconds: 1600),
     this.curve = Curves.easeOutCubic,
     this.child  = const SizedBox.shrink(),
   });

@@ -13,22 +13,32 @@ import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presenta
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/widgets/device_section.dart';
 import 'package:respyr_dietitian/routes/app_routes.dart';
 
+import '../../../../common/dialogs/device_low_battery.dart';
+
 class BluetoothDeviceConnectivity extends StatelessWidget {
   final ClientProfileModel clientProfileModel;
   final DietPlanStrategyModel dietPlanStrategyModel;
+  final double minRange;
+  final double maxRange;
+
   const BluetoothDeviceConnectivity({
     super.key,
-    required this.clientProfileModel, required this.dietPlanStrategyModel,
+    required this.clientProfileModel,
+    required this.dietPlanStrategyModel,
+    required this.minRange,
+    required this.maxRange,
   });
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create:
-          (ctx) =>
-              BluetoothConnectionCubit(ctx.read<BluetoothRepository>())..init(),
+      create: (ctx) =>
+      BluetoothConnectionCubit(ctx.read<BluetoothRepository>())..init(),
       child: _BluetoothDeviceConnectivityView(
-        clientProfileModel: clientProfileModel, dietPlanStrategyModel: dietPlanStrategyModel,
+        clientProfileModel: clientProfileModel,
+        dietPlanStrategyModel: dietPlanStrategyModel,
+        minRange: minRange,
+        maxRange: maxRange,
       ),
     );
   }
@@ -37,7 +47,15 @@ class BluetoothDeviceConnectivity extends StatelessWidget {
 class _BluetoothDeviceConnectivityView extends StatefulWidget {
   final ClientProfileModel clientProfileModel;
   final DietPlanStrategyModel dietPlanStrategyModel;
-  const _BluetoothDeviceConnectivityView({required this.clientProfileModel, required this.dietPlanStrategyModel});
+  final double minRange;
+  final double maxRange;
+
+  const _BluetoothDeviceConnectivityView({
+    required this.clientProfileModel,
+    required this.dietPlanStrategyModel,
+    required this.minRange,
+    required this.maxRange,
+  });
 
   @override
   State<_BluetoothDeviceConnectivityView> createState() =>
@@ -47,10 +65,10 @@ class _BluetoothDeviceConnectivityView extends StatefulWidget {
 class __BluetoothDeviceConnectivityViewState
     extends State<_BluetoothDeviceConnectivityView> {
   bool _dialogShown = false;
+  bool _lowBatteryShown = false;
 
   @override
   Widget build(BuildContext context) {
-
     return StreamBuilder<fbp.BluetoothAdapterState>(
       stream: fbp.FlutterBluePlus.adapterState,
       initialData: fbp.BluetoothAdapterState.unknown,
@@ -73,9 +91,7 @@ class __BluetoothDeviceConnectivityViewState
               onButtonPressed: () {
                 fbp.FlutterBluePlus.turnOn();
               },
-            ).then((_) {
-              _dialogShown = false;
-            });
+            ).then((_) => _dialogShown = false);
           });
         }
 
@@ -90,157 +106,164 @@ class __BluetoothDeviceConnectivityViewState
 
         return Scaffold(
           appBar: AppBar(
-            title: Text(
-              'Connect Device',
-              textAlign: TextAlign.center,
-              style: GoogleFonts.poppins(
-                color: const Color(0xFF252525),
-                fontSize: 34,
-                fontWeight: FontWeight.w400,
-                letterSpacing: -2.04,
-              ),
-            ),
             leading: IconButton(
-              onPressed: () {
-                context.pop();
+              onPressed: (){
+                BluetoothConnectionCubit(context.read<BluetoothRepository>()).sendAbort;
+                BluetoothConnectionCubit(context.read<BluetoothRepository>()).close;
+                _navigateToDashboard();
               },
-              icon: SvgPicture.asset("assets/images/common/closeicon.svg"),
+              icon: SvgPicture.asset(
+                "assets/images/common/closeicon.svg",
+              ),
             ),
             backgroundColor: Colors.white,
             surfaceTintColor: Colors.white,
           ),
           backgroundColor: Colors.white,
-          body: BlocBuilder<BluetoothConnectionCubit, BluetoothConnectionState>(
-            builder: (context, state) {
-              if (adapterState != fbp.BluetoothAdapterState.on) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      SvgPicture.asset(
-                        "assets/images/device_connection/bluetooth_disconnected.svg",
-                        height: 120,
-                      ),
-                      const SizedBox(height: 20),
-                      Text(
-                        'Bluetooth is Off',
-                        style: GoogleFonts.poppins(
-                          color: const Color(0xFF252525),
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        'Please enable Bluetooth to connect a device',
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.poppins(
-                          color: const Color(0xFF535359),
-                          fontSize: 14,
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
-                    ],
+
+          body: SafeArea(
+            child: BlocListener<BluetoothConnectionCubit,
+                BluetoothConnectionState>(
+              listenWhen: (prev, curr) =>
+              prev.deviceErrorMessage != curr.deviceErrorMessage &&
+                  curr.deviceErrorMessage != null,
+              listener: (context, state) async {
+                if (_lowBatteryShown) return;
+                _lowBatteryShown = true;
+            
+                await showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (_) => WillPopScope(
+                    onWillPop: () async => false,
+                    child: DeviceLowBattery(
+                      message: state.deviceErrorMessage!,
+                      onOk: _navigateToDashboard,
+                    ),
                   ),
                 );
-              }
-
-              return DeviceSection(state: state);
-            },
+              },
+              child:
+              BlocBuilder<BluetoothConnectionCubit,
+                  BluetoothConnectionState>(
+                builder: (context, state) {
+                  if (adapterState != fbp.BluetoothAdapterState.on) {
+                    return _bluetoothOffUI();
+                  }
+                  return DeviceSection(state: state);
+                },
+              ),
+            ),
           ),
 
-          bottomNavigationBar: SafeArea(
-            top: false,
-            child:
-                BlocBuilder<BluetoothConnectionCubit, BluetoothConnectionState>(
-                  builder: (context, state) {
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              onPressed:
-                                  (state.isConnected &&
-                                          state.connectingDeviceId != null)
-                                      ? () {
-                                        context.push(
-                                          AppRoutes.bluetoothBreatheTube,
-                                          extra: {
-                                            "client" : widget.clientProfileModel,
-                                            "strategy" : widget.dietPlanStrategyModel,
-                                          },
-                                        );
-                                      }
-                                      : null,
-                              style: ElevatedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 16,
-                                ),
-                                elevation: 0,
-                                shadowColor: Colors.transparent,
-                                backgroundColor:
-                                    state.isConnected
-                                        ? const Color(0xFF308BF9)
-                                        : const Color(0xFFD9D9D9),
-                              ),
-                              child: Text(
-                                'Start',
-                                style: GoogleFonts.poppins(
-                                  color:
-                                      state.isConnected
-                                          ? Colors.white
-                                          : const Color(0xFF959595),
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Visibility(
-                            visible: false,
-                            child: GestureDetector(
-                              onTap: () {
-                                context.push(
-                                  AppRoutes.issueWithConnectionScreen,
-                                );
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 14,
-                                  vertical: 8,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(25.5),
-                                  border: Border.all(
-                                    width: 1,
-                                    color: const Color(0xFFC7C6CE),
-                                  ),
-                                ),
-                                child: Text(
-                                  'issue with connection?',
-                                  style: GoogleFonts.poppins(
-                                    color: const Color(0xFF252525),
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-          ),
+          bottomNavigationBar: _bottomButton(),
         );
       },
+    );
+  }
+
+  Widget _bottomButton() {
+    return SafeArea(
+      top: false,
+      child: BlocBuilder<BluetoothConnectionCubit,
+          BluetoothConnectionState>(
+        builder: (context, state) {
+          final isBatteryReceived =
+              state.batteryPercentage != null &&
+                  state.batteryPercentage!.isFinite &&
+                  state.batteryPercentage! > 0;
+
+          final canStart = state.isConnected && isBatteryReceived;
+
+          String buttonText;
+          if (!state.isConnected && state.isScanning) {
+            buttonText = "Start";
+          } else if (state.isConnected && !isBatteryReceived) {
+            buttonText = "Checking battery...";
+          } else if (canStart) {
+            buttonText = "Start";
+          } else {
+            buttonText = "Start";
+          }
+
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: canStart
+                    ? () {
+                  context.push(
+                    AppRoutes.bluetoothCalibrationScreen,
+                    extra: {
+                      "client": widget.clientProfileModel,
+                      "strategy": widget.dietPlanStrategyModel,
+                      "min_range": widget.minRange,
+                      "max_range": widget.maxRange,
+                    },
+                  );
+                }
+                    : null,
+                style: ElevatedButton.styleFrom(
+                  padding:
+                  const EdgeInsets.symmetric(vertical: 16),
+                  elevation: 0,
+                  backgroundColor: canStart
+                      ? const Color(0xFF308BF9)
+                      : const Color(0xFFD9D9D9),
+                ),
+                child: Text(
+                  buttonText,
+                  style: GoogleFonts.poppins(
+                    color: canStart
+                        ? Colors.white
+                        : const Color(0xFF959595),
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _bluetoothOffUI() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SvgPicture.asset(
+            "assets/images/device_connection/bluetooth_disconnected.svg",
+            height: 120,
+          ),
+          const SizedBox(height: 20),
+          Text(
+            'Bluetooth is Off',
+            style: GoogleFonts.poppins(
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Please enable Bluetooth to connect a device',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.poppins(fontSize: 14),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _navigateToDashboard() {
+
+
+    context.go(
+      AppRoutes.clientDashboard,
+      extra: widget.clientProfileModel,
     );
   }
 }

@@ -1,3 +1,5 @@
+// lib/features/dashboard/bloc/dashboard_bloc.dart
+
 import 'dart:convert';
 
 import 'package:bloc/bloc.dart';
@@ -13,6 +15,7 @@ import 'package:respyr_dietitian/client-dashboard/today_result/today_test_data_a
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/model/generating_result_model.dart';
 
 import '../../../client-dashboard/extras/get_today_key.dart';
+import '../../client_login/data/services/check_profile_client.dart';
 import 'dashboard_event.dart';
 import 'dashboard_state.dart';
 
@@ -34,9 +37,22 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
         super(const DashboardInitial()) {
     on<DashboardInitialized>(_onLoadDashboard);
     on<RefreshDashboard>(_onLoadDashboard);
-
-    /// 🔥 NEW: check dietitian link status (ONLY updates status, not full dashboard)
     on<CheckDietitianLinkStatus>(_onCheckDietitianLinkStatus);
+    // (optional) on<RequestDietitianLink>(_onRequestDietitianLink);
+  }
+
+  // ----------------------------------------------------
+  // 🔁 Fetch client profile from server using email only
+  //     phone_no is always "NA"
+  // ----------------------------------------------------
+  Future<ClientProfileModel> _fetchClientProfileByEmail(String email) async {
+    final result = await checkClientProfile(userEmail: email); // phoneNo = "NA"
+
+    if (result == null) {
+      throw Exception("Client profile not found for email $email");
+    }
+
+    return result;
   }
 
   // ----------------------------------------------------
@@ -46,12 +62,25 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
       DashboardEvent event,
       Emitter<DashboardState> emit,
       ) async {
-    final client = (event as dynamic).clientProfileModel as ClientProfileModel;
+    // 1️⃣ Get email from event
+    late final String email;
+
+    if (event is DashboardInitialized) {
+      email = event.email;
+    } else if (event is RefreshDashboard) {
+      email = event.email;
+    } else {
+      // Should not happen for other events
+      return;
+    }
 
     emit(const DashboardLoading());
 
     try {
-      // 1) ALWAYS: today test result
+      // 2️⃣ Always fetch profile from server using email
+      final client = await _fetchClientProfileByEmail(email);
+
+      // 3️⃣ TODAY TEST RESULT
       GeneratingResultModel? todayResult;
       try {
         todayResult = await todayTestDataRepository.fetchDay(
@@ -62,7 +91,7 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
         todayResult = null;
       }
 
-      // 2) Dietitian + plans (if assigned)
+      // 4️⃣ DIETITIAN + PLANS (if assigned)
       DietitianDetailModel? dietitian;
       CategorizedPlans? plans;
       String? plansError;
@@ -106,7 +135,7 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
         }
       }
 
-      // 3) Final ready state (even if dietitian == null)
+      // 5️⃣ Final ready state
       emit(
         DashboardReady(
           client,
@@ -116,14 +145,12 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
           todayDietData: todayDietData,
           plansError: plansError,
           todayDietError: todayDietError,
-          // dietitianLinkStatus: null by default
         ),
       );
     } catch (e) {
       emit(
         DashboardError(
           "Dashboard flow failed: ${e.toString()}",
-          clientProfileModel: client,
         ),
       );
     }
@@ -139,10 +166,8 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
       ) async {
     final current = state;
 
-    // Only makes sense when dashboard is ready
     if (current is! DashboardReady) return;
 
-    // Keep a typed reference so we don't cast state again later
     final ready = current;
 
     // 1) Set loader on button
@@ -189,15 +214,12 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
       Map<String, dynamic>? finalData;
 
       if (success && statusRaw is String && statusRaw.isNotEmpty) {
-        // e.g. "pending" → "PENDING"
         finalStatus = statusRaw.toUpperCase().trim();
 
         if (dataRaw is Map<String, dynamic>) {
-          // clone to be safe
           finalData = Map<String, dynamic>.from(dataRaw);
         }
       } else if (!success && decoded["error_code"] == "NOT_FOUND") {
-        // No request exists → treat as NOT_REQUESTED
         finalStatus = "NOT_REQUESTED";
         finalData = null;
       } else {
@@ -224,7 +246,6 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
       );
     }
   }
-
 
   // ----------------------------------------------------
   // PRIVATE: fetch today's diet JSON

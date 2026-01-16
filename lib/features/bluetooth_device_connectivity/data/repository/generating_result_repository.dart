@@ -13,6 +13,8 @@ class GeneratingResultRepository {
     required String dietitianId,
     required String profileId,
     required String dietPlanId,
+    required double minRange,
+    required double maxRange,
   }) async {
     final url = Uri.parse(
       'https://humorstech.com/dietitian/api/app/daily_result.php',
@@ -28,6 +30,8 @@ class GeneratingResultRepository {
       "dietitian_id": dietitianId,
       "profile_id": profileId,
       "diet_plan_id": dietPlanId,
+      "min_range" :minRange,
+      "max_range" :maxRange
     };
 
     final response = await http.post(

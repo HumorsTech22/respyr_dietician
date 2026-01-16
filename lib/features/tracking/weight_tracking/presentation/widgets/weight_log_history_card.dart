@@ -6,7 +6,9 @@ import '../../data/model/weight_log_model.dart';
 
 class WeightLogHistoryCard extends StatelessWidget {
   final List<WeightLogModel> logs;
-  final Function(String logId)? onDelete;
+
+  /// 🔥 Updated: use int instead of String
+  final void Function(int logId)? onDelete;
 
   const WeightLogHistoryCard({
     super.key,
@@ -16,6 +18,10 @@ class WeightLogHistoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
+    if(logs.isEmpty){
+      return SizedBox.shrink();
+    }
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10),
       child: Column(
@@ -61,12 +67,15 @@ class WeightLogHistoryCard extends StatelessWidget {
                 return WeightLogItem(
                   weight: log.weightKg,
                   dateTime: DateTime.tryParse(
-                      "${log.logDate} ${log.logTime.isNotEmpty ? log.logTime : "00:00:00"}") ??
+                    "${log.logDate} ${log.logTime.isNotEmpty ? log.logTime : "00:00:00"}",
+                  ) ??
                       DateTime.now(),
-                  weightProgress: log.weightProgress, // off_track / on_track
+                  weightProgress:
+                  log.weightProgress, // off_track / on_track
                   onDeleteWeightLogPressed: () {
                     if (onDelete != null) {
-                      onDelete!(log.id);
+                      // 🔥 Updated: pass int id
+                      onDelete!(int.parse(log.id));
                     }
                   },
                 );

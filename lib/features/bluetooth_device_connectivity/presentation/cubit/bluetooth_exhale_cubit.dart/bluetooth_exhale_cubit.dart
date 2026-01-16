@@ -108,8 +108,16 @@ class BluetoothExhaleCubit extends Cubit<BluetoothExhaleState> {
       return;
     }
 
-    final progress = (processor.blowP ?? 0.0) / 100.0;
+    final progress = processor.blowP;
 
+    if(progress! <= 10){
+      emit(
+        state.copyWith(
+          progress: 0,
+          thresholdPercentage: processor.thresholdPercentage,
+        ),
+      );
+    }
     emit(
       state.copyWith(
         progress: progress,

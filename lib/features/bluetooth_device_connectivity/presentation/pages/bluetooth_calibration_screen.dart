@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/svg.dart';
@@ -6,54 +7,39 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:respyr_dietitian/client-dashboard/data/model/client_profile_model.dart';
 import 'package:respyr_dietitian/client-dashboard/data/model/diet_plan_strategy_model.dart';
 import 'package:respyr_dietitian/common/widgets/audio_helper.dart';
-import 'package:respyr_dietitian/core/audio/audio_cubit.dart';
-import 'package:respyr_dietitian/core/audio/audio_state.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/repository/bluetooth_repository.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_calibration_cubit/bluetooth_calibration_cubit.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_calibration_cubit/bluetooth_calibration_state.dart';
 import 'package:respyr_dietitian/common/dialogs/cancel_Test_dialog.dart';
 import 'package:respyr_dietitian/common/dialogs/disconnection_dialog.dart';
 import 'package:respyr_dietitian/routes/app_routes.dart';
+import '../../../../common/dialogs/exhale_timeout_dialog.dart';
+
 
 class BluetoothCalibrationScreen extends StatelessWidget {
   final ClientProfileModel clientProfileModel;
   final DietPlanStrategyModel dietPlanStrategyModel;
+  final double minRange;
+  final double maxRange;
   const BluetoothCalibrationScreen({
     super.key,
     required this.clientProfileModel,
-    required this.dietPlanStrategyModel,
+    required this.dietPlanStrategyModel, required this.minRange, required this.maxRange,
   });
 
   @override
   Widget build(BuildContext context) {
-    final List<String> calibrationGifs = [
-      "assets/images/gif_images/cal0.gif",
-      "assets/images/gif_images/cal1.gif",
-      "assets/images/gif_images/cal2.gif",
-      "assets/images/gif_images/cal3.gif",
-      "assets/images/gif_images/cal4.gif",
-    ];
 
-    final List<String> progressMessage = [
-      "Cleaning inner\nChamber of Device",
-      "Verifying Cleanliness",
-      "Initialing Calibration",
-      "Activating Sensors",
-      "Getting Device Ready",
-    ];
 
-    Future<bool> showCancelTestDialogBox(BuildContext context) async {
+    Future<bool> showCancelTestDialogBox(BuildContext context, bool allSignalSent) async {
       bool didCancel = false;
 
       showCancelTestDialog(context, () async {
-        context.read<BluetoothCalibrationCubit>().sendAbort();
-        Future.microtask(() async {
-          if (!context.read<BluetoothCalibrationCubit>().isClosed)
-            await context
-                .read<BluetoothCalibrationCubit>()
-                .setCancelOrDisconnectFlag();
-        });
-        context.go(AppRoutes.clientDashboard, extra: clientProfileModel);
+      if(allSignalSent)  context.read<BluetoothCalibrationCubit>().sendAbort();
+        context.go(
+          AppRoutes.clientDashboard,
+          extra: clientProfileModel,
+        );
 
         context.read<BluetoothCalibrationCubit>().dialogDismissed();
       });
@@ -61,218 +47,171 @@ class BluetoothCalibrationScreen extends StatelessWidget {
       return didCancel;
     }
 
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) async {
-        if (!didPop) {
-          final shouldExit = await showCancelTestDialogBox(context);
 
-          if (shouldExit) {}
-        }
-      },
-      child: BlocProvider(
-        create:
-            (ctx) => BluetoothCalibrationCubit(
-              ctx.read<BluetoothRepository>(),
-              AudioHelper(),
-            ),
+    void navigateToDashboard(){
+      context.go(AppRoutes.clientDashboard, extra: clientProfileModel);
+      context.read<BluetoothCalibrationCubit>().dialogDismissed();
+    }
 
-        child: BlocListener<
+
+
+    return BlocProvider(
+      create:
+          (ctx) => BluetoothCalibrationCubit(
+        ctx.read<BluetoothRepository>(),
+        AudioHelper(),
+      ),
+
+      child: BlocListener<
           BluetoothCalibrationCubit,
           BluetoothCalibrationState
-        >(
-          listenWhen:
-              (prev, curr) =>
-                  prev.navigateToInhaleScreen != curr.navigateToInhaleScreen ||
-                  prev.textError != curr.textError ||
-                  prev.isDialogShown != curr.isDialogShown,
-          listener: (context, state) {
-            final cubit = context.read<BluetoothCalibrationCubit>();
-            if (state.navigateToInhaleScreen) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                cubit.close();
+      >(
+        listenWhen:
+            (prev, curr) =>
+        prev.navigateToInhaleScreen != curr.navigateToInhaleScreen ||
+            prev.textError != curr.textError ||
+            prev.isDialogShown != curr.isDialogShown ||
+            prev.isTimeOver != curr.isTimeOver,
+        listener: (context, state) {
+          final cubit = context.read<BluetoothCalibrationCubit>();
+          if (state.navigateToInhaleScreen) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {cubit.stopScreenOperation();
+            context.push(
+              AppRoutes.bluetoothInhaleScreen,
+              extra: {
+                "client" : clientProfileModel,
+                "strategy" : dietPlanStrategyModel,
+                "min_range" : minRange,
+                "max_range" : maxRange,
+              },
+            );
+            });
+          }
 
-                context.push(
-                  AppRoutes.bluetoothInhaleScreen,
-                  extra: {
-                    "client" : clientProfileModel,
-                    "strategy" : dietPlanStrategyModel,
-                  },
-                );
+          if(state.isTimeOver && !state.navigateToInhaleScreen){
+            context.read<BluetoothCalibrationCubit>().stopScreenOperation();
 
-              });
-            }
 
-            if (state.textError != null) {
-              showDialog(
-                context: context,
-                builder:
-                    (_) => AlertDialog(
-                      title: const Text("Error"),
-                      content: Text(state.textError!),
-                    ),
-              );
-            }
-
-            if (state.isDialogShown) {
-              showDeviceDisconnectedBox(
+            showExhaleSessionTimeOutDialog(
                 context: context,
                 onButtonPressed: () {
-                  cubit.dialogDismissed();
-                  context.pop();
-                  cubit.disconnect();
-
-                  context.go(
-                    AppRoutes.clientDashboard,
-                    extra: clientProfileModel,
-                  );
+                  if(state.allSignalSent) {  context.read<BluetoothCalibrationCubit>().sendAbort();}
+                  navigateToDashboard();
                 },
-              ).then((_) {
-                context.read<BluetoothCalibrationCubit>().dialogDismissed();
-              });
-            }
-          },
-          child: BlocBuilder<
+                message: "Session timed out",
+                description: "No response was received from the device. Please restart the test."
+            );
+
+          }
+
+          if (state.textError != null) {
+            showDialog(
+              context: context,
+              builder:
+                  (_) => AlertDialog(
+                title: const Text("Error"),
+                content: Text(state.textError!),
+              ),
+            );
+          }
+
+          if (state.isDialogShown) {
+            showDeviceDisconnectedBox(
+              context: context,
+              onButtonPressed: () {
+                cubit.dialogDismissed();
+                context.pop();
+                cubit.disconnect();
+
+                context.go(
+                  AppRoutes.clientDashboard,
+                  extra: clientProfileModel,
+                );
+              },
+            ).then((_) {
+              context.read<BluetoothCalibrationCubit>().dialogDismissed();
+            });
+          }
+        },
+        child: BlocBuilder<
             BluetoothCalibrationCubit,
             BluetoothCalibrationState
-          >(
-            builder: (context, state) {
-              return Scaffold(
+        >(
+          builder: (context, state) {
+
+
+
+
+            return PopScope(
+              canPop: false,
+              onPopInvokedWithResult: (didPop, result) async {
+
+                if (!didPop) {
+                  if(state.isTimeOver && !state.navigateToInhaleScreen){
+                    if(state.allSignalSent) {  context.read<BluetoothCalibrationCubit>().sendAbort();}
+                    navigateToDashboard();
+                    return;
+                  }
+
+                  final shouldExit = await showCancelTestDialogBox(context,state.allSignalSent);
+                  if (shouldExit) {
+
+                  }
+                }
+              },
+
+              child: Scaffold(
                 backgroundColor: Colors.white,
+                appBar: AppBar(
+                  backgroundColor: Colors.white,
+                  surfaceTintColor: Colors.white,
+                  leading: IconButton(
+                    onPressed: () => showCancelTestDialogBox(context, state.allSignalSent),
+                    icon: SvgPicture.asset(
+                      "assets/images/common/closeicon.svg",
+                    ),
+                  ),
+                ),
                 body: SafeArea(
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          IconButton(
-                            onPressed: () => showCancelTestDialogBox(context),
-                            icon: SvgPicture.asset(
-                              "assets/images/common/closeicon.svg",
-                            ),
-                          ),
-                          const Spacer(),
-                          IconButton(
-                            onPressed: () {
-                              context.read<AudioCubit>().toggleMute();
-                            },
-                            icon: BlocBuilder<AudioCubit, AudioState>(
-                              builder: (context, audioState) {
-                                return Icon(
-                                  audioState.isMuted
-                                      ? Icons.volume_off
-                                      : Icons.volume_up,
-                                );
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                      Image(
-                        image: ResizeImage(
-                          AssetImage(
-                            state.completedSteps > 4
-                                ? calibrationGifs[4]
-                                : calibrationGifs[state.completedSteps],
-                          ),
-                          width: 200,
-                          height: 200,
-                        ),
-                      ),
-                      Text(
-                        state.completedSteps > 4
-                            ? progressMessage[4]
-                            : progressMessage[state.completedSteps],
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.roboto(
-                          fontSize: 15,
+                      Row(),
+                      Spacer(),
+                      Text("Please wait...${state.remainingSeconds}",
+                        style: GoogleFonts.poppins(
+                          color: const Color(0xFF252525),
+                          fontSize: 34,
                           fontWeight: FontWeight.w400,
-                          color: Color(0xFF595959),
+                          letterSpacing: -2.04,
                         ),
                       ),
-                      Text(
-                        state.showPleaseWaitMessage
-                            ? "Please wait… still searching for inhale signal"
-                            : "",
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.roboto(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w400,
-                          color: Color(0xFF595959),
+                      SizedBox(
+                        height: MediaQuery.of(context).size.height * 0.06,
+                      ),
+                      SizedBox(
+                        width: MediaQuery.of(context).size.width * 0.7,
+                        child: AspectRatio(
+                          aspectRatio: 1, // perfect circle
+                          child: CircularProgressIndicator(
+                            color: const Color(0xFF308BF9),
+                            backgroundColor: const Color(0xFFE1E6ED),
+                          ),
                         ),
                       ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: List.generate(
-                          5,
-                          (i) => _buildProgressIndicator(i, context, state),
-                        ),
-                      ),
+                      Spacer(flex:3 ,),
                       SizedBox(
                         height: MediaQuery.of(context).size.height * 0.06,
                       ),
                     ],
                   ),
                 ),
-              );
-            },
-          ),
+              ),
+            );
+          },
         ),
       ),
     );
   }
 }
 
-Widget _buildProgressIndicator(
-  int step,
-  BuildContext context,
-  BluetoothCalibrationState state,
-) {
-  final bool isCurrentStep = state.completedSteps == step;
-  final bool isCompleted = state.completedSteps > step;
 
-  final double screenWidth = MediaQuery.of(context).size.width;
-  final double circleSize = screenWidth * 0.06;
-  final double lineWidth = screenWidth * 0.12;
-
-  final bool isFinalStepLoading =
-      step == 4 && state.waitForInhaleCmd && !state.navigateToInhaleScreen;
-
-  return Row(
-    children: [
-      Stack(
-        alignment: Alignment.center,
-        children: [
-          if (isCurrentStep || isFinalStepLoading)
-            SizedBox(
-              height: circleSize,
-              width: circleSize,
-              child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF595959)),
-                strokeWidth: 3.0,
-              ),
-            ),
-          SvgPicture.asset(
-            isCompleted && !isFinalStepLoading
-                ? "assets/images/device_connection/verified.svg"
-                : "assets/images/device_connection/unverified.svg",
-            height: circleSize,
-            width: circleSize,
-          ),
-        ],
-      ),
-      if (step < 4)
-        Container(
-          margin: const EdgeInsets.symmetric(horizontal: 4),
-          height: 4,
-          width: lineWidth,
-          decoration: BoxDecoration(
-            color:
-                isCompleted ? const Color(0xFF3FAF58) : const Color(0xFFE0E0E0),
-            borderRadius: BorderRadius.circular(2),
-          ),
-        ),
-    ],
-  );
-}

@@ -5,45 +5,84 @@ abstract class DashboardOperationState {}
 class DashboardOperationInitial extends DashboardOperationState {}
 
 class DashboardOperationLoaded extends DashboardOperationState {
+  // ------------------ Weight ------------------
   final double currentWeight;
-  /// This is the *locally added* water amount (in ml) for today
-  final double waterIntake;
-  final double targetWaterMl;
+  final double targetedWeight;
+  final double weightProgressPercent;     // NEW ✔
+  final String recommendedAction;         // NEW ✔ (weight_loss / weight_gain / maintain)
 
-  /// true while calling insert_water_log.php
-  final bool isSaving;
+  // ------------------ Water -------------------
+  final double waterIntake;               // consumed_ml
+  final double targetWaterMl;             // water_target_ml
+  final double waterProgressPercent;      // NEW ✔
+  final double remainingWaterMl;          // NEW ✔
 
-  /// becomes true once after a successful save
-  final bool lastSaveSuccess;
+  // ------------------ Log Save Flags ----------
+  final bool isWaterLogSaving;
+  final bool lastWaterLogSaveSuccess;
 
-  /// error message from API (if any)
+  final bool isWeightLogSaving;
+  final bool lastWeightLogSaveSuccess;
+
   final String? errorMessage;
 
   DashboardOperationLoaded({
     required this.currentWeight,
+    required this.targetedWeight,
+    required this.weightProgressPercent,
+    required this.recommendedAction,
     required this.waterIntake,
     required this.targetWaterMl,
-    this.isSaving = false,
-    this.lastSaveSuccess = false,
+    required this.waterProgressPercent,
+    required this.remainingWaterMl,
+    this.isWaterLogSaving = false,
+    this.lastWaterLogSaveSuccess = false,
+    this.isWeightLogSaving = false,
+    this.lastWeightLogSaveSuccess = false,
     this.errorMessage,
   });
 
   DashboardOperationLoaded copyWith({
     double? currentWeight,
+    double? targetedWeight,
+    double? weightProgressPercent,
+    String? recommendedAction,
+
     double? waterIntake,
     double? targetWaterMl,
-    bool? isSaving,
-    bool? lastSaveSuccess,
+    double? waterProgressPercent,
+    double? remainingWaterMl,
+
+    bool? isWaterLogSaving,
+    bool? lastWaterLogSaveSuccess,
+    bool? isWeightLogSaving,
+    bool? lastWeightLogSaveSuccess,
     String? errorMessage,
     bool clearError = false,
   }) {
     return DashboardOperationLoaded(
       currentWeight: currentWeight ?? this.currentWeight,
+      targetedWeight: targetedWeight ?? this.targetedWeight,
+      weightProgressPercent:
+      weightProgressPercent ?? this.weightProgressPercent,
+      recommendedAction: recommendedAction ?? this.recommendedAction,
+
       waterIntake: waterIntake ?? this.waterIntake,
       targetWaterMl: targetWaterMl ?? this.targetWaterMl,
-      isSaving: isSaving ?? this.isSaving,
-      lastSaveSuccess: lastSaveSuccess ?? this.lastSaveSuccess,
-      errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
+      waterProgressPercent:
+      waterProgressPercent ?? this.waterProgressPercent,
+      remainingWaterMl: remainingWaterMl ?? this.remainingWaterMl,
+
+      isWaterLogSaving: isWaterLogSaving ?? this.isWaterLogSaving,
+      lastWaterLogSaveSuccess:
+      lastWaterLogSaveSuccess ?? this.lastWaterLogSaveSuccess,
+      isWeightLogSaving: isWeightLogSaving ?? this.isWeightLogSaving,
+      lastWeightLogSaveSuccess:
+      lastWeightLogSaveSuccess ?? this.lastWeightLogSaveSuccess,
+
+      errorMessage: clearError
+          ? null
+          : (errorMessage ?? this.errorMessage),
     );
   }
 }

@@ -44,4 +44,7 @@ abstract class AppRoutes {
   /// Test history
   static const completeTestHistory = '/complete-test-history';
 
+  // walk through screens
+  static const walThroughScreen = '/walk-through-screen';
+
 }

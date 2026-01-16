@@ -103,4 +103,7 @@ class DietPlanStrategyModel {
         ? null
         : DietitianModel.fromJson(Map<String, dynamic>.from(json['dietician_info'])),
   );
+
+
+
 }

@@ -53,7 +53,10 @@ class _SignInOptionsState extends State<SignInOptions> {
         return;
       }
 
-      final clientProfile = await checkClientProfile(user.email, "");
+
+
+      final clientProfile = await checkClientProfile(userEmail: user.email);
+
       if (!mounted) return;
       if (clientProfile != null) {
         bool isSaved = await ClientLoginManager().saveClientProfile(clientProfile);

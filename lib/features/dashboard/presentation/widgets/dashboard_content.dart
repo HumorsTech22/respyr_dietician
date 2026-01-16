@@ -19,7 +19,9 @@ import '../../../bluetooth_device_connectivity/data/model/generating_result_mode
 import '../../../dietitian_dashboard/presentation/widgets/swipe_button_widget.dart';
 import '../../../gifting/dashboard/presentation/widgets/test_result_history.dart';
 import '../../../profile_info/data/model/dietician_detail_model.dart';
+import '../../../walk_through/presentation/screen/walk_through.dart';
 import '../../dashboard_operations/bloc/dashboard_operation_bloc.dart';
+import '../../new_exhale_progress_screen.dart';
 
 class DashboardContent extends StatelessWidget {
 
@@ -137,9 +139,14 @@ class DashboardContent extends StatelessWidget {
                     TestResultHistory(result: todayResult, clientProfileModel: clientProfile,),
                     SizedBox(height: 62,),
                     BlocProvider(
-                      create: (_) => DashboardOperationBloc(initialWeight: double.parse(clientProfile.weight), initialWater: 250, targetWaterMl: 3500),
+                      create: (_) => DashboardOperationBloc(
+                        profileId: clientProfile.profileId,
+                        dietPlanId: plans.active.first.id,
+                        date: DateTime.now().toIso8601String().split('T').first, // 👈 current date
+                      ),
                       child: DashboardLog(clientProfileModel: clientProfile),
                     ),
+
                     SizedBox(height: 44,),
                     DietPlanCard(activeData: plans.active, completedData: plans.completed, canceledData: plans.cancelled, dietitianDetailModel: dietitian, clientProfileModel: clientProfile,),
                     SizedBox(height: 40,),
@@ -152,7 +159,7 @@ class DashboardContent extends StatelessWidget {
               ),),
               Positioned.fill(
                   bottom: 10,
-                  child: Row(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -164,6 +171,24 @@ class DashboardContent extends StatelessWidget {
                           );
                         },
                       ),
+                      ElevatedButton(onPressed: (){
+
+                        // Navigator.push(
+                        //   context,
+                        //   MaterialPageRoute(
+                        //     builder: (context) => NewExhaleProgressScreen(),
+                        //   ),
+                        // );
+
+
+
+                      }, child: Text("New exhale")),
+                      ElevatedButton(onPressed: (){
+                        checkDeviceAbortStatus(
+                          context,
+                          plans.active.first,
+                        );
+                      }, child: Text("Click"))
                     ],
                   ))
             ],

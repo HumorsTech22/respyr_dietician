@@ -13,6 +13,11 @@ import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/rep
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_generating_result_cubit/bluetooth_generating_result_cubit.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_generating_result_cubit/bluetooth_generating_result_state.dart';
 import 'package:respyr_dietitian/routes/app_routes.dart';
+import 'package:simple_horizontal_calendar/utils/app_color.dart';
+
+import '../../../../common/dialogs/floating_message.dart';
+import '../../../../common/widgets/battery_indicator_widget.dart';
+import '../../../../core/battery/device_battery_manager.dart';
 
 class BluetoothGeneratingResultScreen extends StatelessWidget {
   final ClientProfileModel clientProfileModel;
@@ -22,6 +27,9 @@ class BluetoothGeneratingResultScreen extends StatelessWidget {
   final int blowDuration;
   final List<double> blowValuesList;
 
+  final double minRange;
+  final double maxRange;
+
   const BluetoothGeneratingResultScreen({
     super.key,
     required this.maxPressure,
@@ -30,6 +38,8 @@ class BluetoothGeneratingResultScreen extends StatelessWidget {
     required this.blowValuesList,
     required this.clientProfileModel,
     required this.dietPlanStrategyModel,
+    required this.minRange,
+    required this.maxRange,
   });
 
   Future<bool> showCancelTestDialogBox(BuildContext context) async {
@@ -38,8 +48,7 @@ class BluetoothGeneratingResultScreen extends StatelessWidget {
     showCancelTestDialog(context, () async {
       context.read<BluetoothGeneratingResultCubit>().sendAbort();
       await context
-          .read<BluetoothGeneratingResultCubit>()
-          .setCancelOrDisconnectFlag();
+          .read<BluetoothGeneratingResultCubit>();
 
       context.go(AppRoutes.clientDashboard, extra: clientProfileModel);
       context.read<BluetoothGeneratingResultCubit>().dialogDismissed();
@@ -48,132 +57,161 @@ class BluetoothGeneratingResultScreen extends StatelessWidget {
     return didCancel;
   }
 
+  String _formatTime(int sec) {
+    final m = (sec ~/ 60).toString().padLeft(2, '0');
+    final s = (sec % 60).toString().padLeft(2, '0');
+    return "$m:$s";
+  }
+
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) async {
-        if (!didPop) {
-          final shouldExit = await showCancelTestDialogBox(context);
+    return BlocProvider(
+      create:
+          (_) => BluetoothGeneratingResultCubit(
+            repo: context.read<BluetoothRepository>(),
+            maxPressure: maxPressure,
+            bestPressure: bestPressure,
+            blowDuration: blowDuration,
+            blowValuesList: blowValuesList,
+            clientProfileModel: clientProfileModel,
+            repository: context.read<GeneratingResultRepository>(), dietPlanStrategyModel: dietPlanStrategyModel, minRange: minRange, maxRange: maxRange,
+          ),
+      child: BlocConsumer<
+        BluetoothGeneratingResultCubit,
+        BluetoothGeneratingResultState
+      >(
+        listener: (context, state) async {
+          // ✅ 1) TIMEOUT should be checked FIRST (always)
+          if (state.isTimedOut) {
+            print("Timed out");
 
-          if (shouldExit) {}
-        }
-      },
-      child: BlocProvider(
-        create:
-            (_) => BluetoothGeneratingResultCubit(
-              repo: context.read<BluetoothRepository>(),
-              maxPressure: maxPressure,
-              bestPressure: bestPressure,
-              blowDuration: blowDuration,
-              blowValuesList: blowValuesList,
-              clientProfileModel: clientProfileModel,
-              repository: context.read<GeneratingResultRepository>(), dietPlanStrategyModel: dietPlanStrategyModel,
-            ),
-        child: BlocConsumer<
-          BluetoothGeneratingResultCubit,
-          BluetoothGeneratingResultState
-        >(
-          listener: (context, state) async {
-            if (state.isDialogShown) {
-              showDeviceDisconnectedBox(
-                context: context,
-                onButtonPressed: () async {
-                  context
-                      .read<BluetoothGeneratingResultCubit>()
-                      .dialogDismissed();
-                  await context
-                      .read<BluetoothGeneratingResultCubit>()
-                      .setCancelOrDisconnectFlag();
+            return;
+          }
 
-                  context.push(
-                    AppRoutes.clientDashboard,
-                    extra: clientProfileModel,
-                  );
-                },
+          // ✅ 2) disconnected dialog
+          if (state.isDialogShown) {
+            showDeviceDisconnectedBox(
+              context: context,
+              onButtonPressed: () async {
+                context.read<BluetoothGeneratingResultCubit>().dialogDismissed();
+                await context.read<BluetoothGeneratingResultCubit>();
+                context.push(AppRoutes.clientDashboard, extra: clientProfileModel);
+              },
+            );
+          }
+
+          // ✅ 3) navigate to result
+          if (state.navigateToResultScreen) {
+
+
+            context.read<BluetoothGeneratingResultCubit>().sendAbort();
+            FloatingMessage.show(context, message: "Device turning off");
+            context.read<BluetoothGeneratingResultCubit>().resetNavigationFlag();
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!context.mounted) return;
+              context.go(
+                AppRoutes.dietitianResultScreen,
+                extra: ResultScreenParams(
+                  result: state.dietitianResult!,
+                  clientProfileModel: clientProfileModel,
+                ),
               );
-            }
+            });
+          }
+        },
 
-            if (state.navigateToResultScreen) {
-              // Reset navigation trigger in Cubit
-              context
-                  .read<BluetoothGeneratingResultCubit>()
-                  .resetNavigationFlag();
-
-              // Delay navigation until next frame to prevent UI freeze
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (!context.mounted) return;
-                context.go(
-                  AppRoutes.dietitianResultScreen,
-                  extra: ResultScreenParams(
-                    result: state.dietitianResult!,
-                    clientProfileModel: clientProfileModel,
-                  ),
-                );
-              });
-            }
-          },
-          builder: (context, state) {
-            return Scaffold(
+        builder: (context, state) {
+          return PopScope(
+            canPop: false,
+            // onPopInvokedWithResult: (didPop, result) async {
+            //   if (!didPop) {
+            //     final shouldExit = await showCancelTestDialogBox(context);
+            //
+            //     if (shouldExit) {}
+            //   }
+            // },
+            child: Scaffold(
               backgroundColor: Colors.white,
+              appBar: AppBar(
+                backgroundColor: Colors.white,
+                surfaceTintColor: Colors.white,
+                leading: SizedBox.shrink(),
+              ),
               body: SafeArea(
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 40,
+                child: Column(
+                  children: [
+                    Row(),
+                    Spacer(),
+                    Text(
+                      "Generating result...",
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.poppins(
+                        color: const Color(0xFF252525),
+                        fontSize: 34,
+                        fontWeight: FontWeight.w400,
+                        letterSpacing: -2.04,
+                      ),
                     ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        IconButton(
-                          onPressed: () => showCancelTestDialogBox(context),
-                          icon: Container(
-                            height: 20,
-                            width: 20,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(5),
-                              color: Colors.white,
-                            ),
-                            child: SvgPicture.asset(
-                              "assets/images/common/closeicon.svg",
-                            ),
-                          ),
+                    SizedBox(
+                      height: MediaQuery.of(context).size.height * 0.06,
+                    ),
+                    SizedBox(
+                      width: MediaQuery.of(context).size.width * 0.7,
+                      child: AspectRatio(
+                        aspectRatio: 1, // perfect circle
+                        child: CircularProgressIndicator(
+                          color: const Color(0xFF308BF9),
+                          backgroundColor: const Color(0xFFE1E6ED),
                         ),
-                        _buildProgressIndicator(
-                          1,
-                          "Calculating your result",
-                          state.completedSteps,
-                        ),
-                        _buildProgressIndicator(
-                          2,
-                          "Analyzing your result",
-                          state.completedSteps,
-                        ),
-                        _buildProgressIndicator(
-                          3,
-                          "Generating your report",
-                          state.completedSteps,
-                        ),
+                      ),
+                    ),
 
-                        const Spacer(),
-                        const Image(
-                          image: AssetImage(
-                            "assets/images/gif_images/searching_file.gif",
-                          ),
-                        ),
-                        const Spacer(),
-                      ],
+                    Spacer(flex:3 ,),
+
+
+
+                    // Text(
+                    //   state.completedSteps > 4
+                    //       ? progressMessage[4]
+                    //       : progressMessage[state.completedSteps],
+                    //   textAlign: TextAlign.center,
+                    //   style: GoogleFonts.roboto(
+                    //     fontSize: 15,
+                    //     fontWeight: FontWeight.w400,
+                    //     color: Color(0xFF595959),
+                    //   ),
+                    // ),
+                    // Text(
+                    //   state.showPleaseWaitMessage
+                    //       ? "Please wait… still searching for inhale signal"
+                    //       : "",
+                    //   textAlign: TextAlign.center,
+                    //   style: GoogleFonts.roboto(
+                    //     fontSize: 15,
+                    //     fontWeight: FontWeight.w400,
+                    //     color: Color(0xFF595959),
+                    //   ),
+                    // ),
+                    // Row(
+                    //   mainAxisAlignment: MainAxisAlignment.center,
+                    //   children: List.generate(
+                    //     5,
+                    //     (i) => _buildProgressIndicator(i, context, state),
+                    //   ),
+                    // ),
+                    SizedBox(
+                      height: MediaQuery.of(context).size.height * 0.06,
                     ),
-                  ),
+                  ],
                 ),
               ),
-            );
-          },
-        ),
+            ),
+          );
+        },
       ),
     );
+
+
   }
 
   Widget _buildProgressIndicator(int step, String text, int completedSteps) {

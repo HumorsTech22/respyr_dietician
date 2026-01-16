@@ -7,19 +7,20 @@ import 'package:respyr_dietitian/client-dashboard/data/model/diet_plan_strategy_
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/repository/bluetooth_repository.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/repository/generating_result_repository.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_generating_result_cubit/bluetooth_generating_result_state.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:respyr_dietitian/client-dashboard/data/model/client_profile_model.dart';
 
-class BluetoothGeneratingResultCubit
-    extends Cubit<BluetoothGeneratingResultState> {
+class BluetoothGeneratingResultCubit extends Cubit<BluetoothGeneratingResultState> {
   final BluetoothRepository repo;
   final double maxPressure;
   final double bestPressure;
   final int blowDuration;
   final List<double> blowValuesList;
   final ClientProfileModel clientProfileModel;
+  final double minRange;
+  final double maxRange;
   final DietPlanStrategyModel dietPlanStrategyModel;
   final GeneratingResultRepository repository;
+
   StreamSubscription<bool>? _connSub;
   StreamSubscription<String>? _dataSub;
 
@@ -30,6 +31,11 @@ class BluetoothGeneratingResultCubit
   final StringBuffer _rawBuffer = StringBuffer();
   String _rawData = "";
 
+  // ✅ NEW: timer
+  static const int _timeoutSeconds = 300;
+  Timer? _timeoutTimer;
+  int _remainingSeconds = _timeoutSeconds;
+
   BluetoothGeneratingResultCubit({
     required this.repo,
     required this.maxPressure,
@@ -39,6 +45,8 @@ class BluetoothGeneratingResultCubit
     required this.clientProfileModel,
     required this.repository,
     required this.dietPlanStrategyModel,
+    required this.minRange,
+    required this.maxRange,
   }) : super(const BluetoothGeneratingResultState()) {
     _init();
   }
@@ -47,9 +55,61 @@ class BluetoothGeneratingResultCubit
     _connSub = repo.connectionStatusStream().listen(_handleBluetoothConnection);
     _dataSub = repo.receivedDataStream().listen(_onBluetoothDataReceived);
 
+    // ✅ NEW: start 5 min countdown as soon as screen/cubit opens
+    _startTimeoutTimer();
+
     if (repo.isConnected) {
       _handleBluetoothConnection(true);
     }
+  }
+
+  // ✅ NEW: timer tick
+  void _startTimeoutTimer() {
+    _timeoutTimer?.cancel();
+    _remainingSeconds = _timeoutSeconds;
+
+    // push initial value (05:00)
+    emit(state.copyWith(remainingSeconds: _remainingSeconds, isTimedOut: false));
+
+    _timeoutTimer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (_disposed) {
+        t.cancel();
+        return;
+      }
+
+      _remainingSeconds--;
+
+      if (_remainingSeconds <= 0) {
+        _remainingSeconds = 0;
+        emit(state.copyWith(remainingSeconds: 0));
+        t.cancel();
+        _handleTimeout();
+        return;
+      }
+
+      emit(state.copyWith(remainingSeconds: _remainingSeconds));
+    });
+  }
+
+  // ✅ NEW: timeout action
+  void _handleTimeout() {
+    if (_disposed) return;
+
+    // abort device & stop further processing
+    sendAbort();
+
+    emit(state.copyWith(
+      isTimedOut: true,
+      textError: "Timeout: 5 minutes exceeded",
+    ));
+
+    _stop(); // stop streams so process stops
+  }
+
+  // ✅ NEW: stop timer when leaving successfully
+  void _stopTimeoutTimer() {
+    _timeoutTimer?.cancel();
+    _timeoutTimer = null;
   }
 
   Future<void> _handleBluetoothConnection(bool connected) async {
@@ -75,6 +135,8 @@ class BluetoothGeneratingResultCubit
     required String dietitianId,
     required String profileId,
     required String dietPlanId,
+    required double minRange,
+    required double maxRange,
   }) async {
     try {
       final result = await repository.fetchResults(
@@ -84,7 +146,10 @@ class BluetoothGeneratingResultCubit
         diabetic: diabetic,
         goal: goal,
         dietitianId: dietitianId,
-        profileId: profileId, dietPlanId: dietPlanId,
+        profileId: profileId,
+        dietPlanId: dietPlanId,
+        minRange: minRange,
+        maxRange: maxRange,
       );
 
       emit(state.copyWith(dietitianResult: result, textError: null));
@@ -137,28 +202,21 @@ class BluetoothGeneratingResultCubit
       emit(state.copyWith(completedSteps: 3));
       await Future.delayed(const Duration(seconds: 1));
 
-      // ✅ Clean and format the raw BLE data
-      String cleaned =
-          rawData
-              .replaceAll(RegExp(r'\{.*?\}'), '') // remove all {...}
-              .replaceAll(
-                RegExp(r'analize', caseSensitive: false),
-                '',
-              ) // remove "analize"
-              .replaceAll('*', '') // remove '*'
-              .replaceAll('\n', '') // remove newlines
-              .replaceAll('\r', '') // remove carriage returns
-              .replaceAll(' ', '') // remove spaces
-              .trim();
+      String cleaned = rawData
+          .replaceAll(RegExp(r'\{.*?\}'), '')
+          .replaceAll(RegExp(r'analize', caseSensitive: false), '')
+          .replaceAll('*', '')
+          .replaceAll('\n', '')
+          .replaceAll('\r', '')
+          .replaceAll(' ', '')
+          .trim();
 
-      // ✅ Optional: collapse multiple '$$' into one
       cleaned = cleaned.replaceAll(RegExp(r'\${2,}'), '\$');
 
       if (kDebugMode) {
         print("🎯 Cleaned BLE Test Data: $cleaned");
       }
 
-      // Continue as before — insert your replacements if needed
       final replaced = cleaned
           .replaceAll("Best_pr", bestPressure.toStringAsFixed(0))
           .replaceAll("MAXPR", maxPressure.toStringAsFixed(0))
@@ -175,7 +233,6 @@ class BluetoothGeneratingResultCubit
         final ethanol = (apiResponse['ethanol'] as num?)?.toDouble() ?? 0;
         final hydrogen = (apiResponse['hydrogen'] as num?)?.toDouble() ?? 0;
 
-        // First store raw values
         emit(
           state.copyWith(
             acetone: acetone,
@@ -193,7 +250,12 @@ class BluetoothGeneratingResultCubit
           dietitianId: clientProfileModel.dietitianId,
           profileId: clientProfileModel.profileId,
           dietPlanId: dietPlanStrategyModel.id.toString(),
+          minRange: minRange,
+          maxRange: maxRange,
         );
+
+        // ✅ NEW: stop timer once we are navigating
+        _stopTimeoutTimer();
 
         emit(state.copyWith(navigateToResultScreen: true));
       } else {
@@ -210,20 +272,16 @@ class BluetoothGeneratingResultCubit
     emit(state.copyWith(navigateToResultScreen: false));
   }
 
-  /// ✅ API Call Function - with full parameter logging
   Future<Map<String, dynamic>?> _callProcessRawDataApi(String testData) async {
     const String apiUrl =
         "https://humorstech.com/dietitian/api/app/process_raw_data.php";
 
     try {
-      // Convert the blow values list to comma-separated string
       final blowValues = blowValuesList.join(", ");
 
-      // Prepare the request body
       final body = {
         'testdata': testData,
-        'subid':
-            "${clientProfileModel.dietitianId}\$${clientProfileModel.profileId}",
+        'subid': "${clientProfileModel.dietitianId}\$${clientProfileModel.profileId}",
         'gender': clientProfileModel.gender,
         'age': clientProfileModel.age.toString(),
         'height': clientProfileModel.height.toString(),
@@ -232,7 +290,6 @@ class BluetoothGeneratingResultCubit
         'diet_plan_id': dietPlanStrategyModel.id.toString(),
       };
 
-      // ✅ Print all request parameters neatly
       if (kDebugMode) {
         print("--------------------------------------------------");
         print("📡 Sending API Request to: $apiUrl");
@@ -243,20 +300,17 @@ class BluetoothGeneratingResultCubit
         print("--------------------------------------------------");
       }
 
-      // Make the POST request
       final response = await http.post(
         Uri.parse(apiUrl),
         headers: {"Content-Type": "application/x-www-form-urlencoded"},
         body: body,
       );
 
-      // Log the API response
       if (kDebugMode) {
         print("🌐 API Response Status: ${response.statusCode}");
         print("🌐 API Response Body: ${response.body}");
       }
 
-      // Parse the API response
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
         if (decoded["status"] == "success" && decoded["data"] != null) {
@@ -289,14 +343,12 @@ class BluetoothGeneratingResultCubit
     repo.sendData("&");
   }
 
-  Future<void> setCancelOrDisconnectFlag() async {
-    final prefs = await SharedPreferences.getInstance();
-    final now = DateTime.now();
-    await prefs.setString('cancel_or_disconnect_time', now.toIso8601String());
-  }
-
   void _stop() {
     _disposed = true;
+
+    // ✅ NEW
+    _stopTimeoutTimer();
+
     _connSub?.cancel();
     _dataSub?.cancel();
     _connSub = null;

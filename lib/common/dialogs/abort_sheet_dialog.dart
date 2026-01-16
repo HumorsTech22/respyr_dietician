@@ -35,7 +35,7 @@ class _CoolingDownContent extends StatefulWidget {
 class _CoolingDownContentState extends State<_CoolingDownContent> {
   static const String _keyCancelOrDisconnectTime = 'cancel_or_disconnect_time';
 
-  int _remainingSeconds = 60;
+  int _remainingSeconds = 30; // Set the cooldown time to 30 seconds
   bool _isButtonEnabled = false;
   Timer? _timer;
 
@@ -54,7 +54,7 @@ class _CoolingDownContentState extends State<_CoolingDownContent> {
       if (storedTime != null) {
         final now = DateTime.now();
         final diff = now.difference(storedTime).inSeconds;
-        final remaining = 60 - diff;
+        final remaining = 30 - diff; // Changed to 30 seconds
 
         if (remaining > 0) {
           setState(() {
@@ -118,11 +118,11 @@ class _CoolingDownContentState extends State<_CoolingDownContent> {
             const SizedBox(height: 10),
             _isButtonEnabled
                 ? SvgPicture.asset(
-                  "assets/images/device_connection/device_ready.svg",
-                )
+              "assets/images/device_connection/device_ready.svg",
+            )
                 : SvgPicture.asset(
-                  "assets/images/device_connection/device_error.svg",
-                ),
+              "assets/images/device_connection/device_error.svg",
+            ),
             const SizedBox(height: 10),
             Text(
               _isButtonEnabled ? "Device is Ready Now" : "Device Cooling Down",
@@ -160,12 +160,12 @@ class _CoolingDownContentState extends State<_CoolingDownContent> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed:
-                    _isButtonEnabled
-                        ? () {
-                          Navigator.of(context).pop();
-                          widget.onTakeTextClick?.call();
-                        }
-                        : null,
+                _isButtonEnabled
+                    ? () {
+                  Navigator.of(context).pop();
+                  widget.onTakeTextClick?.call();
+                }
+                    : null,
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(

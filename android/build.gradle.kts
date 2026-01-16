@@ -1,16 +1,5 @@
-// Top-level build file
-buildscript {
-    repositories {
-        google()
-        mavenCentral()
-    }
-    dependencies {
-        classpath("com.android.tools.build:gradle:7.3.0")
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.7.20")
-        // Add the Google services classpath
-        classpath("com.google.gms:google-services:4.3.15")
-    }
-}
+import org.gradle.api.tasks.Delete
+import org.gradle.api.file.Directory
 
 allprojects {
     repositories {
@@ -19,7 +8,9 @@ allprojects {
     }
 }
 
-val newBuildDir: Directory = rootProject.layout.buildDirectory.dir("../../build").get()
+val newBuildDir: Directory = rootProject.layout.buildDirectory
+    .dir("../../build")
+    .get()
 rootProject.layout.buildDirectory.value(newBuildDir)
 
 subprojects {

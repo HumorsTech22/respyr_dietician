@@ -39,31 +39,52 @@ class _OverallMetabolismScoreState extends State<OverallMetabolismScore> {
     final bool isSmallScreen = screenSize.width < 360;
     final double horizontalPadding = isSmallScreen ? 16.0 : 20.0;
 
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: horizontalPadding,
-            vertical: 50,
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.max,
-            children: [
-              // Header Section with Title
-              _buildHeaderSection(isSmallScreen),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (!didPop) {
+          final shouldExit = await navToDashboard(context);
 
-              // Main Content Section
-              Expanded(
-                child: _buildMainContentSection(screenSize),
-              ),
-            ],
+          if (shouldExit) {}
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: horizontalPadding,
+              vertical: 50,
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.max,
+              children: [
+                // Header Section with Title
+                _buildHeaderSection(isSmallScreen),
+      
+                // Main Content Section
+                Expanded(
+                  child: _buildMainContentSection(screenSize),
+                ),
+              ],
+            ),
           ),
         ),
+        bottomNavigationBar: _buildBottomNavigationBar(),
       ),
-      bottomNavigationBar: _buildBottomNavigationBar(),
     );
+  }
+
+
+  Future<bool> navToDashboard(BuildContext context) async {
+    bool didCancel = false;
+
+    if (context.mounted) {
+      context.go(AppRoutes.clientDashboard, extra: widget.clientProfileModel);
+    }
+
+    return didCancel;
   }
 
   Widget _buildHeaderSection(bool isSmallScreen) {

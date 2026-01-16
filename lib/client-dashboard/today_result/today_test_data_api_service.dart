@@ -31,9 +31,6 @@ class TodayTestDataApiService {
     );
 
 
-
-    print(resp.body);
-
     // Basic HTTP error check
     if (resp.statusCode != 200) {
       throw Exception("HTTP ${resp.statusCode}: ${resp.reasonPhrase}");

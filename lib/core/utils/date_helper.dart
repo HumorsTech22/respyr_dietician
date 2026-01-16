@@ -1,10 +1,15 @@
-class DateHelper{
-  String formatToDayMonth(DateTime date) {
+class DateHelper {
+  // ✅ ADDED THIS METHOD: Standardizes date for API calls (e.g., 2025-12-22)
+  static String formatDate(DateTime date) {
+    return "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+  }
+
+  static String formatToDayMonth(DateTime date) {
     return "${date.day} ${_monthName(date.month)}";
   }
 
   // Convert to IST and format as: 20 Nov, 4:35pm
-  String formatToDateTimeString(DateTime dateUtc) {
+  static String formatToDateTimeString(DateTime dateUtc) {
     // 1️⃣ Ensure we start from UTC
     final ist = dateUtc.toUtc().add(const Duration(hours: 5, minutes: 30));
 
@@ -18,8 +23,9 @@ class DateHelper{
 
     return "$day $month, $hour12:$minute$ampm";
   }
-// Helper methods
-  String _monthName(int month) {
+
+  // Helper methods
+  static String _monthName(int month) {
     const months = [
       '', 'January', 'February', 'March', 'April', 'May', 'June',
       'July', 'August', 'September', 'October', 'November', 'December'
@@ -27,7 +33,7 @@ class DateHelper{
     return months[month];
   }
 
-  String _monthShort(int month) {
+  static String _monthShort(int month) {
     const months = [
       '', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
@@ -35,14 +41,13 @@ class DateHelper{
     return months[month];
   }
 
-
-  bool isNewNotification(DateTime input) {
+  static bool isNewNotification(DateTime input) {
     final now = DateTime.now();
     final difference = now.difference(input).inHours;
     return difference.abs() <= 5;
   }
 
-  String getGreeting() {
+  static String getGreeting() {
     final hour = DateTime.now().hour;
 
     if (hour >= 5 && hour < 12) {

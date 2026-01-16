@@ -5,8 +5,6 @@ Future<GoogleSignInAccount?>  handleGoogleSignIn() async {
     final signIn = GoogleSignIn.instance;
     await signIn.initialize();
     final user = await signIn.authenticate();
-
-    print("localPath :${user.photoUrl}");
     return user;
     } catch (e) {
     return null;

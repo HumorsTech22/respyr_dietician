@@ -69,7 +69,6 @@ class _WaterTrackingState extends State<WaterTracking> {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        /// Water history bloc
         BlocProvider<WaterLogBloc>(
           create: (_) => WaterLogBloc(repository: _repository)
             ..add(
@@ -80,36 +79,34 @@ class _WaterTrackingState extends State<WaterTracking> {
             ),
         ),
 
-        /// Water operation bloc (for + / - & insert_water_log)
         BlocProvider<DashboardOperationBloc>(
           create: (_) => DashboardOperationBloc(
-            initialWeight: double.parse(widget.clientProfileModel.weight),
-            initialWater: 0, // this is "added today" amount, NOT history
-            targetWaterMl: widget.targetWaterInML,
+            profileId: widget.clientProfileModel.profileId,
+            dietPlanId: 0, // or pass actual dietPlanId if needed
+            date: null,    // backend will treat as today
           ),
         ),
       ],
 
-      /// 🔹 Listen to DashboardOperationBloc for insert_water_log success/error
       child: BlocListener<DashboardOperationBloc, DashboardOperationState>(
         listenWhen: (previous, current) {
           if (previous is DashboardOperationLoaded &&
               current is DashboardOperationLoaded) {
-            return previous.lastSaveSuccess != current.lastSaveSuccess ||
+            return previous.lastWaterLogSaveSuccess !=
+                current.lastWaterLogSaveSuccess ||
                 previous.errorMessage != current.errorMessage;
           }
           return false;
         },
         listener: (listenerContext, dashState) {
           if (dashState is DashboardOperationLoaded) {
+            if (dashState.lastWaterLogSaveSuccess) {
+              FloatingMessage.show(
+                context,
+                message: "Water intake logged",
+                type: FloatingMessageType.success,
+              );
 
-            if (dashState.lastSaveSuccess) {
-
-
-
-              FloatingMessage.show(context, message: "Water intake logged", type: FloatingMessageType.success);
-
-              // 🔄 reload water history – SILENT (no full-screen loader)
               final waterBloc = listenerContext.read<WaterLogBloc>();
 
               waterBloc.add(
@@ -120,15 +117,16 @@ class _WaterTrackingState extends State<WaterTracking> {
                 ),
               );
 
-              // 🔄 reset local added water + flags
               listenerContext
                   .read<DashboardOperationBloc>()
                   .add(ResetWaterLocal());
             } else if (dashState.errorMessage != null &&
                 dashState.errorMessage!.isNotEmpty) {
-
-              FloatingMessage.show(context, message: dashState.errorMessage!, type: FloatingMessageType.error);
-
+              FloatingMessage.show(
+                context,
+                message: dashState.errorMessage!,
+                type: FloatingMessageType.error,
+              );
             }
           }
         },
@@ -156,7 +154,8 @@ class _WaterTrackingState extends State<WaterTracking> {
           body: SafeArea(
             child: BlocBuilder<WaterLogBloc, WaterLogState>(
               builder: (context, state) {
-                if (state is WaterChartLoading || state is WaterChartInitial) {
+                if (state is WaterChartLoading ||
+                    state is WaterChartInitial) {
                   return const Center(child: CircularProgressIndicator());
                 }
 
@@ -188,7 +187,6 @@ class _WaterTrackingState extends State<WaterTracking> {
                     );
                   }
 
-                  // Auto-center default selected date once (on first load)
                   if (!_didCenterOnce &&
                       selectedIndex >= 0 &&
                       allDays.isNotEmpty) {
@@ -218,9 +216,9 @@ class _WaterTrackingState extends State<WaterTracking> {
 
                   return Column(
                     children: [
-                      // ----------------- Day strip -----------------
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 11),
+                        padding:
+                        const EdgeInsets.symmetric(horizontal: 11),
                         child: Container(
                           width: double.infinity,
                           margin: const EdgeInsets.only(top: 16),
@@ -243,8 +241,9 @@ class _WaterTrackingState extends State<WaterTracking> {
                               itemBuilder: (context, index) {
                                 final date = allDays[index].date;
 
-                                final dayNum =
-                                date.day.toString().padLeft(2, '0');
+                                final dayNum = date.day
+                                    .toString()
+                                    .padLeft(2, '0');
 
                                 const shortDays = [
                                   "Mon",
@@ -266,14 +265,15 @@ class _WaterTrackingState extends State<WaterTracking> {
                                 final bool isFuture =
                                 dateOnly.isAfter(today);
 
-                                // ✅ Past + today allowed, only future disabled
                                 final bool isDisabled = isFuture;
                                 final bool isSelected =
-                                    !isDisabled && index == selectedIndex;
+                                    !isDisabled &&
+                                        index == selectedIndex;
 
                                 Color textColor;
                                 if (isDisabled) {
-                                  textColor = const Color(0xFFB0B0B0);
+                                  textColor =
+                                  const Color(0xFFB0B0B0);
                                 } else {
                                   textColor = isSelected
                                       ? Colors.white
@@ -286,7 +286,9 @@ class _WaterTrackingState extends State<WaterTracking> {
                                     if (isDisabled) return;
                                     context
                                         .read<WaterLogBloc>()
-                                        .add(SelectWaterLogDay(index));
+                                        .add(
+                                      SelectWaterLogDay(index),
+                                    );
                                     _scrollDayToCenter(index);
                                   },
                                   child: Opacity(
@@ -296,9 +298,11 @@ class _WaterTrackingState extends State<WaterTracking> {
                                         color: isSelected
                                             ? const Color(0xFF308BF9)
                                             : Colors.transparent,
-                                        shape: RoundedRectangleBorder(
+                                        shape:
+                                        RoundedRectangleBorder(
                                           borderRadius:
-                                          BorderRadius.circular(12),
+                                          BorderRadius.circular(
+                                              12),
                                         ),
                                       ),
                                       padding:
@@ -312,7 +316,8 @@ class _WaterTrackingState extends State<WaterTracking> {
                                         children: [
                                           Text(
                                             dayNum,
-                                            style: GoogleFonts.poppins(
+                                            style:
+                                            GoogleFonts.poppins(
                                               color: textColor,
                                               fontSize: 15,
                                               fontWeight:
@@ -324,7 +329,8 @@ class _WaterTrackingState extends State<WaterTracking> {
                                           const SizedBox(height: 5),
                                           Text(
                                             shortDay,
-                                            style: GoogleFonts.poppins(
+                                            style:
+                                            GoogleFonts.poppins(
                                               color: textColor,
                                               fontSize: 10,
                                               fontWeight:
@@ -345,7 +351,6 @@ class _WaterTrackingState extends State<WaterTracking> {
                         ),
                       ),
 
-                      // ----------------- Body -----------------
                       Expanded(
                         child: SingleChildScrollView(
                           child: Padding(
@@ -356,14 +361,12 @@ class _WaterTrackingState extends State<WaterTracking> {
                             child: Column(
                               spacing: 20,
                               children: [
-                                // ------------- Selected day glass card -------------
                                 if (selectedDay != null) ...[
                                   Builder(
                                     builder: (_) {
                                       // glass size in ml
                                       const int glassSizeMl = 250;
 
-                                      // Target from API per-day if available, else fallback
                                       final double targetLitersForDay =
                                       (selectedDay.targetLiters > 0
                                           ? selectedDay.targetLiters
@@ -375,20 +378,21 @@ class _WaterTrackingState extends State<WaterTracking> {
                                           .round();
 
                                       // from API for that day (history)
-                                      final int apiConsumedMlForDay =
+                                      final int
+                                      apiConsumedMlForDay =
                                       (selectedDay.consumedLiters *
                                           1000)
                                           .round();
 
                                       final selectedDate =
                                           selectedDay.date;
-                                      final selectedDateOnly = DateTime(
+                                      final selectedDateOnly =
+                                      DateTime(
                                         selectedDate.year,
                                         selectedDate.month,
                                         selectedDate.day,
                                       );
 
-                                      // ✅ Only allow +/- when selected day is today
                                       final bool isTodaySelected =
                                           selectedDateOnly.year ==
                                               today.year &&
@@ -399,7 +403,8 @@ class _WaterTrackingState extends State<WaterTracking> {
 
                                       // how many glasses target
                                       final double targetedGlasses =
-                                          targetMlForDay / glassSizeMl;
+                                          targetMlForDay /
+                                              glassSizeMl;
 
                                       return BlocBuilder<
                                           DashboardOperationBloc,
@@ -408,31 +413,32 @@ class _WaterTrackingState extends State<WaterTracking> {
                                             (dashContext, dashState) {
                                           if (dashState
                                           is! DashboardOperationLoaded) {
-                                            return const SizedBox.shrink();
+                                            return const SizedBox
+                                                .shrink();
                                           }
 
-                                          // 🔹 base = history from API
                                           final double baseMl =
                                           apiConsumedMlForDay
                                               .toDouble();
 
-                                          // 🔹 added today in this session (stored in bloc)
                                           final double addedMl =
                                           isTodaySelected
-                                              ? dashState.waterIntake
+                                              ? dashState
+                                              .waterIntake
                                               : 0.0;
 
-                                          // 🔹 total shown in UI
                                           final double
                                           currentConsumedMl =
                                               baseMl + addedMl;
 
-                                          final double consumedGlasses =
+                                          final double
+                                          consumedGlasses =
                                               currentConsumedMl /
                                                   glassSizeMl;
 
                                           final bool isSaving =
-                                              dashState.isSaving;
+                                              dashState
+                                                  .isWaterLogSaving;
 
                                           // conditions
                                           final bool canIncrement =
@@ -446,11 +452,12 @@ class _WaterTrackingState extends State<WaterTracking> {
 
                                           return Container(
                                             width: double.infinity,
-                                            decoration: BoxDecoration(
+                                            decoration:
+                                            BoxDecoration(
                                               color: Colors.white,
                                               borderRadius:
-                                              BorderRadius.circular(
-                                                  18),
+                                              BorderRadius
+                                                  .circular(18),
                                             ),
                                             child: Column(
                                               mainAxisSize:
@@ -460,34 +467,40 @@ class _WaterTrackingState extends State<WaterTracking> {
                                                     height: 21),
                                                 Text(
                                                   "1 Glass (${glassSizeMl}ml)",
-                                                  style:
-                                                  GoogleFonts.poppins(
+                                                  style: GoogleFonts
+                                                      .poppins(
                                                     color: const Color(
                                                         0xFF252525),
                                                     fontSize: 12,
                                                     fontWeight:
-                                                    FontWeight.w400,
+                                                    FontWeight
+                                                        .w400,
                                                     height: 1.75,
-                                                    letterSpacing: -0.24,
+                                                    letterSpacing:
+                                                    -0.24,
                                                   ),
                                                 ),
-                                                const SizedBox(height: 10),
+                                                const SizedBox(
+                                                    height: 10),
                                                 Text(
                                                   isTodaySelected
                                                       ? "Today"
                                                       : "History",
-                                                  style:
-                                                  GoogleFonts.poppins(
+                                                  style: GoogleFonts
+                                                      .poppins(
                                                     color: const Color(
                                                         0xFFA1A1A1),
                                                     fontSize: 12,
                                                     fontWeight:
-                                                    FontWeight.w400,
+                                                    FontWeight
+                                                        .w400,
                                                     height: 1,
-                                                    letterSpacing: -0.24,
+                                                    letterSpacing:
+                                                    -0.24,
                                                   ),
                                                 ),
-                                                const SizedBox(height: 24),
+                                                const SizedBox(
+                                                    height: 24),
 
                                                 // +/- + glass
                                                 Row(
@@ -496,7 +509,7 @@ class _WaterTrackingState extends State<WaterTracking> {
                                                       .center,
                                                   spacing: 43,
                                                   children: [
-                                                    // − button (disabled for past days or 0)
+                                                    // − button
                                                     IconButton(
                                                       onPressed:
                                                       canDecrement
@@ -515,19 +528,12 @@ class _WaterTrackingState extends State<WaterTracking> {
                                                             DashboardOperationBloc>()
                                                             .add(
                                                           InsertWaterLog(
-                                                            profileId: widget
-                                                                .clientProfileModel
-                                                                .profileId,
-                                                            consumedMl:
-                                                            -glassSizeMl,
-                                                            targetedMl:
-                                                            targetMlForDay,
-                                                            loggedBy:
-                                                            'dietitian',
-                                                            loggedById:
-                                                            "dieticianId", // TODO: actual dietician id
-                                                            notes:
-                                                            null,
+                                                            profileId: widget.clientProfileModel.profileId,
+                                                            consumedMl: -glassSizeMl,
+                                                            targetedMl: targetMlForDay,
+                                                            loggedBy: 'dietitian',
+                                                            loggedById: "dieticianId", // TODO: actual dietician id
+                                                            notes: null,
                                                           ),
                                                         );
                                                       }
@@ -545,8 +551,7 @@ class _WaterTrackingState extends State<WaterTracking> {
                                                         shape:
                                                         RoundedRectangleBorder(
                                                           borderRadius:
-                                                          BorderRadius
-                                                              .circular(
+                                                          BorderRadius.circular(
                                                               25000),
                                                         ),
                                                       ),
@@ -574,7 +579,7 @@ class _WaterTrackingState extends State<WaterTracking> {
                                                       currentConsumedMl,
                                                     ),
 
-                                                    // + button (disabled for past days)
+                                                    // + button
                                                     IconButton(
                                                       onPressed:
                                                       canIncrement
@@ -593,19 +598,12 @@ class _WaterTrackingState extends State<WaterTracking> {
                                                             DashboardOperationBloc>()
                                                             .add(
                                                           InsertWaterLog(
-                                                            profileId: widget
-                                                                .clientProfileModel
-                                                                .profileId,
-                                                            consumedMl:
-                                                            glassSizeMl,
-                                                            targetedMl:
-                                                            targetMlForDay,
-                                                            loggedBy:
-                                                            'dietitian',
-                                                            loggedById:
-                                                            "dieticianId", // TODO: actual dietician id
-                                                            notes:
-                                                            null,
+                                                            profileId: widget.clientProfileModel.profileId,
+                                                            consumedMl: glassSizeMl,
+                                                            targetedMl: targetMlForDay,
+                                                            loggedBy: 'dietitian',
+                                                            loggedById: "dieticianId", // TODO: actual dietician id
+                                                            notes: null,
                                                           ),
                                                         );
                                                       }
@@ -623,8 +621,7 @@ class _WaterTrackingState extends State<WaterTracking> {
                                                         shape:
                                                         RoundedRectangleBorder(
                                                           borderRadius:
-                                                          BorderRadius
-                                                              .circular(
+                                                          BorderRadius.circular(
                                                               25000),
                                                         ),
                                                       ),
@@ -643,7 +640,8 @@ class _WaterTrackingState extends State<WaterTracking> {
                                                   ],
                                                 ),
 
-                                                const SizedBox(height: 40),
+                                                const SizedBox(
+                                                    height: 40),
 
                                                 // glasses progress
                                                 Padding(
@@ -668,24 +666,16 @@ class _WaterTrackingState extends State<WaterTracking> {
                                                               child:
                                                               Container(
                                                                 margin:
-                                                                const EdgeInsets
-                                                                    .only(
-                                                                  right: 4,
-                                                                ),
-                                                                height: 5,
+                                                                const EdgeInsets.only(right: 4),
+                                                                height:
+                                                                5,
                                                                 decoration:
                                                                 BoxDecoration(
-                                                                  color: index +
-                                                                      1 <=
-                                                                      consumedGlasses
-                                                                          .toInt()
-                                                                      ? const Color(
-                                                                      0xFF308BF9)
-                                                                      : const Color(
-                                                                      0xFFF0F0F0),
+                                                                  color: index + 1 <= consumedGlasses.toInt()
+                                                                      ? const Color(0xFF308BF9)
+                                                                      : const Color(0xFFF0F0F0),
                                                                   borderRadius:
-                                                                  BorderRadius.circular(
-                                                                      8),
+                                                                  BorderRadius.circular(8),
                                                                 ),
                                                               ),
                                                             );
@@ -693,7 +683,8 @@ class _WaterTrackingState extends State<WaterTracking> {
                                                         ),
                                                       ),
                                                       RichText(
-                                                        text: TextSpan(
+                                                        text:
+                                                        TextSpan(
                                                           children: [
                                                             TextSpan(
                                                               text: consumedGlasses
@@ -706,8 +697,7 @@ class _WaterTrackingState extends State<WaterTracking> {
                                                                 fontSize:
                                                                 17,
                                                                 fontWeight:
-                                                                FontWeight
-                                                                    .w400,
+                                                                FontWeight.w400,
                                                                 height:
                                                                 1.24,
                                                                 letterSpacing:
@@ -724,8 +714,7 @@ class _WaterTrackingState extends State<WaterTracking> {
                                                                 fontSize:
                                                                 17,
                                                                 fontWeight:
-                                                                FontWeight
-                                                                    .w400,
+                                                                FontWeight.w400,
                                                                 height:
                                                                 1.24,
                                                                 letterSpacing:
@@ -739,7 +728,8 @@ class _WaterTrackingState extends State<WaterTracking> {
                                                   ),
                                                 ),
 
-                                                const SizedBox(height: 40),
+                                                const SizedBox(
+                                                    height: 40),
                                               ],
                                             ),
                                           );
@@ -753,7 +743,8 @@ class _WaterTrackingState extends State<WaterTracking> {
                                 Container(
                                   decoration: BoxDecoration(
                                     color: Colors.white,
-                                    borderRadius: BorderRadius.circular(18),
+                                    borderRadius:
+                                    BorderRadius.circular(18),
                                   ),
                                   child: Column(
                                     crossAxisAlignment:
@@ -761,7 +752,8 @@ class _WaterTrackingState extends State<WaterTracking> {
                                     children: [
                                       // Header
                                       Padding(
-                                        padding: const EdgeInsets.symmetric(
+                                        padding:
+                                        const EdgeInsets.symmetric(
                                           horizontal: 20,
                                           vertical: 12,
                                         ),
@@ -769,10 +761,12 @@ class _WaterTrackingState extends State<WaterTracking> {
                                           children: [
                                             Text(
                                               'Analysis',
-                                              style: GoogleFonts.poppins(
+                                              style:
+                                              GoogleFonts.poppins(
                                                 color: Colors.black,
                                                 fontSize: 12,
-                                                fontWeight: FontWeight.w400,
+                                                fontWeight:
+                                                FontWeight.w400,
                                                 height: 1.75,
                                                 letterSpacing: -0.24,
                                               ),
@@ -780,11 +774,13 @@ class _WaterTrackingState extends State<WaterTracking> {
                                             const Spacer(),
                                             Text(
                                               'Last 7 days',
-                                              style: GoogleFonts.poppins(
-                                                color:
-                                                const Color(0xFFA1A1A1),
+                                              style:
+                                              GoogleFonts.poppins(
+                                                color: const Color(
+                                                    0xFFA1A1A1),
                                                 fontSize: 10,
-                                                fontWeight: FontWeight.w400,
+                                                fontWeight:
+                                                FontWeight.w400,
                                                 height: 2.10,
                                                 letterSpacing: -0.20,
                                               ),
@@ -801,7 +797,8 @@ class _WaterTrackingState extends State<WaterTracking> {
 
                                       // Chart
                                       Padding(
-                                        padding: const EdgeInsets.symmetric(
+                                        padding:
+                                        const EdgeInsets.symmetric(
                                           horizontal: 11,
                                           vertical: 12,
                                         ),
@@ -814,7 +811,8 @@ class _WaterTrackingState extends State<WaterTracking> {
                                               'No water data found',
                                               style: GoogleFonts
                                                   .poppins(
-                                                color: const Color(
+                                                color:
+                                                const Color(
                                                     0xFFA1A1A1),
                                                 fontSize: 12,
                                               ),
@@ -822,8 +820,8 @@ class _WaterTrackingState extends State<WaterTracking> {
                                           )
                                               : WaterBarChart(
                                             days: last7Days,
-                                            targetWaterInML:
-                                            state.targetWaterInML,
+                                            targetWaterInML: state
+                                                .targetWaterInML,
                                           ),
                                         ),
                                       ),
