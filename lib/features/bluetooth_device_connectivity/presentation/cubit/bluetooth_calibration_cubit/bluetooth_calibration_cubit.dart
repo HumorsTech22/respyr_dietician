@@ -268,11 +268,13 @@ class BluetoothCalibrationCubit extends Cubit<BluetoothCalibrationState> {
   void stop() {
     _cancelStreamsOnly();
     _audioHelper.stopAudio();
+    _screenTimer?.cancel();
   }
 
   @override
   Future<void> close() {
     _inhaleTimeoutTimer?.cancel();
+    _screenTimer?.cancel();
     _disposed = true;
     stop();
     return super.close();

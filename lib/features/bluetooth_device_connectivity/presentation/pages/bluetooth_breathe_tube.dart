@@ -169,7 +169,7 @@ class BluetoothBreatheTube extends StatelessWidget {
                             ),
                           ),
                         ),
-                        Image.asset("assets/images/gif_images/mouth_tube.gif"),
+                       // Image.asset("assets/images/gif_images/mouth_tube.gif"),
                         SizedBox(height: 50),
                         LinearProgressIndicator(
                           value: state.progress,

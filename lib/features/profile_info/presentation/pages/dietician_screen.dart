@@ -71,7 +71,7 @@ class _DietitianScreenState extends State<DietitianScreen> {
 
     cubit.updateDietitian(input);
 
-    context.go(AppRoutes.dietitianDetailScreen ,extra: {
+    context.push(AppRoutes.dietitianDetailScreen ,extra: {
     "stepCompleted": 1,
     "enteredEmail": widget.enteredEmail,
     "profileImage": widget.imageUrlPath,

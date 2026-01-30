@@ -1,3 +1,6 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 // This file is the app module's Gradle configuration.
 // The plugin versions are defined in the project-level 'android/build.gradle.kts' file (the root project),
 // so they must NOT be specified here.
@@ -8,6 +11,13 @@ plugins {
     id("org.jetbrains.kotlin.android")
     id("dev.flutter.flutter-gradle-plugin")
     id("com.google.gms.google-services")
+}
+
+// ✅ Load keystore properties (android/key.properties)
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("key.properties")
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
 
 android {
@@ -33,9 +43,27 @@ android {
         versionName = flutter.versionName
     }
 
+    // ✅ Release signing config
+    signingConfigs {
+        create("release") {
+            val storeFilePath = keystoreProperties["storeFile"]?.toString()
+            if (!storeFilePath.isNullOrBlank()) {
+                storeFile = file(storeFilePath)
+            }
+            storePassword = keystoreProperties["storePassword"]?.toString()
+            keyAlias = keystoreProperties["keyAlias"]?.toString()
+            keyPassword = keystoreProperties["keyPassword"]?.toString()
+        }
+    }
+
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("debug")
+            // ✅ Use release keystore instead of debug
+            signingConfig = signingConfigs.getByName("release")
+
+            // Optional (keep as you need)
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
 }

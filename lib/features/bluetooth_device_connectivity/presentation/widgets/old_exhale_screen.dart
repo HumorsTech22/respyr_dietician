@@ -21,13 +21,13 @@ class OldExhaleScreen extends StatelessWidget {
       children: [
         Stack(
           children: [
-            SizedBox(
-              height: 350,
-              width: MediaQuery.of(context).size.width * 0.96,
-              child: Image.asset(
-                'assets/images/gif_images/exhale.gif',
-              ),
-            ),
+            // SizedBox(
+            //   height: 350,
+            //   width: MediaQuery.of(context).size.width * 0.96,
+            //   child: Image.asset(
+            //     'assets/images/gif_images/exhale.gif',
+            //   ),
+            // ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(

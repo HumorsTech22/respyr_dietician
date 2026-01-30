@@ -46,6 +46,8 @@ import '../features/notification/data/repository/notification_repository.dart';
 import '../features/notification/presentation/screens/notification_screen.dart';
 import '../features/profile_info/presentation/cubit/profile_cubit.dart';
 import '../features/profile_info/presentation/widgets/dietician_detail_screen.dart';
+import '../features/retake_test/presentation/screens/retake_test_screen.dart';
+import '../features/retake_test/presentation/screens/test_conditions_screen.dart';
 import '../features/test_result/test_histoty/presentation/screen/test_history_screen.dart';
 
 /// ✅ Global navigator key used by GoRouter AND by GlobalBlePopupManager
@@ -557,6 +559,20 @@ final GoRouter appRouter = GoRouter(
       },
     ),
 
+
+    GoRoute(
+      path: AppRoutes.retakeTestScreen,
+      builder: (context, state) {
+        ClientProfileModel client = state.extra as ClientProfileModel;
+        return RetakeTestScreen(clientProfileModel: client,);
+      },
+    ),
+    GoRoute(
+      path: AppRoutes.testConditionScreen,
+      builder: (context, state) {
+        return TestConditionsScreen();
+      },
+    ),
   ],
 );
 

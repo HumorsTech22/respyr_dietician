@@ -259,8 +259,6 @@ class __BluetoothDeviceConnectivityViewState
   }
 
   void _navigateToDashboard() {
-
-
     context.go(
       AppRoutes.clientDashboard,
       extra: widget.clientProfileModel,

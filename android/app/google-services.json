@@ -41,6 +41,43 @@
           ]
         }
       }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:265394397027:android:69f6d4934ab0a8c0233d56",
+        "android_client_info": {
+          "package_name": "com.humorstech.respyr.metabolism"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "265394397027-1eqdk3c9uk8ffo1v6jeso8gorj0s1qjp.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.humorstech.respyr.metabolism",
+            "certificate_hash": "07b1a434cdf29d73097c72d7e0d1da680a416033"
+          }
+        },
+        {
+          "client_id": "265394397027-7n0ciru6mpihpg8hmvnq9m2nflklf538.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDoyLbE5CohE0plFXv-Xmwbyr_fV-FUhgU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "265394397027-7n0ciru6mpihpg8hmvnq9m2nflklf538.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
     }
   ],
   "configuration_version": "1"
