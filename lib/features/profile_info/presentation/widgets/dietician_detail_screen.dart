@@ -97,28 +97,6 @@ class DietitianDetailScreen extends StatelessWidget {
                         ),
                         SizedBox(height: 20),
                         Text(
-                          "clinicalName",
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.poppins(
-                            color: const Color(0xFF535359),
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: -0.30,
-                          ),
-                        ),
-                        SizedBox(height: 10),
-                        Text(
-                          'Telephone',
-                          style: GoogleFonts.poppins(
-                            color: const Color(0xFF252525),
-                            fontSize: 10,
-                            fontWeight: FontWeight.w400,
-                            height: 1.10,
-                            letterSpacing: -0.20,
-                          ),
-                        ),
-                        SizedBox(height: 5),
-                        Text(
                           state.phoneNo,
                           style: GoogleFonts.poppins(
                             color: const Color(0xFF252525),
@@ -141,7 +119,7 @@ class DietitianDetailScreen extends StatelessWidget {
                         ),
                         SizedBox(height: 5),
                         Text(
-                          state.email,
+                          state.dietitianEmail,
                           style: GoogleFonts.poppins(
                             color: const Color(0xFF252525),
                             fontSize: 15,
@@ -156,7 +134,7 @@ class DietitianDetailScreen extends StatelessWidget {
                           children: [
                             TextButton(
                               onPressed: () {
-                                context.pop();
+                                Navigator.pop(context);
                               },
                               style: TextButton.styleFrom(
                                 padding: EdgeInsets.symmetric(

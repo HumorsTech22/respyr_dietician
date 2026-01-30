@@ -339,6 +339,7 @@ class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
     await _readySub?.cancel();
 
     _scanTimer?.cancel();
+    _batteryTimeoutTimer?.cancel();
 
     return super.close();
   }

@@ -47,4 +47,7 @@ abstract class AppRoutes {
   // walk through screens
   static const walThroughScreen = '/walk-through-screen';
 
+  static const retakeTestScreen = '/retake-test-screen';
+  static const testConditionScreen = '/test-conditions-screen';
+
 }

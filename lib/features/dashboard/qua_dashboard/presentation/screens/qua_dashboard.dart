@@ -9,6 +9,7 @@ import 'package:google_fonts/google_fonts.dart';
 // Model Imports
 import 'package:respyr_dietitian/client-dashboard/data/model/client_profile_model.dart';
 import 'package:respyr_dietitian/client-dashboard/data/model/diet_plan_strategy_model.dart';
+import 'package:respyr_dietitian/features/retake_test/presentation/screens/retake_test_screen.dart';
 import '../../../../../client-dashboard/data/model/dietitian_model.dart';
 
 // Bloc Imports
@@ -124,6 +125,13 @@ class _QuaDashboardState extends State<QuaDashboard> with WidgetsBindingObserver
 
   Future<void> _handleStartTest() async {
 
+    context.pushReplacement(
+      AppRoutes.retakeTestScreen,
+      extra: widget.clientProfile,
+    );
+
+
+
 
     //
     // context.push(
@@ -149,18 +157,18 @@ class _QuaDashboardState extends State<QuaDashboard> with WidgetsBindingObserver
     // );
 
 
-
-    final isAborted = await AbortDeviceManager.getAbortStatus();
-    if (!mounted) return;
-
-    if (isAborted) {
-      CheckAbortSheet.show(
-        context: context,
-        onTakeTextClick: _navigateToBluetooth,
-      );
-    } else {
-      _navigateToBluetooth();
-    }
+    //
+    // final isAborted = await AbortDeviceManager.getAbortStatus();
+    // if (!mounted) return;
+    //
+    // if (isAborted) {
+    //   CheckAbortSheet.show(
+    //     context: context,
+    //     onTakeTextClick: _navigateToBluetooth,
+    //   );
+    // } else {
+    //   _navigateToBluetooth();
+    // }
 
 
     // final dummyParams = GeneratingResultParams(
@@ -295,19 +303,19 @@ class _QuaDashboardState extends State<QuaDashboard> with WidgetsBindingObserver
           const SizedBox(height: 120),
 
 
-          ElevatedButton(
-            onPressed: (){
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => Test(),
-                ),
-              );
-            },
-            child: Text("Button",
-
-            ),
-          )
+          // ElevatedButton(
+          //   onPressed: (){
+          //     Navigator.push(
+          //       context,
+          //       MaterialPageRoute(
+          //         builder: (_) => Test(),
+          //       ),
+          //     );
+          //   },
+          //   child: Text("Button",
+          //
+          //   ),
+          // )
         ],
       ),
     );

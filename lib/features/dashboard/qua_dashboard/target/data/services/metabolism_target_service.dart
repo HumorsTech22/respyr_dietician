@@ -26,7 +26,7 @@ class MetabolismTargetService {
 
     final res = await http.get(uri);
 
-    print(res.body);
+
 
     if (res.statusCode != 200) {
       throw Exception("HTTP ${res.statusCode}");
