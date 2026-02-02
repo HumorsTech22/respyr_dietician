@@ -6,11 +6,8 @@
 
     <!-- Media/storage -->
     <uses-permission android:name="android.permission.CAMERA" />
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <!-- For Android ≤ 12L only; set maxSdkVersion so it’s ignored on 13+ -->
-    <uses-permission
-        android:name="android.permission.READ_EXTERNAL_STORAGE"
-        android:maxSdkVersion="32" />
+
     <!-- Only if you truly need All files access (special approval in Settings) -->
 
 
