@@ -34,6 +34,8 @@ import '../features/bluetooth_device_connectivity/presentation/pages/bluetooth_b
 import '../features/bluetooth_device_connectivity/presentation/pages/bluetooth_calibration_screen.dart';
 import '../features/bluetooth_device_connectivity/presentation/pages/bluetooth_exhale_screen.dart';
 import '../features/bluetooth_device_connectivity/presentation/pages/bluetooth_inhale_screen.dart';
+import '../features/bluetooth_device_connectivity/presentation/pages/bluetooth_inhale_screen_new.dart';
+import '../features/bluetooth_device_connectivity/presentation/pages/bluetooth_new_exhale_screen.dart';
 import '../features/client_login/presentation/screens/client_login_with_phone_no.dart';
 import '../features/client_login/presentation/screens/sign_in_options.dart';
 import '../features/client_login/presentation/screens/sign_in_with_email.dart';
@@ -368,7 +370,7 @@ final GoRouter appRouter = GoRouter(
         }
 
         return NoTransitionPage(
-          child: BluetoothInhaleScreen(
+          child: BluetoothInhaleScreenNew(
             clientProfileModel: client,
             dietPlanStrategyModel: strategy,
             minRange: minRange,
@@ -435,7 +437,7 @@ final GoRouter appRouter = GoRouter(
         }
 
         return NoTransitionPage(
-          child: BluetoothExhaleScreen(
+          child: BluetoothNewExhaleScreen(
             clientProfileModel: params.clientProfileModel,
             baseValue: params.baseValue,
             dietPlanStrategyModel: params.dietPlanStrategyModel,

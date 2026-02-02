@@ -15,7 +15,6 @@ import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/dat
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/repository/bluetooth_repository.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/repository/generating_result_repository.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/repository_impl/bluetooth_repository_impl.dart';
-import 'package:respyr_dietitian/features/device_connectivity/data/usb_repository_impl.dart';
 
 import 'package:respyr_dietitian/features/dietitian_dashboard/data/repository/dietitian_dashboard_repository.dart';
 import 'package:respyr_dietitian/features/dietitian_dashboard/presentation/cubit/dietitian_dashboard_cubit.dart';
@@ -155,7 +154,6 @@ Future<void> main() async {
   final calculateBMR = CalculateBMR();
   final dieticianRepository = DietitianRepository();
   final usbService = UsbCommunicationService();
-  final usbRepository = UsbRepositoryImpl(usbService);
   final dietitianDashboardRepository = DietitianDashboardRepository();
 
   final uuidBleManager = UuidBluetoothManager();

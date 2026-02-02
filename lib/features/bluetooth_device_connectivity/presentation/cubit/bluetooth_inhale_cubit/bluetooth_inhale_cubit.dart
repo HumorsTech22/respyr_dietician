@@ -51,10 +51,8 @@ class BluetoothInhaleCubit extends Cubit<BluetoothInhaleState> {
   bool _blowNowReceived = false;
 
   // packet regex
-  final RegExp _slashNum =
-  RegExp(r'^\s*/\s*(\d+(?:\.\d+)?)\s*/\s*$'); // /919.43/
-  final RegExp _curlyNum =
-  RegExp(r'^\s*\{\s*(\d+(?:\.\d+)?)\s*\}\s*$'); // {931} or {919.25}
+  final RegExp _slashNum = RegExp(r'^\s*/\s*(\d+(?:\.\d+)?)\s*/\s*$');
+  final RegExp _curlyNum = RegExp(r'^\s*\{\s*(\d+(?:\.\d+)?)\s*\}\s*$');
 
   BluetoothInhaleCubit(this.repo, this.audioHelper, this.processor)
       : super(const BluetoothInhaleState()) {

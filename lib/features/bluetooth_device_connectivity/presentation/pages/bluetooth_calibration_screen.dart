@@ -76,7 +76,7 @@ class BluetoothCalibrationScreen extends StatelessWidget {
           final cubit = context.read<BluetoothCalibrationCubit>();
           if (state.navigateToInhaleScreen) {
             WidgetsBinding.instance.addPostFrameCallback((_) {cubit.stopScreenOperation();
-            context.push(
+            context.go(
               AppRoutes.bluetoothInhaleScreen,
               extra: {
                 "client" : clientProfileModel,

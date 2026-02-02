@@ -125,25 +125,13 @@ class _QuaDashboardState extends State<QuaDashboard> with WidgetsBindingObserver
 
   Future<void> _handleStartTest() async {
 
-    context.pushReplacement(
-      AppRoutes.retakeTestScreen,
-      extra: widget.clientProfile,
-    );
-
-
-
-
-    //
-    // context.push(
-    //   AppRoutes.bluetoothInhaleScreen,
-    //   extra: ExhaleScreenParams(
-    //     clientProfileModel: widget.clientProfile,
-    //     baseValue: "/913.3/",
-    //     dietPlanStrategyModel: _generateMockStrategy(),
-    //     minRange: widget.currentMinRange,
-    //     maxRange: widget.currentMaxRange,
-    //   ),
+    // context.pushReplacement(
+    //   AppRoutes.retakeTestScreen,
+    //   extra: widget.clientProfile,
     // );
+
+
+
 
     // context.push(
     //   AppRoutes.bluetoothExhaleScreen,
@@ -155,20 +143,19 @@ class _QuaDashboardState extends State<QuaDashboard> with WidgetsBindingObserver
     //     maxRange: widget.currentMinRange,
     //   ),
     // );
-
-
     //
-    // final isAborted = await AbortDeviceManager.getAbortStatus();
-    // if (!mounted) return;
-    //
-    // if (isAborted) {
-    //   CheckAbortSheet.show(
-    //     context: context,
-    //     onTakeTextClick: _navigateToBluetooth,
-    //   );
-    // } else {
-    //   _navigateToBluetooth();
-    // }
+
+    final isAborted = await AbortDeviceManager.getAbortStatus();
+    if (!mounted) return;
+
+    if (isAborted) {
+      CheckAbortSheet.show(
+        context: context,
+        onTakeTextClick: _navigateToBluetooth,
+      );
+    } else {
+      _navigateToBluetooth();
+    }
 
 
     // final dummyParams = GeneratingResultParams(
@@ -203,8 +190,8 @@ class _QuaDashboardState extends State<QuaDashboard> with WidgetsBindingObserver
     // );
 
 
-
-    // await context.push(
+    //
+    //  context.pushReplacement(
     //   AppRoutes.bluetoothInhaleScreen,
     //   extra: {
     //     "client": widget.clientProfile,
