@@ -1,24 +1,25 @@
 import 'package:google_sign_in/google_sign_in.dart';
 
-Future<GoogleSignInAccount?>  handleGoogleSignIn() async {
+// Use a single instance for the entire app
+final GoogleSignIn googleSignIn = GoogleSignIn();
+
+Future<GoogleSignInAccount?> handleGoogleSignIn() async {
   try {
-    final signIn = GoogleSignIn.instance;
-    await signIn.initialize();
-    final user = await signIn.authenticate();
+    // Triggers the platform-specific account picker
+    final GoogleSignInAccount? user = await googleSignIn.signIn();
     return user;
-    } catch (e) {
+  } catch (e) {
+    print('Error during Google Sign-In: $e');
     return null;
   }
 }
 
-
-Future<GoogleSignInAccount?>  signOut() async {
+Future<void> signOutGoogle() async {
   try {
-    final signIn = GoogleSignIn.instance;
-    await signIn.signOut();
-    final user = await signIn.authenticate();
-    return user;
+    // signOut() logs out, disconnect() forces account selection next time
+    await googleSignIn.signOut();
+    await googleSignIn.disconnect();
   } catch (e) {
-    return null;
+    print('Error during Google Sign-Out: $e');
   }
 }

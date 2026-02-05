@@ -1,346 +1,204 @@
 import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/model/bluetooth_device_model.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/repository/bluetooth_repository.dart';
-import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_connection_cubit/bluetooth_connection_state.dart';
-import '../../../../../core/battery/device_battery_manager.dart';
+import 'bluetooth_connection_state.dart';
 
 class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
   final BluetoothRepository repo;
+  Timer? _readyTimeoutTimer;
+  bool _waitingReady = false;
+  bool _startupRunning = false;
 
-  StreamSubscription<bool>? _connSub;
-  StreamSubscription<String>? _dataSub;
-  StreamSubscription<List<BluetoothDeviceModel>>? _scanSub;
-  StreamSubscription<bool>? _readySub;
-  Timer? _scanTimer;
-
-  Completer<void>? _batteryDoneCompleter;
-  Timer? _batteryTimeoutTimer;
-
-  bool _isWaitingBattery = false;
-  bool _batteryAlreadyReceived = false;
-
-  DateTime? _lastBatteryStopSentAt;
-
-  Future<void>? _batteryFetchTask;
-  DateTime? _lastBatteryStartSentAt;
-  static const Duration _batteryStartCooldown = Duration(milliseconds: 600);
-
-  static const String _batteryStartCmd = "@";
-  static const String _batteryStopCmd = "@";
+  static const Duration _readyTimeout = Duration(seconds: 3);
 
   BluetoothConnectionCubit(this.repo) : super(const BluetoothConnectionState());
 
-  void safeEmit(BluetoothConnectionState newState) {
-    if (!isClosed) emit(newState);
+  void safeEmit(BluetoothConnectionState s) {
+    if (!isClosed) emit(s);
   }
 
+  // ================= INIT =================
   Future<void> init() async {
+    print("Initializing Bluetooth Connection...");
+
     _listenConnection();
     _listenData();
 
-    final connectedDeviceId = await repo.getAlreadyConnectedDeviceId();
+    // already connected case (coming back from calibration)
+    if (repo.isConnected) {
+      print("Device already connected.");
+      safeEmit(state.copyWith(
+        isConnected: true,
+        status: BluetoothConnectionStatus.connected,
+        isScanning: false,
+        deviceReady: false,
+        isDeviceError: false,
+      ));
 
-    if (connectedDeviceId != null) {
-      safeEmit(
-        state.copyWith(
-          isConnected: true,
-          connectingDeviceId: connectedDeviceId,
-          status: BluetoothConnectionStatus.connected,
-        ),
-      );
-
-      await Future.delayed(const Duration(milliseconds: 300));
-
-      await _fetchBatteryOnce();
-
-      if (!isClosed) await sendCommand("!");
+      await _checkDeviceReadiness();
     } else {
+      print("Device not connected. Starting scan...");
       startScan();
     }
   }
 
+  // ================= SCAN =================
   void startScan({Duration timeout = const Duration(seconds: 15)}) {
-    _scanSub?.cancel();
-    _scanTimer?.cancel();
+    print("Starting scan for Bluetooth devices...");
 
-    safeEmit(
-      state.copyWith(
-        status: BluetoothConnectionStatus.scanning,
-        isScanning: true,
-        devices: [],
-        connectingDeviceId: null,
-      ),
-    );
+    safeEmit(state.copyWith(
+      status: BluetoothConnectionStatus.scanning,
+      isScanning: true,
+      devices: [],
+      connectingDeviceId: null,
+      deviceReady: false,
+      textError: null,
+    ));
 
-    _scanSub = repo.scan(timeout: timeout).listen(
+    repo.scan(timeout: timeout).listen(
           (devices) {
-        if (isClosed) return;
+        print("Scan results: Found ${devices.length} devices.");
         safeEmit(state.copyWith(devices: devices));
       },
       onError: (e) {
-        if (isClosed) return;
-        safeEmit(
-          state.copyWith(
-            status: BluetoothConnectionStatus.textError,
-            isScanning: false,
-            textError: '$e',
-          ),
-        );
+        print("Scan error: $e");
+        safeEmit(state.copyWith(
+          status: BluetoothConnectionStatus.textError,
+          isScanning: false,
+          textError: e.toString(),
+        ));
       },
     );
-
-    _scanTimer = Timer(timeout, () {
-      if (isClosed) return;
-      _scanSub?.cancel();
-      safeEmit(state.copyWith(isScanning: false));
-    });
   }
 
+  // ================= CONNECT =================
   Future<void> connectById(String id) async {
-    safeEmit(
-      state.copyWith(
-        connectingDeviceId: id,
-        status: BluetoothConnectionStatus.connecting,
-      ),
-    );
+    print("Connecting to device with ID: $id");
+
+    safeEmit(state.copyWith(
+      connectingDeviceId: id,
+      status: BluetoothConnectionStatus.connecting,
+      textError: null,
+      deviceReady: false,
+    ));
 
     try {
       await repo.connectById(id);
-      safeEmit(
-        state.copyWith(
-          isConnected: true,
-          status: BluetoothConnectionStatus.connected,
-        ),
-      );
+      print("Successfully connected to device with ID: $id");
+      await _checkDeviceReadiness();
     } catch (e) {
-      safeEmit(
-        state.copyWith(
-          isConnected: false,
-          connectingDeviceId: null,
-          status: BluetoothConnectionStatus.textError,
-          textError: e.toString(),
-        ),
-      );
+      print("Error connecting to device: $e");
+      safeEmit(state.copyWith(
+        isConnected: false,
+        connectingDeviceId: null,
+        status: BluetoothConnectionStatus.textError,
+        textError: e.toString(),
+      ));
       startScan();
     }
   }
 
+  // ================= CONNECTION LISTENER =================
   void _listenConnection() {
-    _connSub?.cancel();
-
-    _connSub = repo.connectionStatusStream().listen((connected) async {
-      if (isClosed) return;
+    repo.connectionStatusStream().listen((connected) async {
+      print("Connection status changed: $connected");
 
       if (connected) {
-        safeEmit(
-          state.copyWith(
-            isConnected: true,
-            status: BluetoothConnectionStatus.connected,
-          ),
-        );
-
-        _readySub?.cancel();
-        _readySub = repo.deviceReadyStream().listen((ready) async {
-          if (isClosed || !ready) return;
-
-          await _fetchBatteryOnce();
-
-          if (!isClosed) await sendCommand("!");
-
-          await _readySub?.cancel();
-        });
+        safeEmit(state.copyWith(
+          isConnected: true,
+          status: BluetoothConnectionStatus.connected,
+          isScanning: false,
+          textError: null,
+          deviceReady: false,
+        ));
+        await _checkDeviceReadiness();
       } else {
-        _cancelBatteryWaiters();
-
-        safeEmit(
-          state.copyWith(
-            isConnected: false,
-            connectingDeviceId: null,
-            status: BluetoothConnectionStatus.disconnected,
-            devices: [],
-          ),
-        );
-
-        await Future.delayed(const Duration(seconds: 1));
-        if (!isClosed) startScan();
+        safeEmit(state.copyWith(
+          isConnected: false,
+          connectingDeviceId: null,
+          status: BluetoothConnectionStatus.disconnected,
+          devices: [],
+          deviceReady: false,
+        ));
+        startScan();
       }
     });
   }
 
-  Future<void> _sendBatteryStopOnce() async {
-    final now = DateTime.now();
-    if (_lastBatteryStopSentAt != null &&
-        now.difference(_lastBatteryStopSentAt!) <
-            const Duration(milliseconds: 400)) {
-      return;
-    }
+  // ================= READY CHECK =================
+  Future<void> _checkDeviceReadiness() async {
+    if (_startupRunning) return;
+    _startupRunning = true;
 
-    _lastBatteryStopSentAt = now;
+    print("Checking if the device is ready...");
 
-    try {
-      await repo.sendData(_batteryStopCmd);
-    } catch (_) {}
-  }
+    // Send readiness check
+    await _sendReadyCheck();
 
-  Future<void> _fetchBatteryOnce() {
-    if (isClosed) return Future.value();
-
-    if ((state.batteryPercentage ?? 0) > 0) {
-      return Future.value();
-    }
-
-    if (_batteryFetchTask != null) {
-      return _batteryFetchTask!;
-    }
-
-    _batteryFetchTask = _fetchBatteryOnceInternal().whenComplete(() {
-      _batteryFetchTask = null;
-    });
-
-    return _batteryFetchTask!;
-  }
-
-  Future<void> _fetchBatteryOnceInternal() async {
-    if (isClosed || _isWaitingBattery) return;
-
-    final now = DateTime.now();
-    if (_lastBatteryStartSentAt != null &&
-        now.difference(_lastBatteryStartSentAt!) < _batteryStartCooldown) {
-      return;
-    }
-    _lastBatteryStartSentAt = now;
-
-    _isWaitingBattery = true;
-    _batteryAlreadyReceived = false;
-    _batteryDoneCompleter = Completer<void>();
-
-    try {
-      await repo.sendData(_batteryStartCmd);
-    } catch (_) {}
-
-    _batteryTimeoutTimer?.cancel();
-    _batteryTimeoutTimer = Timer(const Duration(seconds: 15), () {
-      if (_batteryDoneCompleter?.isCompleted == false) {
-        _batteryDoneCompleter?.complete();
+    // Start a timeout to handle failure if no response
+    _readyTimeoutTimer = Timer(_readyTimeout, () {
+      print("Ready timeout reached. Retrying readiness check...");
+      if (!state.deviceReady) {
+        _sendReadyCheck();
       }
     });
-
-    await _batteryDoneCompleter?.future;
-
-    _batteryTimeoutTimer?.cancel();
-    _batteryTimeoutTimer = null;
-
-    _batteryDoneCompleter = null;
-    _isWaitingBattery = false;
   }
 
-  void _cancelBatteryWaiters() {
-    _batteryTimeoutTimer?.cancel();
-    _batteryTimeoutTimer = null;
+  Future<void> _sendReadyCheck() async {
+    print("Sending readiness check...");
 
-    _isWaitingBattery = false;
-    _batteryAlreadyReceived = false;
-
-    if (_batteryDoneCompleter?.isCompleted == false) {
-      _batteryDoneCompleter?.complete();
-    }
-    _batteryDoneCompleter = null;
-
-    _batteryFetchTask = null;
-  }
-
-  void _listenData() {
-    _dataSub?.cancel();
-
-    _dataSub = repo.receivedDataStream().listen(
-          (s) async {
-        if (isClosed) return;
-
-        final clean = s.trim();
-
-        final errorMatch = RegExp(r'^\{ERROR:(\d{3})\}$').firstMatch(clean);
-        if (errorMatch != null) {
-          _cancelBatteryWaiters();
-
-          safeEmit(
-            state.copyWith(
-              deviceErrorMessage:
-              "ERROR:${errorMatch.group(1)} - Please check device",
-            ),
-          );
-          return;
-        }
-
-        final batteryMatch = RegExp(r'^@(\d+(\.\d+)?)@$').firstMatch(clean);
-
-        if (_isWaitingBattery && batteryMatch != null) {
-          final battery = double.tryParse(batteryMatch.group(1)!);
-
-          if (battery != null && !_batteryAlreadyReceived) {
-            _batteryAlreadyReceived = true;
-
-            safeEmit(state.copyWith(batteryPercentage: battery));
-            await DeviceBatteryManager.setBatteryPercentage(battery);
-
-            await _sendBatteryStopOnce();
-
-            _batteryDoneCompleter?.complete();
-          }
-          return;
-        }
-
-        if (!_isWaitingBattery && batteryMatch != null) return;
-
-        if (clean.startsWith("H")) {
-          final deviceId = clean.substring(1).trim();
-          safeEmit(
-            state.copyWith(
-              lastData: clean,
-              connectingDeviceId: deviceId,
-            ),
-          );
-          await Future.delayed(const Duration(milliseconds: 300));
-          if (!isClosed) await sendCommand("{");
-        } else {
-          safeEmit(state.copyWith(lastData: clean));
-        }
-      },
-      onError: (e) {
-        if (!isClosed) {
-          safeEmit(state.copyWith(textError: "Receive error: $e"));
-        }
-      },
-    );
-  }
-
-  Future<void> sendCommand(String data) async {
     try {
-      await repo.sendData(data);
-      safeEmit(state.copyWith(lastData: data));
+      await repo.sendData("{"); // Send the readiness check command
+      await repo.sendData("%"); // Send the readiness check command
+      print("Ready check sent successfully.");
     } catch (e) {
-      safeEmit(state.copyWith(textError: "Send error: $e"));
+      print("Error sending readiness check: $e");
+      safeEmit(state.copyWith(isDeviceError: true, textError: "Device not ready"));
     }
   }
 
+  // ================= DATA LISTENER =================
+  void _listenData() {
+    print("Listening for data...");
+
+    repo.receivedDataStream().listen((data) {
+      final cleanedData = data.trim();
+      if (cleanedData.isEmpty) return;
+
+      print("Received data: '$cleanedData'");
+
+      if (cleanedData == "%" ) {
+        print("Device is ready.");
+        _handleReadyPacket();
+      }
+    });
+  }
+
+  void _handleReadyPacket() {
+    print("Handling ready packet...");
+    _readyTimeoutTimer?.cancel();
+    _readyTimeoutTimer = null;
+    if(!state.deviceReady){
+      safeEmit(state.copyWith(deviceReady: true));
+    }
+  }
+
+  // ================= SEND =================
   void sendAbort() {
     if (state.isConnected) {
-      repo.sendData("&");
+      print("Sending abort...");
+      try {
+        repo.sendData("&"); // Abort command
+      } catch (_) {
+        print("Error sending abort.");
+      }
     }
   }
 
   @override
   Future<void> close() async {
-    _cancelBatteryWaiters();
-
-    await _connSub?.cancel();
-    await _dataSub?.cancel();
-    await _scanSub?.cancel();
-    await _readySub?.cancel();
-
-    _scanTimer?.cancel();
-    _batteryTimeoutTimer?.cancel();
-
-    return super.close();
+    print("Closing Bluetooth Connection Cubit...");
+    _readyTimeoutTimer?.cancel();
+    await super.close();
   }
 }

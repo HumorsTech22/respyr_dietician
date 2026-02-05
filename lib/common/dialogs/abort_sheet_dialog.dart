@@ -35,7 +35,10 @@ class _CoolingDownContent extends StatefulWidget {
 class _CoolingDownContentState extends State<_CoolingDownContent> {
   static const String _keyCancelOrDisconnectTime = 'cancel_or_disconnect_time';
 
-  int _remainingSeconds = 30; // Set the cooldown time to 30 seconds
+  // ✅ single source of truth
+  static const int _cooldownSeconds = 35;
+
+  int _remainingSeconds = _cooldownSeconds;
   bool _isButtonEnabled = false;
   Timer? _timer;
 
@@ -54,7 +57,7 @@ class _CoolingDownContentState extends State<_CoolingDownContent> {
       if (storedTime != null) {
         final now = DateTime.now();
         final diff = now.difference(storedTime).inSeconds;
-        final remaining = 30 - diff; // Changed to 30 seconds
+        final remaining = _cooldownSeconds - diff;
 
         if (remaining > 0) {
           setState(() {
@@ -74,7 +77,13 @@ class _CoolingDownContentState extends State<_CoolingDownContent> {
   }
 
   void _startTimer() {
+    _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+
       if (_remainingSeconds <= 1) {
         timer.cancel();
         setState(() {
@@ -159,8 +168,7 @@ class _CoolingDownContentState extends State<_CoolingDownContent> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed:
-                _isButtonEnabled
+                onPressed: _isButtonEnabled
                     ? () {
                   Navigator.of(context).pop();
                   widget.onTakeTextClick?.call();

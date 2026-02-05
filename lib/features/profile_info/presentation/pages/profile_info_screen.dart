@@ -211,60 +211,63 @@ class _ProfileInfoScreenState extends State<ProfileInfoScreen> {
                             const SizedBox(height: 47),
 
                             // Avatar
-                            Center(
-                              child: SizedBox(
-                                height: 140,
-                                width: 140,
-                                child: Stack(
-                                  alignment: Alignment.center,
-                                  children: [
-                                    GestureDetector(
-                                      onTap: () {
+                            Visibility(
+                              visible: false,
+                              child: Center(
+                                child: SizedBox(
+                                  height: 140,
+                                  width: 140,
+                                  child: Stack(
+                                    alignment: Alignment.center,
+                                    children: [
+                                      GestureDetector(
+                                        onTap: () {
 
-                                        final p = context.read<ProfileCubit>().state.profileImagePath;
-                                        if (p != null && p.isNotEmpty) {
-                                          context.push(AppRoutes.fullScreenImageView, extra: p);
-                                        }
-                                      },
-                                      child: CircleAvatar(
-                                        radius: 65,
-                                        backgroundColor: Colors.grey.shade300,
-                                        backgroundImage:
-                                        (profileImagePath != null &&
-                                            profileImagePath!.isNotEmpty)
-                                            ? FileImage(File(profileImagePath!))
-                                            : null,
-                                        child: (profileImagePath == null ||
-                                            profileImagePath!.isEmpty)
-                                            ? Text(
-                                          'Upload\nPhoto',
-                                          textAlign: TextAlign.center,
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.black54,
-                                          ),
-                                        )
-                                            : null,
+                                          final p = context.read<ProfileCubit>().state.profileImagePath;
+                                          if (p != null && p.isNotEmpty) {
+                                            context.push(AppRoutes.fullScreenImageView, extra: p);
+                                          }
+                                        },
+                                        child: CircleAvatar(
+                                          radius: 65,
+                                          backgroundColor: Colors.grey.shade300,
+                                          backgroundImage:
+                                          (profileImagePath != null &&
+                                              profileImagePath!.isNotEmpty)
+                                              ? FileImage(File(profileImagePath!))
+                                              : null,
+                                          child: (profileImagePath == null ||
+                                              profileImagePath!.isEmpty)
+                                              ? Text(
+                                            'Upload\nPhoto',
+                                            textAlign: TextAlign.center,
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.black54,
+                                            ),
+                                          )
+                                              : null,
+                                        ),
                                       ),
-                                    ),
-                                    Positioned(
-                                      bottom: 0,
-                                      right: 8,
-                                      child: GestureDetector(
-                                        onTap: () => _pickImage(context),
-                                        child: const CircleAvatar(
-                                          radius: 20,
-                                          backgroundColor: Colors.blue,
-                                          child: Icon(
-                                            Icons.camera_alt_outlined,
-                                            color: Colors.white,
-                                            size: 20,
+                                      Positioned(
+                                        bottom: 0,
+                                        right: 8,
+                                        child: GestureDetector(
+                                          onTap: () => _pickImage(context),
+                                          child: const CircleAvatar(
+                                            radius: 20,
+                                            backgroundColor: Colors.blue,
+                                            child: Icon(
+                                              Icons.camera_alt_outlined,
+                                              color: Colors.white,
+                                              size: 20,
+                                            ),
                                           ),
                                         ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),

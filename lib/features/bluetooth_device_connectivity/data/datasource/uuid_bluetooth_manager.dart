@@ -100,19 +100,36 @@ class UuidBluetoothManager {
       BluetoothDevice device, {
         Function? onConnected,
       }) async {
-    await stopScan();
-    await _device?.disconnect();
+    // Disconnect any previously connected device
+    if (_device != null) {
+      await _device?.disconnect();
+      print("🔌 Disconnecting the previous device...");
+    }
+
+    // Clear previous instance references to avoid multiple instances
     _device = device;
+    _notifyChar = null;
+    _writeChar = null;
+    _isConnected = false;
+
+    // Reset streams and controllers
+    _connCtrl.add(false);
+    _readyCtrl.add(false);
+
+    // Clean up any active subscriptions before starting a new one
+    await _connSub?.cancel();
+    await _notifySub?.cancel();
 
     print("🔌 Connecting to ${device.remoteId.str}...");
 
     try {
+      // Connect to the new device
       await device.connect(autoConnect: false);
     } catch (e) {
       if (kDebugMode) print("⚠️ connect() threw: $e");
     }
 
-    _connSub?.cancel();
+    // Subscribe to connection state changes
     _connSub = device.connectionState.listen((s) async {
       final connected = s == BluetoothConnectionState.connected;
       _isConnected = connected;
@@ -120,16 +137,17 @@ class UuidBluetoothManager {
 
       if (connected) {
         try {
-          try {
-            await device.requestMtu(247);
-            if (kDebugMode) print("✅ MTU requested");
-          } catch (e) {
-            if (kDebugMode) print("⚠️ MTU request failed: $e");
-          }
+          // Request MTU if needed
+          await device.requestMtu(247);
+          if (kDebugMode) print("✅ MTU requested");
 
+          // Discover and subscribe to Bluetooth services
           await _discoverAndSubscribe();
 
+          // Notify that the device is ready
           if (!_readyCtrl.isClosed) _readyCtrl.add(true);
+
+          // Call the onConnected callback if provided
           if (onConnected != null) onConnected();
         } catch (e, st) {
           if (kDebugMode) {
@@ -142,6 +160,7 @@ class UuidBluetoothManager {
       }
     });
   }
+
 
   Future<void> connectById(
       String id, {

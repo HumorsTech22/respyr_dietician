@@ -26,29 +26,29 @@ class ProfileBottomNavigation extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          IconButton(
-            icon: const Icon(
+          GestureDetector(
+            onTap: onBack,
+            child: const Icon(
               Icons.chevron_left_outlined,
               size: 26,
               color: Colors.black,
             ),
-            onPressed: onBack,
           ),
           InkWell(
             onTap: onNext,
             borderRadius: BorderRadius.circular(30),
             child: Container(
-              padding:
-                  nextLabel != null
-                      ? const EdgeInsets.symmetric(horizontal: 20, vertical: 10)
-                      : const EdgeInsets.all(10),
+              padding: nextLabel != null
+                  ? const EdgeInsets.symmetric(horizontal: 20, vertical: 10)
+                  : const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 color: const Color(0xFF308BF9),
                 borderRadius: BorderRadius.circular(30),
               ),
               child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (nextLabel != null) ...[
+                  if (nextLabel != null)
                     Text(
                       nextLabel!,
                       style: GoogleFonts.poppins(
@@ -58,8 +58,7 @@ class ProfileBottomNavigation extends StatelessWidget {
                         letterSpacing: 0.30,
                       ),
                     ),
-                    const SizedBox(width: 8),
-                  ],
+                  if (nextLabel != null) const SizedBox(width: 8),
                   const Icon(
                     Icons.chevron_right_outlined,
                     color: Colors.white,
@@ -74,3 +73,4 @@ class ProfileBottomNavigation extends StatelessWidget {
     );
   }
 }
+

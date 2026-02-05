@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:respyr_dietitian/common/widgets/battery_indicator_widget.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_connection_cubit/bluetooth_connection_cubit.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_connection_cubit/bluetooth_connection_state.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/widgets/device_list.dart';
@@ -17,14 +16,12 @@ class DeviceSection extends StatelessWidget {
   bool get isConnected =>
       state.isConnected || state.status == BluetoothConnectionStatus.connected;
 
-  bool get isScanning =>
-      state.isScanning || state.status == BluetoothConnectionStatus.scanning;
+  bool get isScanning => state.isScanning || state.status == BluetoothConnectionStatus.scanning;
 
   bool get hasDevices => state.devices.isNotEmpty;
 
-  bool get validDeviceId =>
-      state.connectingDeviceId != null &&
-          RegExp(r'^\d+$').hasMatch(state.connectingDeviceId!);
+  bool get validDeviceId => state.connectingDeviceId != null &&
+      RegExp(r'^\d+$').hasMatch(state.connectingDeviceId!);
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +39,7 @@ class DeviceSection extends StatelessWidget {
             _buildDeviceInfo()
           else
             Text(
-              "Checking battery info...",
+              "Checking device info...",
               style: GoogleFonts.poppins(
                 color: const Color(0xFF535359),
                 fontSize: 12,
@@ -191,10 +188,7 @@ class DeviceSection extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 10),
-        if ((state.batteryPercentage ?? 0) > 0)
-          BatteryIconWidget(
-            batteryPercentage: state.batteryPercentage!,
-          ),
+        // BatteryIndicatorWidget removed from this part
       ],
     );
   }

@@ -52,8 +52,8 @@ class DeviceList extends StatelessWidget {
             return InkWell(
               onTap:
                   () => context.read<BluetoothConnectionCubit>().connectById(
-                    d.id,
-                  ),
+                d.id,
+              ),
               child: Row(
                 children: [
                   const CircleAvatar(

@@ -19,6 +19,7 @@ import '../../../../../client-dashboard/today_result/today_test_data_event.dart'
 import '../../../../../client-dashboard/today_result/today_test_data_repository.dart';
 import '../../../../../client-dashboard/today_result/today_test_data_api_service.dart';
 
+import '../../../../../common/dialogs/disconnection_dialog.dart';
 import '../../../../../rular_arc_progress.dart';
 import '../../../../../test.dart';
 import '../../../../bluetooth_device_connectivity/domain/params/exhale_screen_params.dart';
@@ -123,7 +124,7 @@ class _QuaDashboardState extends State<QuaDashboard> with WidgetsBindingObserver
     }
   }
 
-  Future<void> _handleStartTest() async {
+  Future<void> _handleStartTest(TestDataState state) async {
 
     // context.pushReplacement(
     //   AppRoutes.retakeTestScreen,
@@ -151,10 +152,21 @@ class _QuaDashboardState extends State<QuaDashboard> with WidgetsBindingObserver
     if (isAborted) {
       CheckAbortSheet.show(
         context: context,
-        onTakeTextClick: _navigateToBluetooth,
+        onTakeTextClick: (){
+          if(state.result!=null){
+            context.go(AppRoutes.retakeTestScreen);
+          }else{
+            _navigateToBluetooth();
+          }
+
+        },
       );
     } else {
-      _navigateToBluetooth();
+      if(state.result!=null){
+        context.go(AppRoutes.retakeTestScreen);
+      }else{
+        _navigateToBluetooth();
+      }
     }
 
 
@@ -190,7 +202,7 @@ class _QuaDashboardState extends State<QuaDashboard> with WidgetsBindingObserver
     // );
 
 
-    //
+
     //  context.pushReplacement(
     //   AppRoutes.bluetoothInhaleScreen,
     //   extra: {
@@ -472,16 +484,37 @@ class _QuaDashboardState extends State<QuaDashboard> with WidgetsBindingObserver
       right: 0,
       child: BlocBuilder<TodayTestDataBloc, TestDataState>(
         builder: (context, testState) {
-
-          final dietitianId = widget.clientProfile.dietitianId?.trim().toLowerCase();
-          if(testState.result!=null && dietitianId != 'respyrd01'){
-            return SizedBox.shrink();
-          }
+          //
+          // final dietitianId = widget.clientProfile.dietitianId?.trim().toLowerCase();
+          // if(testState.result!=null && dietitianId != 'respyrd01'){
+          //   return SizedBox.shrink();
+          // }
+          // return Center(
+          //   child: SwipeButtonWidget(
+          //     onSwiped: _handleStartTest,
+          //   ),
+          // );
           return Center(
             child: SwipeButtonWidget(
-              onSwiped: _handleStartTest,
+              onSwiped: (){
+                _handleStartTest(testState);
+              },
             ),
           );
+
+
+          // if(testState.result==null){
+          //   return Center(
+          //     child: SwipeButtonWidget(
+          //       onSwiped: (){
+          //         _handleStartTest(testState);
+          //       },
+          //     ),
+          //   );
+          // }else{
+          //   context.go(AppRoutes.retakeTestScreen);
+          // }
+
         },
       ),
     );

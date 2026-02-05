@@ -13,7 +13,7 @@ class AbortDeviceManager {
       if (storedTime != null) {
         final now = DateTime.now();
         final diffInSeconds = now.difference(storedTime).inSeconds;
-        final remaining = 60 - diffInSeconds;
+        final remaining = 35 - diffInSeconds;
 
         return remaining > 0;
       }

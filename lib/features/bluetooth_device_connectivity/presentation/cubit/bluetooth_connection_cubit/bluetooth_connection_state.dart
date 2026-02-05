@@ -18,10 +18,8 @@ class BluetoothConnectionState extends Equatable {
   final String? lastData;
   final String? textError;
   final String? connectingDeviceId;
-  final double? batteryPercentage;
-
-  // ✅ NEW: device error info for UI (optional)
-  final String? deviceErrorMessage;
+  final bool deviceReady;
+  final bool isDeviceError;
 
   const BluetoothConnectionState({
     this.status = BluetoothConnectionStatus.initial,
@@ -31,8 +29,8 @@ class BluetoothConnectionState extends Equatable {
     this.lastData,
     this.textError,
     this.connectingDeviceId,
-    this.batteryPercentage,
-    this.deviceErrorMessage,
+    this.deviceReady = false,
+    this.isDeviceError = false,
   });
 
   BluetoothConnectionState copyWith({
@@ -43,8 +41,8 @@ class BluetoothConnectionState extends Equatable {
     String? lastData,
     String? textError,
     String? connectingDeviceId,
-    double? batteryPercentage,
-    String? deviceErrorMessage,
+    bool? deviceReady,
+    bool? isDeviceError,
   }) {
     return BluetoothConnectionState(
       status: status ?? this.status,
@@ -54,8 +52,8 @@ class BluetoothConnectionState extends Equatable {
       lastData: lastData ?? this.lastData,
       textError: textError ?? this.textError,
       connectingDeviceId: connectingDeviceId ?? this.connectingDeviceId,
-      batteryPercentage: batteryPercentage ?? this.batteryPercentage,
-      deviceErrorMessage: deviceErrorMessage,
+      deviceReady: deviceReady ?? this.deviceReady,
+      isDeviceError: isDeviceError ?? this.isDeviceError,
     );
   }
 
@@ -68,7 +66,7 @@ class BluetoothConnectionState extends Equatable {
     lastData,
     textError,
     connectingDeviceId,
-    batteryPercentage,
-    deviceErrorMessage,
+    deviceReady,
+    isDeviceError,
   ];
 }

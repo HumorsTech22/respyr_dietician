@@ -32,8 +32,8 @@ class BluetoothDeviceConnectivity extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (ctx) =>
-      BluetoothConnectionCubit(ctx.read<BluetoothRepository>())..init(),
+      create: (ctx) => BluetoothConnectionCubit(ctx.read<BluetoothRepository>())
+        ..init(),
       child: _BluetoothDeviceConnectivityView(
         clientProfileModel: clientProfileModel,
         dietPlanStrategyModel: dietPlanStrategyModel,
@@ -65,7 +65,6 @@ class _BluetoothDeviceConnectivityView extends StatefulWidget {
 class __BluetoothDeviceConnectivityViewState
     extends State<_BluetoothDeviceConnectivityView> {
   bool _dialogShown = false;
-  bool _lowBatteryShown = false;
 
   @override
   Widget build(BuildContext context) {
@@ -83,6 +82,7 @@ class __BluetoothDeviceConnectivityViewState
           );
         }
 
+        // ✅ show enable dialog once
         if (adapterState != fbp.BluetoothAdapterState.on && !_dialogShown) {
           _dialogShown = true;
           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -95,6 +95,7 @@ class __BluetoothDeviceConnectivityViewState
           });
         }
 
+        // ✅ auto close dialog when bluetooth becomes ON
         if (adapterState == fbp.BluetoothAdapterState.on && _dialogShown) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (Navigator.of(context, rootNavigator: true).canPop()) {
@@ -106,46 +107,42 @@ class __BluetoothDeviceConnectivityViewState
 
         return Scaffold(
           appBar: AppBar(
-            leading: IconButton(
-              onPressed: (){
-                BluetoothConnectionCubit(context.read<BluetoothRepository>()).sendAbort;
-                BluetoothConnectionCubit(context.read<BluetoothRepository>()).close;
-                _navigateToDashboard();
-              },
-              icon: SvgPicture.asset(
-                "assets/images/common/closeicon.svg",
-              ),
-            ),
             backgroundColor: Colors.white,
             surfaceTintColor: Colors.white,
+            automaticallyImplyLeading: false,
+            actions: [
+              IconButton(
+                onPressed: () async {
+                  final cubit = context.read<BluetoothConnectionCubit>();
+                  cubit.sendAbort();
+                  _navigateToDashboard();
+                },
+                icon: SvgPicture.asset("assets/images/common/closeicon.svg"),
+              ),
+            ],
           ),
           backgroundColor: Colors.white,
-
           body: SafeArea(
-            child: BlocListener<BluetoothConnectionCubit,
-                BluetoothConnectionState>(
+            child: BlocListener<BluetoothConnectionCubit, BluetoothConnectionState>(
               listenWhen: (prev, curr) =>
-              prev.deviceErrorMessage != curr.deviceErrorMessage &&
-                  curr.deviceErrorMessage != null,
+              prev.isDeviceError != curr.isDeviceError ||
+                  prev.textError != curr.textError,
               listener: (context, state) async {
-                if (_lowBatteryShown) return;
-                _lowBatteryShown = true;
-            
-                await showDialog(
-                  context: context,
-                  barrierDismissible: false,
-                  builder: (_) => WillPopScope(
-                    onWillPop: () async => false,
-                    child: DeviceLowBattery(
-                      message: state.deviceErrorMessage!,
-                      onOk: _navigateToDashboard,
+                if (state.isDeviceError && state.textError == "Device not ready") {
+                  await showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (_) => WillPopScope(
+                      onWillPop: () async => false,
+                      child: DeviceLowBattery(
+                        message: state.textError ?? '',
+                        onOk: _navigateToDashboard,
+                      ),
                     ),
-                  ),
-                );
+                  );
+                }
               },
-              child:
-              BlocBuilder<BluetoothConnectionCubit,
-                  BluetoothConnectionState>(
+              child: BlocBuilder<BluetoothConnectionCubit, BluetoothConnectionState>(
                 builder: (context, state) {
                   if (adapterState != fbp.BluetoothAdapterState.on) {
                     return _bluetoothOffUI();
@@ -155,7 +152,6 @@ class __BluetoothDeviceConnectivityViewState
               ),
             ),
           ),
-
           bottomNavigationBar: _bottomButton(),
         );
       },
@@ -165,23 +161,17 @@ class __BluetoothDeviceConnectivityViewState
   Widget _bottomButton() {
     return SafeArea(
       top: false,
-      child: BlocBuilder<BluetoothConnectionCubit,
-          BluetoothConnectionState>(
+      child: BlocBuilder<BluetoothConnectionCubit, BluetoothConnectionState>(
         builder: (context, state) {
-          final isBatteryReceived =
-              state.batteryPercentage != null &&
-                  state.batteryPercentage!.isFinite &&
-                  state.batteryPercentage! > 0;
+          final isReady = state.deviceReady == true;
 
-          final canStart = state.isConnected && isBatteryReceived;
+          final canStart = state.isConnected && isReady;
 
           String buttonText;
           if (!state.isConnected && state.isScanning) {
             buttonText = "Start";
-          } else if (state.isConnected && !isBatteryReceived) {
-            buttonText = "Checking battery...";
-          } else if (canStart) {
-            buttonText = "Start";
+          } else if (state.isConnected && !isReady) {
+            buttonText = "Checking device...";
           } else {
             buttonText = "Start";
           }
@@ -205,8 +195,7 @@ class __BluetoothDeviceConnectivityViewState
                 }
                     : null,
                 style: ElevatedButton.styleFrom(
-                  padding:
-                  const EdgeInsets.symmetric(vertical: 16),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
                   elevation: 0,
                   backgroundColor: canStart
                       ? const Color(0xFF308BF9)
@@ -215,9 +204,7 @@ class __BluetoothDeviceConnectivityViewState
                 child: Text(
                   buttonText,
                   style: GoogleFonts.poppins(
-                    color: canStart
-                        ? Colors.white
-                        : const Color(0xFF959595),
+                    color: canStart ? Colors.white : const Color(0xFF959595),
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
                   ),

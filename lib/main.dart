@@ -25,6 +25,7 @@ import 'package:respyr_dietitian/features/profile_info/domain/usecases/calculate
 import 'package:respyr_dietitian/features/profile_info/domain/usecases/calculate_bmr.dart';
 import 'package:respyr_dietitian/features/profile_info/presentation/cubit/profile_cubit.dart';
 import 'package:respyr_dietitian/routes/app_router.dart' hide rootNavigatorKey;
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 import 'core/global_keys.dart';
 import 'features/bluetooth_device_connectivity/presentation/cubit/global_error_cubit/global_error_cubit.dart';
@@ -162,6 +163,8 @@ Future<void> main() async {
     manager: uuidBleManager,
     navigatorKey: rootNavigatorKey,
   );
+
+  await WakelockPlus.enable();
 
   runApp(
     MultiRepositoryProvider(

@@ -14,7 +14,11 @@ class BluetoothExhaleState extends Equatable {
   final List<double> blowValues;
   final int inRangeDurationMs;
 
-  final bool navigateToDashboard; // ✅ add
+  final bool navigateToDashboard;
+  final bool cancelTest;
+
+  final bool startTimeoutRunning;
+  final int startTimeoutLeftSec;
 
   const BluetoothExhaleState({
     this.isConnected = false,
@@ -29,7 +33,10 @@ class BluetoothExhaleState extends Equatable {
     this.analysisReady = false,
     this.blowValues = const [],
     this.inRangeDurationMs = 0,
-    this.navigateToDashboard = false, // ✅ default false
+    this.navigateToDashboard = false,
+    this.cancelTest = false,
+    this.startTimeoutRunning = false,
+    this.startTimeoutLeftSec = 30,
   });
 
   BluetoothExhaleState copyWith({
@@ -46,6 +53,9 @@ class BluetoothExhaleState extends Equatable {
     List<double>? blowValues,
     int? inRangeDurationMs,
     bool? navigateToDashboard,
+    bool? cancelTest,
+    bool? startTimeoutRunning,
+    int? startTimeoutLeftSec,
   }) {
     return BluetoothExhaleState(
       isConnected: isConnected ?? this.isConnected,
@@ -61,6 +71,9 @@ class BluetoothExhaleState extends Equatable {
       blowValues: blowValues ?? this.blowValues,
       inRangeDurationMs: inRangeDurationMs ?? this.inRangeDurationMs,
       navigateToDashboard: navigateToDashboard ?? this.navigateToDashboard,
+      cancelTest: cancelTest ?? this.cancelTest,
+      startTimeoutRunning: startTimeoutRunning ?? this.startTimeoutRunning,
+      startTimeoutLeftSec: startTimeoutLeftSec ?? this.startTimeoutLeftSec,
     );
   }
 
@@ -79,5 +92,8 @@ class BluetoothExhaleState extends Equatable {
     blowValues,
     inRangeDurationMs,
     navigateToDashboard,
+    cancelTest,
+    startTimeoutRunning,
+    startTimeoutLeftSec,
   ];
 }

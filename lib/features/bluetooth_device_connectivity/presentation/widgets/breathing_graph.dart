@@ -1,7 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class BreathingTargetGraph extends StatefulWidget {
-  final double currentReading;
+  // ✅ changed: listenable reading
+  final ValueListenable<double> reading;
+
   final double targetMin;
   final double targetMax;
   final double min;
@@ -13,7 +16,7 @@ class BreathingTargetGraph extends StatefulWidget {
 
   const BreathingTargetGraph({
     super.key,
-    required this.currentReading,
+    required this.reading,
     this.targetMin = 60,
     this.targetMax = 70,
     this.min = 0,
@@ -36,19 +39,14 @@ class _BreathingTargetGraphState extends State<BreathingTargetGraph> {
 
   @override
   Widget build(BuildContext context) {
-    final isInRange = _isInSuccessZone(widget.currentReading);
-
-    // Figma specs: 136x166 when holding, dynamic width x widget.height when active
     final double targetWidth = widget.hold ? 136 : _dynamicWidth;
     final double targetHeight = widget.hold ? 166 : widget.height;
-
-    // To keep the ends perfectly rounded like a capsule/pill
     final double targetRadius = targetWidth / 2;
 
     return Center(
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 800),
-        curve: Curves.easeInOutBack, // Very smooth, premium transition
+        curve: Curves.easeInOutBack,
         width: targetWidth,
         height: targetHeight,
         decoration: ShapeDecoration(
@@ -70,9 +68,7 @@ class _BreathingTargetGraphState extends State<BreathingTargetGraph> {
               child: ScaleTransition(scale: animation, child: child),
             );
           },
-          child: widget.hold
-              ? _buildCounterView()
-              : _buildGraphView(isInRange),
+          child: widget.hold ? _buildCounterView() : _buildGraphView(),
         ),
       ),
     );
@@ -84,7 +80,7 @@ class _BreathingTargetGraphState extends State<BreathingTargetGraph> {
       child: Text(
         "${widget.holdCounter}",
         style: const TextStyle(
-          fontSize: 64, // Matches the prominent Figma number style
+          fontSize: 64,
           fontWeight: FontWeight.w500,
           color: Color(0xFF1D1B20),
           fontFamily: 'Poppins',
@@ -93,40 +89,45 @@ class _BreathingTargetGraphState extends State<BreathingTargetGraph> {
     );
   }
 
-  Widget _buildGraphView(bool isInRange) {
+  Widget _buildGraphView() {
     return CustomPaint(
       key: const ValueKey("graph_view"),
       size: Size(_dynamicWidth, widget.height),
+
+      // ✅ repaint is driven by reading notifier (no rebuild needed)
       painter: _GraphPainter(
-        value: widget.currentReading,
+        repaint: widget.reading,
         min: widget.min,
         max: widget.max,
         targetMin: widget.targetMin,
         targetMax: widget.targetMax,
-        isInRange: isInRange,
       ),
     );
   }
 }
 
 class _GraphPainter extends CustomPainter {
-  final double value, min, max, targetMin, targetMax;
-  final bool isInRange;
+  final double min, max, targetMin, targetMax;
+  final ValueListenable<double> repaint;
 
   _GraphPainter({
-    required this.value,
+    required this.repaint,
     required this.min,
     required this.max,
     required this.targetMin,
     required this.targetMax,
-    required this.isInRange,
-  });
+  }) : super(repaint: repaint);
+
+  bool _isInSuccessZone(double val) => val >= targetMin && val <= targetMax;
 
   @override
   void paint(Canvas canvas, Size size) {
+    final value = repaint.value;
+    final isInRange = _isInSuccessZone(value);
+
     _drawTargetMarkers(canvas, size, targetMin);
     _drawTargetMarkers(canvas, size, targetMax);
-    _drawBall(canvas, size);
+    _drawBall(canvas, size, value, isInRange);
   }
 
   void _drawTargetMarkers(Canvas canvas, Size size, double markerValue) {
@@ -141,22 +142,35 @@ class _GraphPainter extends CustomPainter {
 
     final Paint paint = Paint()..color = const Color(0xFFE1E6ED);
 
-    // Dashed Line
     double dash = 10, gap = 16, start = -10;
     while (start < size.width + 10) {
-      canvas.drawLine(Offset(start, yPos), Offset(start + dash, yPos),
-          paint..style = PaintingStyle.stroke..strokeWidth = 2.5);
+      canvas.drawLine(
+        Offset(start, yPos),
+        Offset(start + dash, yPos),
+        paint
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.5,
+      );
       start += dash + gap;
     }
 
-    // Arrows
-    final Path leftArrow = Path()..moveTo(-5, yPos)..lineTo(-20, yPos-10)..lineTo(-20, yPos+10)..close();
-    final Path rightArrow = Path()..moveTo(size.width+5, yPos)..lineTo(size.width+20, yPos-10)..lineTo(size.width+20, yPos+10)..close();
+    final Path leftArrow = Path()
+      ..moveTo(-5, yPos)
+      ..lineTo(-20, yPos - 10)
+      ..lineTo(-20, yPos + 10)
+      ..close();
+
+    final Path rightArrow = Path()
+      ..moveTo(size.width + 5, yPos)
+      ..lineTo(size.width + 20, yPos - 10)
+      ..lineTo(size.width + 20, yPos + 10)
+      ..close();
+
     canvas.drawPath(leftArrow, paint..style = PaintingStyle.fill);
     canvas.drawPath(rightArrow, paint);
   }
 
-  void _drawBall(Canvas canvas, Size size) {
+  void _drawBall(Canvas canvas, Size size, double value, bool isInRange) {
     final double ballRadius = size.width * 0.22;
     final double innerPadding = size.width * 0.12;
     final double minY = innerPadding + ballRadius;
@@ -165,20 +179,28 @@ class _GraphPainter extends CustomPainter {
     final double normalizedVal = ((value - min) / (max - min)).clamp(0.0, 1.0);
     final double yPos = maxY - (normalizedVal * (maxY - minY));
 
-    final Color baseColor = isInRange ? const Color(0xFF3EAF58) : const Color(0xFF308BF9);
-    final Color lightColor = isInRange ? const Color(0xFFA9F7BA) : const Color(0xFF8EC1FF);
+    final Color baseColor =
+    isInRange ? const Color(0xFF3EAF58) : const Color(0xFF308BF9);
+    final Color lightColor =
+    isInRange ? const Color(0xFFA9F7BA) : const Color(0xFF8EC1FF);
 
     canvas.drawCircle(
       Offset(size.width / 2, yPos),
       ballRadius,
-      Paint()..shader = RadialGradient(
-        colors: [lightColor, baseColor],
-        center: Alignment.bottomCenter,
-        radius: 1.1,
-      ).createShader(Rect.fromCircle(center: Offset(size.width/2, yPos), radius: ballRadius)),
+      Paint()
+        ..shader = RadialGradient(
+          colors: [lightColor, baseColor],
+          center: Alignment.bottomCenter,
+          radius: 1.1,
+        ).createShader(
+          Rect.fromCircle(
+            center: Offset(size.width / 2, yPos),
+            radius: ballRadius,
+          ),
+        ),
     );
   }
 
   @override
-  bool shouldRepaint(covariant _GraphPainter oldDelegate) => true;
+  bool shouldRepaint(covariant _GraphPainter oldDelegate) => false;
 }

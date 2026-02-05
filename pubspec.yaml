@@ -87,9 +87,12 @@ dependencies:
   video_player:
   animated_text_kit:
   flutter_inner_shadow: 0.0.1
-  google_sign_in: ^7.2.0
+#  google_sign_in: ^7.2.0
+  google_sign_in: ^6.2.1
   bloc_test:
   mocktail:
+  wakelock_plus: ^1.2.5
+
 
 
 

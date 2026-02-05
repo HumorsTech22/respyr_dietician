@@ -1,33 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../../core/size/get_height.dart'; // Ensure this import is correct
 
-class TermsPolicyWidgets{
+class TermsPolicyWidgets {
 
-
-
-  Widget termsPolicyFooter(){
-
-
+  Widget termsPolicyFooter(BuildContext context) {
     final greyTextStyle = GoogleFonts.poppins(
       color: const Color(0xFFA1A1A1),
-      fontSize: 12,
-      fontWeight: FontWeight.w400,
+      fontSize: rh(context: context, px: 12),
+      fontWeight: FontWeight.w500,
       letterSpacing: -0.72,
     );
 
     final linkTextStyle = greyTextStyle.copyWith(
         color: const Color(0xFF308BF9),
         decoration: TextDecoration.underline,
-        decorationColor:  Color(0xFF308BF9)
+        decorationColor: const Color(0xFF308BF9)
     );
 
-
-    return   Center(
+    return Center(
       child: Wrap(
         alignment: WrapAlignment.center,
         crossAxisAlignment: WrapCrossAlignment.center,
-        spacing: 3,       // horizontal gap
-        runSpacing: 2,    // vertical gap if it wraps
+        spacing: rh(context: context, px: 3),       // horizontal gap scaled
+        runSpacing: rh(context: context, px: 2),    // vertical gap scaled
         children: [
           Text(
             "By continuing, you agree to our ",
@@ -37,7 +33,7 @@ class TermsPolicyWidgets{
             onPressed: () {},
             style: TextButton.styleFrom(
               padding: EdgeInsets.zero,
-              minimumSize: Size(0, 0),
+              minimumSize: Size(rh(context: context, px: 0), rh(context: context, px: 0)),
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
             child: Text(
@@ -53,7 +49,7 @@ class TermsPolicyWidgets{
             onPressed: () {},
             style: TextButton.styleFrom(
               padding: EdgeInsets.zero,
-              minimumSize: Size(0, 0),
+              minimumSize: Size(rh(context: context, px: 0), rh(context: context, px: 0)),
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
             child: Text(

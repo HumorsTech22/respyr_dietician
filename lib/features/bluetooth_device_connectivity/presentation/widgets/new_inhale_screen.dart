@@ -6,15 +6,47 @@ import '../../../../core/size/get_height.dart';
 import '../cubit/bluetooth_inhale_cubit_new/bluetooth_inhale_new_state.dart';
 import 'breathing_graph.dart';
 
-class NewInhaleScreen extends StatelessWidget {
+class NewInhaleScreen extends StatefulWidget {
   final BluetoothInhaleCubitNewState state;
   const NewInhaleScreen({super.key, required this.state});
 
   @override
+  State<NewInhaleScreen> createState() => _NewInhaleScreenState();
+}
+
+class _NewInhaleScreenState extends State<NewInhaleScreen> {
+  final ValueNotifier<double> _reading = ValueNotifier<double>(0);
+
+  @override
+  void initState() {
+    super.initState();
+    _reading.value = widget.state.progress;
+  }
+
+  @override
+  void didUpdateWidget(covariant NewInhaleScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    // ✅ only update painter input (super cheap)
+    if (oldWidget.state.progress != widget.state.progress) {
+      _reading.value = widget.state.progress;
+    }
+  }
+
+  @override
+  void dispose() {
+    _reading.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final state = widget.state;
+
     // Hold constants
     const int totalHoldTime = 8;
-    final holdRemaining = (totalHoldTime - state.holdSeconds).ceil().clamp(0, totalHoldTime);
+    final holdRemaining =
+    (totalHoldTime - state.holdSeconds).ceil().clamp(0, totalHoldTime);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -24,7 +56,7 @@ class NewInhaleScreen extends StatelessWidget {
         // Main Header Text
         SizedBox(
           width: double.infinity,
-          child: _buildMainTitle(context, holdRemaining),
+          child: _buildMainTitle(context, state, holdRemaining),
         ),
 
         SizedBox(height: rh(context: context, px: 20)),
@@ -33,7 +65,7 @@ class NewInhaleScreen extends StatelessWidget {
         SizedBox(
           width: double.infinity,
           child: Text(
-            _buildSubTitle(holdRemaining),
+            _buildSubTitle(state, holdRemaining),
             textAlign: TextAlign.center,
             style: GoogleFonts.poppins(
               color: const Color(0xFF535359),
@@ -55,14 +87,19 @@ class NewInhaleScreen extends StatelessWidget {
                   ? rh(context: ctx, px: 300)
                   : constraints.maxHeight;
 
+              final bool holdFlag =
+              (state.holdSeconds == 1) ? false : state.holdStarted;
+
               return Center(
-                child: BreathingTargetGraph(
-                  currentReading: state.progress,
-                  height: safeH,
-                  targetMin: 20,
-                  targetMax: 80,
-                  hold: state.holdSeconds==1 ? false : state.holdStarted   ,
-                  holdCounter: holdRemaining,
+                child: RepaintBoundary(
+                  child: BreathingTargetGraph(
+                    reading: _reading, // ✅ updated
+                    height: safeH,
+                    targetMin: 25,
+                    targetMax: 80,
+                    hold: holdFlag,
+                    holdCounter: holdRemaining,
+                  ),
                 ),
               );
             },
@@ -79,7 +116,11 @@ class NewInhaleScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildMainTitle(BuildContext context, int holdRemaining) {
+  Widget _buildMainTitle(
+      BuildContext context,
+      BluetoothInhaleCubitNewState state,
+      int holdRemaining,
+      ) {
     final baseStyle = GoogleFonts.poppins(
       color: const Color(0xFF252525),
       fontSize: rh(context: context, px: 25),
@@ -91,16 +132,26 @@ class NewInhaleScreen extends StatelessWidget {
     // 1. Hold Phase Logic
     if (state.holdStarted) {
       if (holdRemaining > 3) {
-        return Text("Hold your breath", textAlign: TextAlign.center, style: baseStyle);
+        return Text(
+          "Hold your breath",
+          textAlign: TextAlign.center,
+          style: baseStyle,
+        );
       } else {
-        return Text("Start exhaling in..", textAlign: TextAlign.center, style: baseStyle);
+        return Text(
+          "Start exhaling in..",
+          textAlign: TextAlign.center,
+          style: baseStyle,
+        );
       }
     }
 
     // 2. Inhale Progress Logic
     if (state.inhaleNeedRunning) {
-      final remainingMs = (state.inhaleNeedTotalMillis - (state.inBandSeconds * 1000).round())
+      final remainingMs = (state.inhaleNeedTotalMillis -
+          (state.inBandSeconds * 1000).round())
           .clamp(0, state.inhaleNeedTotalMillis);
+
       final remainingSec = (remainingMs / 1000).ceil();
 
       return RichText(
@@ -127,7 +178,7 @@ class NewInhaleScreen extends StatelessWidget {
     );
   }
 
-  String _buildSubTitle(int holdRemaining) {
+  String _buildSubTitle(BluetoothInhaleCubitNewState state, int holdRemaining) {
     if (state.holdStarted) {
       return holdRemaining > 3
           ? "Remove device from your mouth"
