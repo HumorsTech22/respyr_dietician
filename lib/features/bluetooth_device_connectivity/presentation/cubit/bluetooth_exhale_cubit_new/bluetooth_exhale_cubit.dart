@@ -29,28 +29,38 @@ class BluetoothExhaleCubit extends Cubit<BluetoothExhaleState> {
   final RegExp _curlyNum = RegExp(r'^\s*\{\s*(\d+(?:\.\d+)?)\s*\}\s*$');
   final RegExp _slashNum = RegExp(r'^\s*/\s*(\d+(?:\.\d+)?)\s*/\s*$');
 
-  static const double _minRange = 20.0;
+  static const double _minRange = 40.0;
   static const double _maxRange = 80.0;
 
-  static const int _holdTotalMs = 2500;
-  static const Duration _outGrace = Duration(seconds: 2);
+  static const int _holdTotalMs = 3000;
+  static const int _holdAcceptMs = 2000;
+
   static const double _stopProgressThreshold = 0.0;
+  static const double _inhaleDrop = 3.0;
+
+  static const int _startTimeoutSec = 30;
+
+  static const double _exhaleDetectDelta = 2.0;
 
   Timer? _holdTicker;
-  Timer? _outOfRangeTimer;
   DateTime? _lastHoldTickAt;
 
   int _holdRemainingMs = _holdTotalMs;
   int _inRangeAccumMs = 0;
 
-  static const int _maxBlowPoints = 300;
   final List<double> _blowValues = [];
 
-  // ✅ ensures cancel flow executes once
   bool _finalized = false;
-
-  // ✅ save time only once
   bool _timeSaved = false;
+  bool _failed = false;
+
+  // ✅ ensure '&' abort is sent only once
+  bool _abortSent = false;
+
+  // ✅ NEW: timeout timers
+  Timer? _startTimeoutTicker;
+  Timer? _startTimeoutTimer;
+  bool _exhaleDetected = false; // becomes true when blowVal > base + 2
 
   double get _baseDouble {
     final normal = double.tryParse(baseValue.trim());
@@ -87,11 +97,16 @@ class BluetoothExhaleCubit extends Cubit<BluetoothExhaleState> {
     _timeSaved = false;
     _exhaleSucceeded = false;
     _startSent = false;
+    _failed = false;
+    _abortSent = false;
+
+    _cancelStartTimeoutTimers();
+    _exhaleDetected = false;
 
     emit(state.copyWith(
       isConnected: repo.isConnected,
       progress: 0,
-      holdSecondsLeft: (_holdRemainingMs / 1000).ceil(),
+      holdSecondsLeft: (_holdRemainingMs / 1000).ceil().clamp(1, 4),
       exhaleStarted: false,
       inRange: false,
       exhaleSuccess: false,
@@ -100,7 +115,12 @@ class BluetoothExhaleCubit extends Cubit<BluetoothExhaleState> {
       blowValues: const [],
       inRangeDurationMs: 0,
       navigateToDashboard: false,
+      cancelTest: false,
       error: null,
+
+      // ✅ new fields
+      startTimeoutRunning: false,
+      startTimeoutLeftSec: _startTimeoutSec,
     ));
 
     _connSub = repo.connectionStatusStream().listen((connected) {
@@ -108,11 +128,9 @@ class BluetoothExhaleCubit extends Cubit<BluetoothExhaleState> {
 
       emit(state.copyWith(isConnected: connected));
 
-      // disconnected: stop timers to avoid running work
       if (!connected) {
         _pauseHoldCountdown();
-        _cancelOutOfRangeTimer();
-        // keep error optional
+        _cancelStartTimeoutTimers();
         emit(state.copyWith(error: "Device disconnected. Please reconnect."));
         return;
       }
@@ -137,18 +155,90 @@ class BluetoothExhaleCubit extends Cubit<BluetoothExhaleState> {
       d("SEND '3'");
       repo.sendData("3");
       _startSent = true;
+
+      // ✅ start 30 sec timer after sending '3'
+      _startStartTimeoutTimers();
     } catch (e) {
       emit(state.copyWith(error: e.toString()));
     }
   }
 
+  void _startStartTimeoutTimers() {
+    _cancelStartTimeoutTimers();
+
+    emit(state.copyWith(
+      startTimeoutRunning: true,
+      startTimeoutLeftSec: _startTimeoutSec,
+    ));
+
+    // tick down for UI
+    int left = _startTimeoutSec;
+    _startTimeoutTicker = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (_disposed || _finalized || _failed) return;
+      if (_exhaleDetected || state.exhaleStarted || state.exhaleSuccess || state.exhaleFailed) return;
+
+      left = (left - 1).clamp(0, _startTimeoutSec);
+      emit(state.copyWith(startTimeoutLeftSec: left));
+
+      if (left <= 0) {
+        _startTimeoutTicker?.cancel();
+        _startTimeoutTicker = null;
+      }
+    });
+
+    // hard timeout
+    _startTimeoutTimer = Timer(const Duration(seconds: _startTimeoutSec), () {
+      if (_disposed || _finalized || _failed) return;
+      if (_exhaleDetected || state.exhaleStarted || state.exhaleSuccess || state.exhaleFailed) return;
+
+      _failed = true;
+      _fail(reason: "Timeout: No exhale detected within $_startTimeoutSec seconds.");
+    });
+  }
+
+  void _cancelStartTimeoutTimers() {
+    _startTimeoutTicker?.cancel();
+    _startTimeoutTicker = null;
+
+    _startTimeoutTimer?.cancel();
+    _startTimeoutTimer = null;
+
+    // keep state clean
+    if (state.startTimeoutRunning) {
+      emit(state.copyWith(
+        startTimeoutRunning: false,
+        startTimeoutLeftSec: _startTimeoutSec,
+      ));
+    }
+  }
+
+  void _sendAbortOnce({required String why}) {
+    if (_abortSent) {
+      d("Skip '&' (already sent) | $why");
+      return;
+    }
+    _abortSent = true;
+
+    if (!repo.isConnected) {
+      d("Skip '&' (not connected) | $why");
+      return;
+    }
+
+    try {
+      d("SEND '&' | $why");
+      repo.sendData("&");
+    } catch (_) {
+      d("Error sending '&' | $why");
+    }
+  }
+
   void _onData(String data) {
     if (_disposed || _finalized || data.isEmpty) return;
+    if (_failed) return;
 
     final clean = data.trim();
     emit(state.copyWith(receivedData: clean, error: null));
 
-    // After success -> wait for "analize"
     if (_exhaleSucceeded) {
       if (clean.toLowerCase() == "analize") {
         emit(state.copyWith(analysisReady: true));
@@ -162,25 +252,37 @@ class BluetoothExhaleCubit extends Cubit<BluetoothExhaleState> {
     final blowVal = double.tryParse(m.group(1) ?? "");
     if (blowVal == null) return;
 
-    _blowValues.add(blowVal);
-    if (_blowValues.length > _maxBlowPoints) {
-      _blowValues.removeRange(0, _blowValues.length - _maxBlowPoints);
-    }
-    emit(state.copyWith(blowValues: List<double>.unmodifiable(_blowValues)));
-
     final base = _baseDouble;
 
-    if (blowVal <= base) {
-      _handleProgress(0);
+    // ✅ exhale detection for timeout cancel: blowVal > base + 2
+    if (!_exhaleDetected && blowVal > (base + _exhaleDetectDelta)) {
+      _exhaleDetected = true;
+      d("Exhale detected (raw): $blowVal > ${base + _exhaleDetectDelta}");
+      _cancelStartTimeoutTimers();
+    }
+
+    // ✅ FAIL #1: inhale detected (anytime)
+    if (blowVal < (base - _inhaleDrop)) {
+      _failed = true;
+      _fail(reason: "Oops! You inhaled instead of exhaling.");
       return;
     }
 
-    final progress = Thresholds.calculateBlowPercentage(base, blowVal);
+    // ✅ NO LIMIT: store all values
+    _blowValues.add(blowVal);
+    emit(state.copyWith(blowValues: List<double>.unmodifiable(_blowValues)));
+
+    double progress = 0;
+    if (blowVal > base) {
+      progress = Thresholds.calculateBlowPercentage1(base, blowVal);
+    }
+
     _handleProgress(progress);
   }
 
   void _handleProgress(double progress) {
     if (_disposed || _finalized) return;
+    if (_failed) return;
     if (state.exhaleFailed || state.exhaleSuccess) return;
 
     final nowInRange = (progress >= _minRange && progress <= _maxRange);
@@ -191,38 +293,38 @@ class BluetoothExhaleCubit extends Cubit<BluetoothExhaleState> {
       inRangeDurationMs: _inRangeAccumMs,
     ));
 
-    // mistake: stopped exhaling => fail (save time) + send & only if connected
-    if (state.exhaleStarted && progress <= _stopProgressThreshold) {
-      _fail(reason: "Exhale failed: you stopped exhaling.");
+    if (!state.exhaleStarted && nowInRange) {
+      emit(state.copyWith(exhaleStarted: true));
+      _cancelStartTimeoutTimers(); // ✅ also cancel when flow starts
+      _resumeHoldCountdown();
       return;
     }
 
-    if (!state.exhaleStarted && nowInRange) {
-      emit(state.copyWith(exhaleStarted: true));
-      _resumeHoldCountdown();
-      _cancelOutOfRangeTimer();
+    // ✅ FAIL #2: after exhale started, progress drops to 0
+    if (state.exhaleStarted && progress <= _stopProgressThreshold) {
+      _failed = true;
+      _fail(reason: "Exhale failed: you stopped exhaling.");
       return;
     }
 
     if (!state.exhaleStarted) return;
 
     if (nowInRange) {
-      _cancelOutOfRangeTimer();
       _resumeHoldCountdown();
     } else {
       _pauseHoldCountdown();
-      _startOutOfRangeFailTimer();
     }
   }
 
   void _resumeHoldCountdown() {
-    if (_holdRemainingMs <= 0) return;
+    if (_inRangeAccumMs >= _holdAcceptMs) return;
     if (_holdTicker != null) return;
 
     _lastHoldTickAt = DateTime.now();
 
     _holdTicker = Timer.periodic(const Duration(milliseconds: 100), (_) {
       if (_disposed || _finalized) return;
+      if (_failed) return;
       if (state.exhaleFailed || state.exhaleSuccess) return;
 
       _lastHoldTickAt ??= DateTime.now();
@@ -235,10 +337,21 @@ class BluetoothExhaleCubit extends Cubit<BluetoothExhaleState> {
       _holdRemainingMs -= dt;
       if (_holdRemainingMs < 0) _holdRemainingMs = 0;
 
+      final secondsLeft = (_holdRemainingMs / 1000).ceil().clamp(1, 4);
+
       emit(state.copyWith(
-        holdSecondsLeft: (_holdRemainingMs / 1000).ceil().clamp(0, 3),
+        holdSecondsLeft: secondsLeft,
         inRangeDurationMs: _inRangeAccumMs,
       ));
+
+      // ✅ ACCEPT if held >= 2.5 sec
+      if (_inRangeAccumMs >= _holdAcceptMs) {
+        _holdTicker?.cancel();
+        _holdTicker = null;
+        _holdRemainingMs = 0;
+        _markSuccess();
+        return;
+      }
 
       if (_holdRemainingMs <= 0) {
         _holdTicker?.cancel();
@@ -254,40 +367,14 @@ class BluetoothExhaleCubit extends Cubit<BluetoothExhaleState> {
     _lastHoldTickAt = null;
   }
 
-  void _startOutOfRangeFailTimer() {
-    if (_outOfRangeTimer != null) return;
-
-    _outOfRangeTimer = Timer(_outGrace, () {
-      if (_disposed || _finalized) return;
-      if (state.exhaleFailed || state.exhaleSuccess) return;
-
-      final stillOut =
-      !(state.progress >= _minRange && state.progress <= _maxRange);
-
-      if (stillOut) {
-        _fail(
-          reason:
-          "Exhale failed: out of ${_minRange.toInt()}–${_maxRange.toInt()}% range for more than 2 seconds.",
-        );
-      } else {
-        _cancelOutOfRangeTimer();
-      }
-    });
-  }
-
-  void _cancelOutOfRangeTimer() {
-    _outOfRangeTimer?.cancel();
-    _outOfRangeTimer = null;
-  }
-
   void _markSuccess() {
     if (_disposed || _finalized) return;
+    if (_failed) return;
     if (state.exhaleFailed || state.exhaleSuccess) return;
 
     _pauseHoldCountdown();
-    _cancelOutOfRangeTimer();
+    _cancelStartTimeoutTimers();
 
-    // send "/" only if connected (optional: you can try always, but you asked connected-only)
     if (repo.isConnected) {
       try {
         d("SEND '/' (success)");
@@ -301,30 +388,21 @@ class BluetoothExhaleCubit extends Cubit<BluetoothExhaleState> {
       exhaleSuccess: true,
       exhaleFailed: false,
       error: null,
-      holdSecondsLeft: 0,
+      holdSecondsLeft: 1,
       inRangeDurationMs: _inRangeAccumMs,
       blowValues: List<double>.unmodifiable(_blowValues),
     ));
   }
 
-  // ✅ FAIL: always save time, send '&' only if connected
   Future<void> _fail({required String reason}) async {
     if (_disposed || _finalized) return;
     if (state.exhaleFailed || state.exhaleSuccess) return;
 
     _pauseHoldCountdown();
-    _cancelOutOfRangeTimer();
+    _cancelStartTimeoutTimers();
 
     await _saveCancelTimeOnce();
-
-    if (repo.isConnected) {
-      try {
-        d("SEND '&' (abort) due to fail");
-        repo.sendData("&");
-      } catch (_) {}
-    } else {
-      d("Skip '&' (not connected) on fail");
-    }
+    _sendAbortOnce(why: "fail");
 
     emit(state.copyWith(
       exhaleSuccess: false,
@@ -333,29 +411,24 @@ class BluetoothExhaleCubit extends Cubit<BluetoothExhaleState> {
       inRangeDurationMs: _inRangeAccumMs,
       blowValues: List<double>.unmodifiable(_blowValues),
       navigateToDashboard: false,
+      startTimeoutRunning: false,
     ));
   }
 
-  // ✅ CANCEL: any stage => save time + navigate dashboard
-  // ✅ send '&' only if connected
   Future<void> cancelTest() async {
     if (_disposed || _finalized) return;
 
-    _finalized = true; // prevent any more ticks/data changes
+    _finalized = true;
+    _failed = true;
+
+    emit(state.copyWith(cancelTest: true));
 
     _pauseHoldCountdown();
-    _cancelOutOfRangeTimer();
+    _cancelStartTimeoutTimers();
+
+    _sendAbortOnce(why: "cancelTest");
 
     await _saveCancelTimeOnce();
-
-    if (repo.isConnected) {
-      try {
-        d("SEND '&' (abort) from cancel");
-        repo.sendData("&");
-      } catch (_) {}
-    } else {
-      d("Skip '&' (not connected) on cancel");
-    }
 
     emit(state.copyWith(
       exhaleSuccess: false,
@@ -363,7 +436,9 @@ class BluetoothExhaleCubit extends Cubit<BluetoothExhaleState> {
       error: "Aborted by user.",
       inRangeDurationMs: _inRangeAccumMs,
       blowValues: List<double>.unmodifiable(_blowValues),
-      navigateToDashboard: true, // ✅ UI will go dashboard
+      navigateToDashboard: true,
+      cancelTest: true,
+      startTimeoutRunning: false,
     ));
   }
 
@@ -385,7 +460,7 @@ class BluetoothExhaleCubit extends Cubit<BluetoothExhaleState> {
     _disposed = true;
 
     _holdTicker?.cancel();
-    _outOfRangeTimer?.cancel();
+    _cancelStartTimeoutTimers();
 
     _connSub?.cancel();
     _dataSub?.cancel();

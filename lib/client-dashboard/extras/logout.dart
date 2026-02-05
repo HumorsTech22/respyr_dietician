@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:google_sign_in/google_sign_in.dart'; // Added import
 
 import '../../client_login_manager/client_login_manager.dart';
 import '../../routes/app_routes.dart';
@@ -33,6 +34,13 @@ class Logout {
     bool isCleared = false;
 
     try {
+      // --- Google Sign Out Addition ---
+      final GoogleSignIn googleSignIn = GoogleSignIn();
+      if (await googleSignIn.isSignedIn()) {
+        await googleSignIn.signOut();
+      }
+      // --------------------------------
+
       isCleared = await ClientLoginManager().clearClientProfile();
     } catch (_) {
       isCleared = false;
@@ -137,7 +145,7 @@ class _ConfirmCard extends StatelessWidget {
                   child: const Text('Cancel', style: TextStyle(color: Color(0xFF252525))),
                 ),
               ),
-              const SizedBox(width: 20),
+              const SizedBox(height: 12), // Adjusted spacing for vertical layout
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(

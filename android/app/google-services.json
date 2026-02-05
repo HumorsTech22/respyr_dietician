@@ -37,6 +37,14 @@
             {
               "client_id": "265394397027-7n0ciru6mpihpg8hmvnq9m2nflklf538.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "265394397027-q09d7omqjipo5864asrgii14sjcbtb2e.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.humorstech.dietitian",
+                "app_store_id": "6757678639"
+              }
             }
           ]
         }
@@ -74,6 +82,14 @@
             {
               "client_id": "265394397027-7n0ciru6mpihpg8hmvnq9m2nflklf538.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "265394397027-q09d7omqjipo5864asrgii14sjcbtb2e.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.humorstech.dietitian",
+                "app_store_id": "6757678639"
+              }
             }
           ]
         }
