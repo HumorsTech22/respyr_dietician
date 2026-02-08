@@ -28,8 +28,10 @@ import 'package:respyr_dietitian/features/result_screen/presentation/pages/resul
 import 'package:respyr_dietitian/features/walk_through/presentation/screen/walk_through.dart';
 import 'package:respyr_dietitian/routes/app_routes.dart';
 import 'package:respyr_dietitian/splash/splash_screen.dart';
-import '../client-dashboard/data/model/client_profile_model.dart';
+import 'package:respyr_dietitian/client-dashboard/data/model/client_profile_model.dart';
+
 import '../client-dashboard/presentation/screens/client_dashboard.dart';
+import '../common/screens/error_screen.dart';
 import '../features/bluetooth_device_connectivity/presentation/pages/bluetooth_breathe_tube.dart';
 import '../features/bluetooth_device_connectivity/presentation/pages/bluetooth_calibration_screen.dart';
 import '../features/bluetooth_device_connectivity/presentation/pages/bluetooth_exhale_screen.dart';
@@ -482,22 +484,6 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) {
         final params = state.extra as ResultScreenParams;
 
-        print(params.clientProfileModel.dietitianId);
-
-
-        final id = params.clientProfileModel.dietitianId?.trim().toLowerCase();
-
-        if (id == 'respyrd01') {
-          return BlocProvider(
-            create: (context) => DietitianResultCubit(),
-            child: DietitianResultScreen(
-              result: params.result,
-              clientProfileModel: params.clientProfileModel,
-            ),
-          );
-        }
-
-
         return BlocProvider(
           create: (context) => DietitianResultCubit(),
           child: OverallMetabolismScore(
@@ -507,6 +493,23 @@ final GoRouter appRouter = GoRouter(
         );
       },
     ),
+
+    GoRoute(
+      path: AppRoutes.overallResultScreen,
+      builder: (context, state) {
+        final params = state.extra as ResultScreenParams;
+        return BlocProvider(
+          create: (context) => DietitianResultCubit(),
+          child: DietitianResultScreen(
+            result: params.result,
+            clientProfileModel: params.clientProfileModel,
+          ),
+        );
+      },
+    ),
+
+
+
 
     GoRoute(
       path: AppRoutes.fullScreenImageView,
@@ -563,16 +566,72 @@ final GoRouter appRouter = GoRouter(
 
 
     GoRoute(
-      path: AppRoutes.retakeTestScreen,
-      builder: (context, state) {
-        ClientProfileModel client = state.extra as ClientProfileModel;
-        return RetakeTestScreen(clientProfileModel: client,);
-      },
-    ),
-    GoRoute(
       path: AppRoutes.testConditionScreen,
       builder: (context, state) {
-        return TestConditionsScreen();
+        final extra = state.extra;
+
+        if (extra == null || extra is! Map) {
+          return ErrorScreen(errorMessage: 'Missing or invalid route arguments');
+        }
+
+        final client = extra['client'];
+        final strategy = extra['strategy'];
+        final minRange = extra['min_range'];
+        final maxRange = extra['max_range'];
+
+        if (client is! ClientProfileModel) {
+          return ErrorScreen(errorMessage: 'ClientProfileModel is missing or invalid');
+        }
+
+        if (strategy is! DietPlanStrategyModel) {
+          return ErrorScreen(errorMessage: 'DietPlanStrategyModel is missing or invalid');
+        }
+
+        if (minRange is! double || maxRange is! double) {
+          return ErrorScreen(errorMessage: 'Range values are missing or invalid');
+        }
+
+        return TestConditionsScreen(
+          clientProfileModel: client,
+          dietPlanStrategyModel: strategy,
+          minRange: minRange,
+          maxRange: maxRange,
+        );
+      },
+    ),
+
+    GoRoute(
+      path: AppRoutes.retakeTestScreen,
+      builder: (context, state) {
+        final extra = state.extra;
+
+        if (extra == null || extra is! Map) {
+          return ErrorScreen(errorMessage: 'Missing or invalid route arguments');
+        }
+
+        final client = extra['client'];
+        final strategy = extra['strategy'];
+        final minRange = extra['min_range'];
+        final maxRange = extra['max_range'];
+
+        if (client is! ClientProfileModel) {
+          return ErrorScreen(errorMessage: 'ClientProfileModel is missing or invalid');
+        }
+
+        if (strategy is! DietPlanStrategyModel) {
+          return ErrorScreen(errorMessage: 'DietPlanStrategyModel is missing or invalid');
+        }
+
+        if (minRange is! double || maxRange is! double) {
+          return ErrorScreen(errorMessage: 'Range values are missing or invalid');
+        }
+
+        return RetakeTestScreen(
+          clientProfileModel: client,
+          dietPlanStrategyModel: strategy,
+          minRange: minRange,
+          maxRange: maxRange,
+        );
       },
     ),
   ],

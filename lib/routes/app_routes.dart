@@ -36,6 +36,7 @@ abstract class AppRoutes {
   static const issueWithConnectionScreen = "/issue-with-connection-screem";
 
   static const dietitianResultScreen = '/dietitian-result-screen';
+  static const overallResultScreen = '/overall-result-screen';
 
 
   /// notification

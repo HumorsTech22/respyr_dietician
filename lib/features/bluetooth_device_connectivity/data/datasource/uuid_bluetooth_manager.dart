@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
@@ -18,14 +19,11 @@ class UuidBluetoothManager {
 
   bool _isConnected = false;
 
-  // Your device UUIDs
   final Guid serviceUuid = Guid("6e400001-b5a3-f393-e0a9-e50e24dcca9e");
-  final Guid readCharacteristicUuid = Guid(
-    "49535343-1e4d-4bd9-ba61-23c647249616",
-  );
-  final Guid writeCharacteristicUuid = Guid(
-    "6e400003-b5a3-f393-e0a9-e50e24dcca9e",
-  );
+  final Guid readCharacteristicUuid =
+  Guid("49535343-1e4d-4bd9-ba61-23c647249616");
+  final Guid writeCharacteristicUuid =
+  Guid("6e400003-b5a3-f393-e0a9-e50e24dcca9e");
 
   bool get isConnected => _isConnected;
   Stream<bool> get connectionStream => _connCtrl.stream;
@@ -36,157 +34,102 @@ class UuidBluetoothManager {
     _adapterStateSub = FlutterBluePlus.adapterState.listen((state) {
       if (state == BluetoothAdapterState.off ||
           state == BluetoothAdapterState.turningOff) {
-        if (kDebugMode) {
-          print("⚠️ Bluetooth turned OFF — teardown");
-        }
         _handleBluetoothOff();
-      } else if (state == BluetoothAdapterState.on) {
-        if (kDebugMode) print("✅ Bluetooth adapter is ON");
       }
     });
   }
 
+  void _log(String msg) {
+    if (kDebugMode) {
+      // ignore: avoid_print
+      print("🟩 BLE_MGR | $msg");
+    }
+  }
+
   void _handleBluetoothOff() {
+    _log("Bluetooth OFF -> teardown");
     _isConnected = false;
     if (!_connCtrl.isClosed) _connCtrl.add(false);
     if (!_readyCtrl.isClosed) _readyCtrl.add(false);
     _teardown();
   }
 
-  // ----------------- Scan -----------------
+  // ===================== SCAN (Continuous) =====================
+
+  /// Continuous scanning: runs until you call stopScan().
   Future<void> startScan({
-    Duration timeout = const Duration(seconds: 8),
     void Function(List<ScanResult>)? onResults,
   }) async {
     final adapterState = await FlutterBluePlus.adapterState.first;
     if (adapterState != BluetoothAdapterState.on) {
-      if (kDebugMode) {
-        print("⚠️ Cannot start scan — Bluetooth is off");
-      }
+      _log("startScan blocked: adapterState=$adapterState");
       return;
     }
 
-    try {
-      await FlutterBluePlus.stopScan();
-    } catch (_) {}
-    await _scanSub?.cancel();
+    await stopScan(); // ensure single scan session
 
-    await FlutterBluePlus.startScan(timeout: timeout);
+    _log("startScan() continuous...");
+    await FlutterBluePlus.startScan(); // ✅ no timeout
 
     _scanSub = FlutterBluePlus.scanResults.listen((results) {
       final filtered = results.where((r) {
-        final adv = r.advertisementData;
-        final matchesName = r.device.platformName.contains("Respyr");
-        final matchesService = adv.serviceUuids.contains(
-          serviceUuid.toString(),
-        );
+        final name = r.device.platformName;
+        final matchesName = name.contains("Respyr");
+        final matchesService =
+        r.advertisementData.serviceUuids.contains(serviceUuid.toString());
         return matchesName || matchesService;
       }).toList();
 
-      if (filtered.isNotEmpty) {
-        onResults?.call(filtered);
-      }
+      // ✅ Always emit (even empty) so UI stays synced
+      onResults?.call(filtered);
+    }, onError: (e) {
+      _log("scanResults error: $e");
     });
   }
 
+  /// Stops scanning only when you explicitly call it.
   Future<void> stopScan() async {
+    _log("stopScan()");
+    try {
+      await _scanSub?.cancel();
+    } catch (_) {}
+    _scanSub = null;
+
     try {
       await FlutterBluePlus.stopScan();
     } catch (_) {}
   }
 
-  // ----------------- Connect -----------------
-  Future<void> connect(
-      BluetoothDevice device, {
-        Function? onConnected,
-      }) async {
-    // Disconnect any previously connected device
-    if (_device != null) {
-      await _device?.disconnect();
-      print("🔌 Disconnecting the previous device...");
-    }
+  // ===================== CONNECT =====================
 
-    // Clear previous instance references to avoid multiple instances
-    _device = device;
-    _notifyChar = null;
-    _writeChar = null;
-    _isConnected = false;
+  /// Connect to a device by id. If not currently visible, it will keep scanning
+  /// until it appears (no timeout).
+  Future<void> connectById(String id) async {
+    _log("connectById($id)");
 
-    // Reset streams and controllers
-    _connCtrl.add(false);
-    _readyCtrl.add(false);
-
-    // Clean up any active subscriptions before starting a new one
-    await _connSub?.cancel();
-    await _notifySub?.cancel();
-
-    print("🔌 Connecting to ${device.remoteId.str}...");
-
-    try {
-      // Connect to the new device
-      await device.connect(autoConnect: false);
-    } catch (e) {
-      if (kDebugMode) print("⚠️ connect() threw: $e");
-    }
-
-    // Subscribe to connection state changes
-    _connSub = device.connectionState.listen((s) async {
-      final connected = s == BluetoothConnectionState.connected;
-      _isConnected = connected;
-      if (!_connCtrl.isClosed) _connCtrl.add(connected);
-
-      if (connected) {
-        try {
-          // Request MTU if needed
-          await device.requestMtu(247);
-          if (kDebugMode) print("✅ MTU requested");
-
-          // Discover and subscribe to Bluetooth services
-          await _discoverAndSubscribe();
-
-          // Notify that the device is ready
-          if (!_readyCtrl.isClosed) _readyCtrl.add(true);
-
-          // Call the onConnected callback if provided
-          if (onConnected != null) onConnected();
-        } catch (e, st) {
-          if (kDebugMode) {
-            print("❌ Discover/subscribe failed: $e\n$st");
-          }
-          _teardown();
-        }
-      } else {
-        _teardown();
-      }
-    });
-  }
-
-
-  Future<void> connectById(
-      String id, {
-        Duration scanTimeout = const Duration(seconds: 10),
-      }) async {
+    // if already connected by OS
     final connected = await FlutterBluePlus.connectedDevices;
     final already = connected.where((d) => d.remoteId.str == id).toList();
     if (already.isNotEmpty) {
+      _log("already connected by OS -> connect(existing device)");
       return connect(already.first);
     }
 
+    // Keep scanning until found
     final found = Completer<void>();
     StreamSubscription<List<ScanResult>>? sub;
 
-    try {
-      await FlutterBluePlus.stopScan();
-    } catch (_) {}
-    await FlutterBluePlus.startScan(timeout: scanTimeout);
+    await stopScan();
+    await FlutterBluePlus.startScan(); // ✅ continuous
 
     sub = FlutterBluePlus.scanResults.listen((results) async {
       for (final r in results) {
         if (r.device.remoteId.str == id) {
+          _log("target found in scan -> stopScan + connect()");
           try {
             await FlutterBluePlus.stopScan();
             await sub?.cancel();
-            await connect(r.device);
+            await connect(r.device); // ✅ waits until really connected
             if (!found.isCompleted) found.complete();
           } catch (e) {
             if (!found.isCompleted) found.completeError(e);
@@ -197,138 +140,176 @@ class UuidBluetoothManager {
     });
 
     try {
-      await found.future;
+      await found.future; // ✅ no timeout restriction
     } finally {
-      try {
-        await FlutterBluePlus.stopScan();
-      } catch (_) {}
       await sub?.cancel();
+      await stopScan();
     }
   }
 
-  // ----------------- Discover & Subscribe -----------------
-  Future<void> _discoverAndSubscribe() async {
-    if (_device == null) throw Exception('No device');
+  /// Stable connect: returns only when connected + services discovered + notify enabled.
+  Future<void> connect(
+      BluetoothDevice device, {
+        Duration readyTimeout = const Duration(seconds: 12),
+      }) async {
+    _log("connect(${device.remoteId.str})");
 
-    print("🔍 Discovering services...");
-    final services = await _device!.discoverServices();
+    if (_device != null && _device!.remoteId != device.remoteId) {
+      try {
+        _log("disconnect previous device...");
+        await _device?.disconnect();
+      } catch (_) {}
+    }
 
-    BluetoothCharacteristic? notifyChar;
-    BluetoothCharacteristic? writeChar;
+    _device = device;
+    _teardownInternalFields();
 
-    for (final s in services) {
-      if (s.uuid == serviceUuid) {
-        if (kDebugMode) print("Service found: ${s.uuid}");
-        for (final c in s.characteristics) {
-          if (kDebugMode) {
-            print("  Char: ${c.uuid} props: ${c.properties}");
+    final connectedCompleter = Completer<void>();
+
+    await _connSub?.cancel();
+    _connSub = device.connectionState.listen((s) async {
+      final connected = s == BluetoothConnectionState.connected;
+      _log("device.connectionState => $s");
+
+      _isConnected = connected;
+      if (!_connCtrl.isClosed) _connCtrl.add(connected);
+
+      if (connected) {
+        try {
+          if (Platform.isAndroid) {
+            await device.requestMtu(247);
           }
 
-          // pick NOTIFY characteristic in this service
-          if (c.properties.notify && notifyChar == null) {
-            notifyChar = c;
-          }
+          await _discoverAndSubscribe();
+          if (!_readyCtrl.isClosed) _readyCtrl.add(true);
 
-          // pick WRITE characteristic in this service
-          if ((c.properties.write || c.properties.writeWithoutResponse) &&
-              writeChar == null) {
-            writeChar = c;
+          if (!connectedCompleter.isCompleted) {
+            connectedCompleter.complete();
           }
+        } catch (e) {
+          _log("discover/subscribe failed: $e");
+          if (!connectedCompleter.isCompleted) {
+            connectedCompleter.completeError(e);
+          }
+          _teardown();
         }
+      } else {
+        // ✅ Ignore transient disconnected while still connecting
+        if (!connectedCompleter.isCompleted) return;
+        _teardown();
       }
-    }
-
-    if (notifyChar == null || writeChar == null) {
-      throw Exception('Required notify/write characteristics not found');
-    }
-
-    _notifyChar = notifyChar;
-    _writeChar = writeChar;
-
-    try {
-      await _notifyChar!.setNotifyValue(true);
-    } catch (e) {
-      await Future.delayed(const Duration(milliseconds: 250));
-      await _notifyChar!.setNotifyValue(true);
-    }
-
-    await _notifySub?.cancel();
-    _notifySub = _notifyChar!.onValueReceived.listen((value) {
-      if (value.isEmpty) return;
-      final s = String.fromCharCodes(value);
-      if (kDebugMode) print('📨 Notification: $s');
-      _dataCtrl.add(s);
     });
 
-    await Future.delayed(const Duration(milliseconds: 150));
-    if (kDebugMode) print("✅ Notification subscription established");
+    try {
+      await device.connect(autoConnect: false);
+    } catch (e) {
+      // iOS might throw "already connected"
+      final msg = e.toString().toLowerCase();
+      if (!msg.contains("already connected")) rethrow;
+    }
+
+    // ✅ Wait until really connected + ready
+    await connectedCompleter.future.timeout(readyTimeout, onTimeout: () {
+      throw TimeoutException("BLE connect timeout");
+    });
   }
 
-  // ----------------- Write -----------------
-  Future<void> write(String data, {int maxRetries = 3}) async {
-    if (_device == null || !_isConnected) {
-      if (kDebugMode) print("⚠️ Write skipped — not connected");
-      return;
-    }
-    if (_writeChar == null) {
-      if (kDebugMode) print("⚠️ Write skipped — writeChar not ready");
-      return;
-    }
-
-    final canWriteWithResponse = _writeChar!.properties.write;
-    final withoutResponse = !canWriteWithResponse;
-    final bytes = data.codeUnits;
-
-    for (int attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        await _writeChar!.write(bytes, withoutResponse: withoutResponse);
-        if (kDebugMode) print("✅ Write success :" + data);
-        return;
-      } catch (e) {
-        if (kDebugMode) {
-          print("⚠️ Write failed (attempt $attempt): $e");
-        }
-        if (attempt == maxRetries) return;
-        await Future.delayed(Duration(milliseconds: 200 * attempt));
-      }
-    }
-  }
-
-  // ----------------- Disconnect -----------------
   Future<void> disconnect() async {
+    _log("disconnect()");
     try {
       await _device?.disconnect();
     } catch (e) {
       if (kDebugMode) print("⚠️ disconnect() threw: $e");
     } finally {
-      _isConnected = false;
-      if (!_connCtrl.isClosed) _connCtrl.add(false);
       _teardown();
     }
   }
 
-  void _teardown() {
-    try {
-      _notifySub?.cancel();
-      _connSub?.cancel();
-    } catch (_) {}
+  // ===================== DISCOVER + NOTIFY =====================
 
-    _notifySub = null;
-    _connSub = null;
+  Future<void> _discoverAndSubscribe() async {
+    if (_device == null) throw Exception('No device');
+    await Future.delayed(const Duration(milliseconds: 400));
+
+    final services = await _device!.discoverServices();
+    BluetoothCharacteristic? nChar;
+    BluetoothCharacteristic? wChar;
+
+    for (final s in services) {
+      if (s.uuid == serviceUuid) {
+        for (final c in s.characteristics) {
+          if (c.uuid == readCharacteristicUuid ||
+              (c.properties.notify && nChar == null)) {
+            nChar = c;
+          }
+          if (c.uuid == writeCharacteristicUuid ||
+              ((c.properties.write || c.properties.writeWithoutResponse) &&
+                  wChar == null)) {
+            wChar = c;
+          }
+        }
+      }
+    }
+
+    if (nChar == null || wChar == null) {
+      throw Exception('Chars not found');
+    }
+
+    _notifyChar = nChar;
+    _writeChar = wChar;
+
+    await _notifyChar!.setNotifyValue(true);
+    await _notifySub?.cancel();
+    _notifySub = _notifyChar!.onValueReceived.listen((value) {
+      if (value.isNotEmpty && !_dataCtrl.isClosed) {
+        _dataCtrl.add(String.fromCharCodes(value));
+      }
+    });
+  }
+
+  Future<void> write(String data, {int maxRetries = 3}) async {
+    if (_device == null || !_isConnected || _writeChar == null) return;
+
+    final bytes = data.codeUnits;
+    final withoutResponse =
+        _writeChar!.properties.writeWithoutResponse && !_writeChar!.properties.write;
+
+    for (int i = 1; i <= maxRetries; i++) {
+      try {
+        await _writeChar!.write(bytes, withoutResponse: withoutResponse);
+        return;
+      } catch (e) {
+        if (i == maxRetries) rethrow;
+        await Future.delayed(Duration(milliseconds: 120 * i));
+      }
+    }
+  }
+
+  // ===================== TEARDOWN =====================
+
+  void _teardownInternalFields() {
     _notifyChar = null;
     _writeChar = null;
-    _device = null;
+    _notifySub?.cancel();
+    _notifySub = null;
+  }
+
+  void _teardown() {
+    _teardownInternalFields();
+    _connSub?.cancel();
+    _connSub = null;
     _isConnected = false;
 
-    if (!_connCtrl.isClosed) _connCtrl.add(false);
     if (!_readyCtrl.isClosed) _readyCtrl.add(false);
+    if (!_connCtrl.isClosed) _connCtrl.add(false);
   }
 
   void dispose() {
+    _log("dispose()");
     _adapterStateSub?.cancel();
-    _scanSub?.cancel();
-    _notifySub?.cancel();
-    _connSub?.cancel();
+    stopScan();
+    _teardown();
+
     if (!_connCtrl.isClosed) _connCtrl.close();
     if (!_dataCtrl.isClosed) _dataCtrl.close();
     if (!_readyCtrl.isClosed) _readyCtrl.close();

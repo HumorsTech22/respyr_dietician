@@ -22,57 +22,70 @@ class BluetoothRepositoryImpl implements BluetoothRepository {
   Stream<bool> deviceReadyStream() => _ds.deviceReadyStream;
 
   @override
-  Stream<List<BluetoothDeviceModel>> scan({Duration? timeout}) async* {
-    final ctrl = StreamController<List<BluetoothDeviceModel>>();
+  Future<void> stopScan() => _ds.stopScan();
 
-    ctrl.onCancel = () {
-      _ds.stopScan();
-    };
+  @override
+  Stream<List<BluetoothDeviceModel>> scan({Duration? timeout}) {
+    // timeout is ignored intentionally because scan is continuous.
+    final ctrl = StreamController<List<BluetoothDeviceModel>>.broadcast();
+    bool started = false;
 
-    await _ds.startScan(
-      timeout: timeout ?? const Duration(seconds: 8),
-      onResults: (results) {
-        final devices =
-            results.map((r) {
+    Future<void> start() async {
+      if (started) return;
+      started = true;
+
+      try {
+        await _ds.startScan(
+          onResults: (results) {
+            final devices = results.map((r) {
+              final name = r.device.platformName;
               return BluetoothDeviceModel(
                 id: r.device.remoteId.str,
-                name:
-                    r.device.platformName.isNotEmpty
-                        ? r.device.platformName
-                        : r.device.remoteId.str,
+                name: name.isNotEmpty ? name : r.device.remoteId.str,
                 rssi: r.rssi,
               );
             }).toList();
-        ctrl.add(devices);
-      },
-    );
 
-    yield* ctrl.stream;
+            if (!ctrl.isClosed) ctrl.add(devices);
+          },
+        );
+      } catch (e) {
+        if (!ctrl.isClosed) ctrl.addError(e);
+      }
+    }
+
+    start();
+
+    ctrl.onCancel = () async {
+      try {
+        await _ds.stopScan();
+      } catch (_) {}
+      if (!ctrl.isClosed) await ctrl.close();
+    };
+
+    return ctrl.stream;
   }
 
   @override
   Future<void> connectById(String id) async {
+    // stop scan before connecting
+    try {
+      await _ds.stopScan();
+    } catch (_) {}
     await _ds.connectById(id);
   }
 
   @override
-  Future<void> disconnect() async {
-    await _ds.disconnect();
-  }
+  Future<void> disconnect() => _ds.disconnect();
 
   @override
-  Future<void> sendData(String data) async {
-    await _ds.write(data);
-  }
+  Future<void> sendData(String data) => _ds.write(data);
 
-  // ✅ Implementation moved here (was invalid in abstract class)
   @override
   Future<String?> getAlreadyConnectedDeviceId() async {
     final connectedDevices = await FlutterBluePlus.connectedDevices;
     if (connectedDevices.isNotEmpty) {
-      final device = connectedDevices.first;
-      print("🔄 Already connected device found: ${device.remoteId.str}");
-      return device.remoteId.str;
+      return connectedDevices.first.remoteId.str;
     }
     return null;
   }

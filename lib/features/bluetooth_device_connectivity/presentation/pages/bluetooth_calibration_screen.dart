@@ -1,3 +1,4 @@
+// lib/features/bluetooth_device_connectivity/presentation/screens/bluetooth_calibration_screen.dart
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -33,10 +34,12 @@ class BluetoothCalibrationScreen extends StatefulWidget {
   });
 
   @override
-  State<BluetoothCalibrationScreen> createState() => _BluetoothCalibrationScreenState();
+  State<BluetoothCalibrationScreen> createState() =>
+      _BluetoothCalibrationScreenState();
 }
 
-class _BluetoothCalibrationScreenState extends State<BluetoothCalibrationScreen> {
+class _BluetoothCalibrationScreenState
+    extends State<BluetoothCalibrationScreen> {
   bool _dialogOpen = false;
 
   void _postFrame(VoidCallback fn) {
@@ -51,43 +54,40 @@ class _BluetoothCalibrationScreenState extends State<BluetoothCalibrationScreen>
     context.go(AppRoutes.clientDashboard, extra: widget.clientProfileModel);
   }
 
-
-  Future<bool> _showCancelDialog(BluetoothCalibrationCubit cubit, bool allSignalSent) async {
-    // Set the flag to true when the dialog is opened
+  Future<bool> _showCancelDialog(
+      BluetoothCalibrationCubit cubit,
+      bool allSignalSent,
+      ) async {
     _dialogOpen = true;
-
-    final completer = Completer<bool>();  // Completer to handle dialog result
+    final completer = Completer<bool>();
 
     _postFrame(() {
       showCancelTestDialog(context, () async {
-        if (allSignalSent) cubit.sendAbort();  // Abort the test if needed
-        completer.complete(true);  // Complete the completer
+        if (allSignalSent) cubit.sendAbort();
+        completer.complete(true);
       });
 
       Future.microtask(() async {
         try {
           final res = await completer.future;
           if (!mounted) return;
-
-          // Handle the result of the dialog
-          if (res) {
-            _navigateToDashboard(cubit);  // Navigate to dashboard on confirmation
-          }
+          if (res) _navigateToDashboard(cubit);
         } finally {
-          // Reset the dialog state after the dialog is dismissed
           _dialogOpen = false;
         }
       });
     });
 
-    return completer.future;  // Return the future of the dialog result
+    return completer.future;
   }
 
-
-
-  void _showTimeoutDialog(BluetoothCalibrationCubit cubit, BluetoothCalibrationState state) {
+  void _showTimeoutDialog(
+      BluetoothCalibrationCubit cubit,
+      BluetoothCalibrationState state,
+      ) {
     if (_dialogOpen) return;
     _dialogOpen = true;
+
     _postFrame(() {
       showExhaleSessionTimeOutDialog(
         context: context,
@@ -96,10 +96,9 @@ class _BluetoothCalibrationScreenState extends State<BluetoothCalibrationScreen>
           _navigateToDashboard(cubit);
         },
         message: "Session timed out",
-        description: "No response was received from the device. Please restart the test.",
-      ).then((_) {
-        _dialogOpen = false;  // Reset dialog state after dismissal
-      });
+        description:
+        "No response was received from the device. Please restart the test.",
+      ).then((_) => _dialogOpen = false);
     });
   }
 
@@ -114,15 +113,14 @@ class _BluetoothCalibrationScreenState extends State<BluetoothCalibrationScreen>
           title: const Text("Error"),
           content: Text(msg),
         ),
-      ).then((_) {
-        _dialogOpen = false;  // Reset dialog state after dismissal
-      });
+      ).then((_) => _dialogOpen = false);
     });
   }
 
   void _showDisconnectedDialog(BluetoothCalibrationCubit cubit) {
     if (_dialogOpen) return;
     _dialogOpen = true;
+
     _postFrame(() {
       showDeviceDisconnectedBox(
         context: context,
@@ -130,17 +128,14 @@ class _BluetoothCalibrationScreenState extends State<BluetoothCalibrationScreen>
           if (!mounted) return;
           context.pop();
           if (!mounted) return;
-          context.go(AppRoutes.clientDashboard, extra: widget.clientProfileModel);
+          context.go(
+            AppRoutes.clientDashboard,
+            extra: widget.clientProfileModel,
+          );
         },
-      ).then((_) {
-        if (!mounted) return;
-        _dialogOpen = false;  // Reset dialog state after dismissal
-      });
+      ).then((_) => _dialogOpen = false);
     });
   }
-
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -149,7 +144,8 @@ class _BluetoothCalibrationScreenState extends State<BluetoothCalibrationScreen>
         ctx.read<BluetoothRepository>(),
         AudioHelper(),
       ),
-      child: BlocListener<BluetoothCalibrationCubit, BluetoothCalibrationState>(
+      child: BlocListener<BluetoothCalibrationCubit,
+          BluetoothCalibrationState>(
         listenWhen: (prev, curr) =>
         prev.navigateToInhaleScreen != curr.navigateToInhaleScreen ||
             prev.textError != curr.textError ||
@@ -186,16 +182,12 @@ class _BluetoothCalibrationScreenState extends State<BluetoothCalibrationScreen>
             return;
           }
 
-          if (state.isDialogShown) {
-            _showDisconnectedDialog(cubit);
-            return;
-          }
-
-          if(!state.isBluetoothConnected){
+          if (state.isDialogShown || !state.isBluetoothConnected) {
             _showDisconnectedDialog(cubit);
           }
         },
-        child: BlocBuilder<BluetoothCalibrationCubit, BluetoothCalibrationState>(
+        child:
+        BlocBuilder<BluetoothCalibrationCubit, BluetoothCalibrationState>(
           builder: (context, state) {
             final cubit = context.read<BluetoothCalibrationCubit>();
 
@@ -204,7 +196,8 @@ class _BluetoothCalibrationScreenState extends State<BluetoothCalibrationScreen>
               onPopInvoked: (didPop) async {
                 if (didPop) return;
 
-                if (state.isTimeOver && !state.navigateToInhaleScreen) {
+                if (state.isTimeOver &&
+                    !state.navigateToInhaleScreen) {
                   if (state.allSignalSent) cubit.sendAbort();
                   _navigateToDashboard(cubit);
                   return;
@@ -220,37 +213,55 @@ class _BluetoothCalibrationScreenState extends State<BluetoothCalibrationScreen>
                   automaticallyImplyLeading: false,
                   actions: [
                     IconButton(
-                      onPressed: () => _showCancelDialog(cubit, state.allSignalSent),
-                      icon: SvgPicture.asset("assets/images/common/closeicon.svg"),
-                    )
+                      onPressed: () =>
+                          _showCancelDialog(cubit, state.allSignalSent),
+                      icon: SvgPicture.asset(
+                        "assets/images/common/closeicon.svg",
+                        width: rh(context: context, px: 24),
+                        height: rh(context: context, px: 24),
+                      ),
+                    ),
                   ],
                 ),
                 body: SafeArea(
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.max,
                     children: [
-                      SizedBox(width: double.infinity, height: rh(context: context, px: 20)),
-                      Text(
-                        "Please wait...${state.remainingSeconds}",
-                        style: GoogleFonts.poppins(
-                          color: const Color(0xFF252525),
-                          fontSize: rh(context: context, px: 25),
-                          fontWeight: FontWeight.w600,
-                          height: 1.10,
-                          letterSpacing: -1,
-                        ),
-                      ),
-                      Spacer(),
+                      SizedBox(height: rh(context: context, px: 20),),
                       SizedBox(
-                        width: MediaQuery.of(context).size.width * 0.7,
-                        child: const AspectRatio(
-                          aspectRatio: 1,
-                          child: CircularProgressIndicator(
-                            color: Color(0xFF308BF9),
-                            backgroundColor: Color(0xFFE1E6ED),
+                        width: double.infinity,
+                        child: Text(
+                          state.remainingSeconds >= 100
+                              ? "Please wait..."
+                              : "Please wait...${state.remainingSeconds}",
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.poppins(
+                            color: const Color(0xFF252525),
+                            fontSize: rh(context: context, px: 25),
+                            fontWeight: FontWeight.w600,
+                            height: 1.10,
+                            letterSpacing:
+                            rh(context: context, px: -1),
                           ),
                         ),
                       ),
-                      Spacer(flex: 2),
+                      const Spacer(),
+                      SizedBox(
+                        width:
+                        MediaQuery.of(context).size.width * 0.7,
+                        child: AspectRatio(
+                          aspectRatio: 1,
+                          child: CircularProgressIndicator(
+                            strokeWidth:
+                            rh(context: context, px: 6),
+                            color: const Color(0xFF308BF9),
+                            backgroundColor:
+                            const Color(0xFFE1E6ED),
+                          ),
+                        ),
+                      ),
+                      const Spacer(flex: 2),
                     ],
                   ),
                 ),

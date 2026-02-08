@@ -11,7 +11,7 @@ class DeviceList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (state.devices.isEmpty) {
+    if (state.devices.isEmpty && !state.isConnecting) {
       return Container(
         height: 111,
         alignment: Alignment.center,
@@ -32,7 +32,7 @@ class DeviceList extends StatelessWidget {
     }
 
     return Container(
-      height: 111,
+      constraints: const BoxConstraints(maxHeight: 150),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(0xFFF0F0F0),
@@ -44,43 +44,80 @@ class DeviceList extends StatelessWidget {
         thickness: 6,
         child: ListView.separated(
           itemCount: state.devices.length,
-          separatorBuilder: (_, index) {
-            return SizedBox(height: 10);
-          },
+          shrinkWrap: true,
+          separatorBuilder: (_, __) => const SizedBox(height: 10),
           itemBuilder: (_, i) {
             final d = state.devices[i];
+
+            final bool isThisConnecting =
+                state.isConnecting && state.connectingDeviceId == d.id;
+
+            // If you keep connectingDeviceId after connected, this will show "Connected" too.
+            final bool isThisConnected =
+                state.isConnected && state.connectingDeviceId == d.id;
+
+            // ✅ block taps while connecting OR already connected
+            final bool disableTap = state.isConnecting || state.isConnected;
+
             return InkWell(
-              onTap:
-                  () => context.read<BluetoothConnectionCubit>().connectById(
-                d.id,
-              ),
-              child: Row(
-                children: [
-                  const CircleAvatar(
-                    backgroundColor: Colors.white,
-                    radius: 16,
-                    child: Icon(Icons.bluetooth, color: Color(0xFF308BF9)),
-                  ),
-                  const SizedBox(width: 10),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        d.name.isEmpty ? '(no name)' : d.name,
-                        style: GoogleFonts.poppins(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
+              onTap: disableTap
+                  ? null
+                  : () => context.read<BluetoothConnectionCubit>().connectById(d.id),
+              child: Opacity(
+                opacity: disableTap && !isThisConnecting && !isThisConnected ? 0.55 : 1.0,
+                child: Row(
+                  children: [
+                    const CircleAvatar(
+                      backgroundColor: Colors.white,
+                      radius: 16,
+                      child: Icon(Icons.bluetooth, color: Color(0xFF308BF9)),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            d.name.isEmpty ? '(no name)' : d.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.poppins(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          if (isThisConnecting)
+                            Text(
+                              'Connecting...',
+                              style: GoogleFonts.poppins(
+                                fontSize: 10,
+                                color: const Color(0xFF535359),
+                              ),
+                            )
+                          else if (isThisConnected)
+                            Text(
+                              'Connected',
+                              style: GoogleFonts.poppins(
+                                fontSize: 10,
+                                color: const Color(0xFF3FAF58),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                        ],
                       ),
-                      if (state.connectingDeviceId == d.id &&
-                          state.status == BluetoothConnectionStatus.connecting)
-                        Text(
-                          'Connecting...',
-                          style: GoogleFonts.poppins(fontSize: 10),
-                        ),
-                    ],
-                  ),
-                ],
+                    ),
+
+                    // ✅ right side indicator
+                    if (isThisConnecting)
+                      const SizedBox(
+                        height: 16,
+                        width: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    else if (isThisConnected)
+                      const Icon(Icons.check_circle, size: 18, color: Color(0xFF3FAF58)),
+                  ],
+                ),
               ),
             );
           },

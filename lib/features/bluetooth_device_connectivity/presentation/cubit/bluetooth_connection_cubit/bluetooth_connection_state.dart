@@ -15,6 +15,7 @@ class BluetoothConnectionState extends Equatable {
   final List<BluetoothDeviceModel> devices;
   final bool isScanning;
   final bool isConnected;
+  final bool isConnecting; // ✅ NEW
   final String? lastData;
   final String? textError;
   final String? connectingDeviceId;
@@ -26,6 +27,7 @@ class BluetoothConnectionState extends Equatable {
     this.devices = const [],
     this.isScanning = false,
     this.isConnected = false,
+    this.isConnecting = false, // ✅ NEW
     this.lastData,
     this.textError,
     this.connectingDeviceId,
@@ -38,6 +40,7 @@ class BluetoothConnectionState extends Equatable {
     List<BluetoothDeviceModel>? devices,
     bool? isScanning,
     bool? isConnected,
+    bool? isConnecting, // ✅ NEW
     String? lastData,
     String? textError,
     String? connectingDeviceId,
@@ -49,6 +52,7 @@ class BluetoothConnectionState extends Equatable {
       devices: devices ?? this.devices,
       isScanning: isScanning ?? this.isScanning,
       isConnected: isConnected ?? this.isConnected,
+      isConnecting: isConnecting ?? this.isConnecting,
       lastData: lastData ?? this.lastData,
       textError: textError ?? this.textError,
       connectingDeviceId: connectingDeviceId ?? this.connectingDeviceId,
@@ -63,6 +67,7 @@ class BluetoothConnectionState extends Equatable {
     devices,
     isScanning,
     isConnected,
+    isConnecting,
     lastData,
     textError,
     connectingDeviceId,

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../../core/size/get_height.dart'; // Ensure this import is correct
+
+import '../../../../core/size/get_height.dart';
+import '../../../../common/screens/app_webview_screen.dart';
+import '../../features/webview/utils/urls.dart'; // adjust path if needed
 
 class TermsPolicyWidgets {
 
@@ -13,27 +16,39 @@ class TermsPolicyWidgets {
     );
 
     final linkTextStyle = greyTextStyle.copyWith(
-        color: const Color(0xFF308BF9),
-        decoration: TextDecoration.underline,
-        decorationColor: const Color(0xFF308BF9)
+      color: const Color(0xFF308BF9),
+      decoration: TextDecoration.underline,
+      decorationColor: const Color(0xFF308BF9),
     );
 
     return Center(
       child: Wrap(
         alignment: WrapAlignment.center,
         crossAxisAlignment: WrapCrossAlignment.center,
-        spacing: rh(context: context, px: 3),       // horizontal gap scaled
-        runSpacing: rh(context: context, px: 2),    // vertical gap scaled
+        spacing: rh(context: context, px: 3),
+        runSpacing: rh(context: context, px: 2),
         children: [
           Text(
             "By continuing, you agree to our ",
             style: greyTextStyle,
           ),
+
+          /// ✅ Privacy Policy
           TextButton(
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) =>  AppWebViewScreen(
+                    url: WebViewUrls.privacyPolicy,
+                    title: "Privacy Policy",
+                  ),
+                ),
+              );
+            },
             style: TextButton.styleFrom(
               padding: EdgeInsets.zero,
-              minimumSize: Size(rh(context: context, px: 0), rh(context: context, px: 0)),
+              minimumSize: Size.zero,
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
             child: Text(
@@ -41,15 +56,28 @@ class TermsPolicyWidgets {
               style: linkTextStyle,
             ),
           ),
+
           Text(
             " and ",
             style: greyTextStyle,
           ),
+
+          /// ✅ Terms & Conditions
           TextButton(
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) =>  AppWebViewScreen(
+                    url: WebViewUrls.termsAndConditions,
+                    title: "Terms & Conditions",
+                  ),
+                ),
+              );
+            },
             style: TextButton.styleFrom(
               padding: EdgeInsets.zero,
-              minimumSize: Size(rh(context: context, px: 0), rh(context: context, px: 0)),
+              minimumSize: Size.zero,
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
             child: Text(

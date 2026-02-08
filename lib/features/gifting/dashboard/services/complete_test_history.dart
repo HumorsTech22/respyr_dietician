@@ -39,6 +39,8 @@ class TestHistoryCompleteService {
 
       final model = GeneratingResultModel.fromJson(jsonMap);
 
+      print(model.dateTime);
+
       if (!model.success) {
         throw Exception('API error: ${model.message}');
       }

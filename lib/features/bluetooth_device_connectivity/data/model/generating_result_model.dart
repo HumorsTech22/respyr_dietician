@@ -1,3 +1,5 @@
+// ✅ COMPLETE UPDATED MODEL (includes scientific_interpretation as {title,text})
+
 class GeneratingResultModel {
   final bool success;
   final String message;
@@ -5,7 +7,6 @@ class GeneratingResultModel {
   final String urlCalled;
   final RespyrResponse respyrResponse;
   final DateTime dateTime;
-
 
   GeneratingResultModel({
     required this.success,
@@ -17,23 +18,22 @@ class GeneratingResultModel {
   });
 
   factory GeneratingResultModel.fromJson(Map<String, dynamic> json) {
-    // Safely parse date_time string => DateTime
     final String? dtStr = json['date_time'];
     DateTime parsedDateTime;
 
+    print(dtStr);
+    print(json);
+
     if (dtStr != null && dtStr.isNotEmpty) {
-      // PHP returns "YYYY-MM-DD HH:MM:SS"
-      // DateTime.parse can handle "2025-11-18 06:27:15"
       parsedDateTime = DateTime.parse(dtStr.replaceFirst(' ', 'T'));
     } else {
-      // Fallback if missing
       parsedDateTime = DateTime.now();
     }
 
     return GeneratingResultModel(
       success: json['success'] ?? false,
       message: json['message'] ?? '',
-      testId: json['test_id'] ?? 0,
+      testId: (json['test_id'] ?? 0).toInt(),
       urlCalled: json['url_called'] ?? '',
       dateTime: parsedDateTime,
       respyrResponse: RespyrResponse.fromJson(json['respyr_response'] ?? {}),
@@ -46,10 +46,14 @@ class RespyrResponse {
   final BreathMarkerAnalysis breathMarkerAnalysis;
   final FatLossMetabolismScore fatLossMetabolismScore;
 
+  // ✅ optional
+  final DayFocus? dayFocus;
+
   RespyrResponse({
     required this.metabolismScoreAnalysis,
     required this.breathMarkerAnalysis,
     required this.fatLossMetabolismScore,
+    this.dayFocus,
   });
 
   factory RespyrResponse.fromJson(Map<String, dynamic> json) {
@@ -63,6 +67,8 @@ class RespyrResponse {
       fatLossMetabolismScore: FatLossMetabolismScore.fromJson(
         json['fat_loss_metabolism_score'] ?? {},
       ),
+      dayFocus:
+      json['day_focus'] != null ? DayFocus.fromJson(json['day_focus']) : null,
     );
   }
 }
@@ -101,9 +107,15 @@ class ScoreItem {
   final String interpretation;
   final String intervention;
   final String ppmNote;
-  final int score;
+
+  // ✅ API returns decimals (53.33 etc)
+  final double score;
+
   final String whatIsThisScore;
   final String zone;
+
+  // optional
+  final String? scoreMath;
 
   ScoreItem({
     required this.clientState,
@@ -113,6 +125,7 @@ class ScoreItem {
     required this.score,
     required this.whatIsThisScore,
     required this.zone,
+    this.scoreMath,
   });
 
   factory ScoreItem.fromJson(Map<String, dynamic> json) {
@@ -121,9 +134,10 @@ class ScoreItem {
       interpretation: json['interpretation'] ?? '',
       intervention: json['intervention'] ?? '',
       ppmNote: json['ppm_note'] ?? '',
-      score: (json['score'] ?? 0).toInt(),
+      score: (json['score'] ?? 0).toDouble(),
       whatIsThisScore: json['what_is_this_score'] ?? '',
       zone: json['zone'] ?? '',
+      scoreMath: json['score_math'],
     );
   }
 }
@@ -180,12 +194,8 @@ class MarkerItem {
       zone: json['zone'] ?? '',
       diabetic: json['diabetic'] ?? false,
       userGoal: json['user_goal'] ?? '',
-      ratios: json['ratios'] != null
-          ? Map<String, dynamic>.from(json['ratios'])
-          : null,
-      advice: json['advice'] != null
-          ? MarkerAdvice.fromJson(json['advice'])
-          : null,
+      ratios: json['ratios'] != null ? Map<String, dynamic>.from(json['ratios']) : null,
+      advice: json['advice'] != null ? MarkerAdvice.fromJson(json['advice']) : null,
     );
   }
 }
@@ -194,7 +204,10 @@ class MarkerAdvice {
   final String whatLowers;
   final String whatRaises;
 
-  MarkerAdvice({required this.whatLowers, required this.whatRaises});
+  MarkerAdvice({
+    required this.whatLowers,
+    required this.whatRaises,
+  });
 
   factory MarkerAdvice.fromJson(Map<String, dynamic> json) {
     return MarkerAdvice(
@@ -204,25 +217,106 @@ class MarkerAdvice {
   }
 }
 
+/// ✅ NEW: for scientific_interpretation {title, text}
+class InterpretationBlock {
+  final String title;
+  final String text;
+
+  InterpretationBlock({
+    required this.title,
+    required this.text,
+  });
+
+  factory InterpretationBlock.fromJson(Map<String, dynamic> json) {
+    return InterpretationBlock(
+      title: json['title'] ?? '',
+      text: json['text'] ?? '',
+    );
+  }
+}
+
 class FatLossMetabolismScore {
-  final String clientInterpretation;
-  final String scientificInterpretation;
+  // ✅ Keep client interpretation as String (your current API shows {title,text} too sometimes,
+  // but you asked only for scientific_interpretation update)
+  final dynamic clientInterpretation;
+
+  // ✅ UPDATED: now object {title,text}
+  final InterpretationBlock scientificInterpretation;
+
   final double score;
   final String zone;
+
+  // optional
+  final bool? diabeticAdjustmentApplied;
 
   FatLossMetabolismScore({
     required this.clientInterpretation,
     required this.scientificInterpretation,
     required this.score,
     required this.zone,
+    this.diabeticAdjustmentApplied,
   });
 
   factory FatLossMetabolismScore.fromJson(Map<String, dynamic> json) {
     return FatLossMetabolismScore(
-      clientInterpretation: json['client_interpretation'] ?? '',
-      scientificInterpretation: json['scientific_interpretation'] ?? '',
+      // keeping dynamic because sometimes API gives object, sometimes string in your old model
+      clientInterpretation: json['client_interpretation'],
+      scientificInterpretation: InterpretationBlock.fromJson(
+        json['scientific_interpretation'] ?? {},
+      ),
       score: (json['score'] ?? 0).toDouble(),
       zone: json['zone'] ?? '',
+      diabeticAdjustmentApplied: json['diabetic_adjustment_applied'],
+    );
+  }
+}
+
+/// ✅ OPTIONAL MODELS (you already added)
+class DayFocus {
+  final String title;
+  final String note;
+  final DayFocusSignals signals;
+
+  DayFocus({
+    required this.title,
+    required this.note,
+    required this.signals,
+  });
+
+  factory DayFocus.fromJson(Map<String, dynamic> json) {
+    return DayFocus(
+      title: json['title'] ?? '',
+      note: json['note'] ?? '',
+      signals: DayFocusSignals.fromJson(json['signals'] ?? {}),
+    );
+  }
+}
+
+class DayFocusSignals {
+  final double absorption;
+  final double detoxification;
+  final double fatMetabolism;
+  final double fermentation;
+  final double glucoseMetabolism;
+  final double hepaticStress;
+
+  DayFocusSignals({
+    required this.absorption,
+    required this.detoxification,
+    required this.fatMetabolism,
+    required this.fermentation,
+    required this.glucoseMetabolism,
+    required this.hepaticStress,
+  });
+
+  factory DayFocusSignals.fromJson(Map<String, dynamic> json) {
+    return DayFocusSignals(
+      absorption: (json['absorption'] ?? 0).toDouble(),
+      detoxification: (json['detoxification'] ?? 0).toDouble(),
+      fatMetabolism: (json['fat_metabolism'] ?? 0).toDouble(),
+      fermentation: (json['fermentation'] ?? 0).toDouble(),
+      glucoseMetabolism: (json['glucose_metabolism'] ?? 0).toDouble(),
+      hepaticStress: (json['hepatic_stress'] ?? 0).toDouble(),
     );
   }
 }

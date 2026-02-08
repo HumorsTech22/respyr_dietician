@@ -11,20 +11,19 @@ class BluetoothCalibrationCubit extends Cubit<BluetoothCalibrationState> {
   StreamSubscription<bool>? _connSub;
   StreamSubscription<String>? _dataSub;
 
-  Timer? _inhaleTimeoutTimer;
   Timer? _screenTimer;
-  Timer? _ackTimer;
+  Timer? _inhaleTimeoutTimer;
+
+  // ✅ NEW: handshake loop timers/flags
+  Timer? _ackRetryTimer;
+  static const Duration _ackWait = Duration(seconds: 10);
+  bool _calibrationAckReceived = false;
+  bool _handshakeLoopRunning = false;
 
   int _screenRemainingSeconds = 100;
 
-  bool signalsAlreadySent = false;
   bool _isRunningCalibration = false;
   bool _disposed = false;
-
-  bool _waitingForAck = false;
-  bool _ackReceived = false;
-  int _ackRetryCount = 0;
-  static const int _maxAckRetries = 1;
 
   BluetoothCalibrationCubit(this.repo, this._audioHelper)
       : super(const BluetoothCalibrationState()) {
@@ -34,12 +33,121 @@ class BluetoothCalibrationCubit extends Cubit<BluetoothCalibrationState> {
   void init() {
     _connSub = repo.connectionStatusStream().listen(handleBluetoothConnection);
     _dataSub = repo.receivedDataStream().listen(onBluetoothDataReceived);
-    _startScreenTimer100s();
 
+    // If already connected when screen opens
     if (repo.isConnected) {
       handleBluetoothConnection(true);
     }
   }
+
+  // ===================== CONNECTION =====================
+
+  Future<void> handleBluetoothConnection(bool connected) async {
+    if (_disposed) return;
+
+    emit(state.copyWith(isBluetoothConnected: connected));
+
+    if (connected) {
+      // ✅ Start infinite ?{ loop until ACK '{' received
+      _startHandshakeLoop();
+    } else {
+      _stopAll();
+
+      if (!state.isDialogShown) showDisconnectedDialog();
+    }
+  }
+
+  // ===================== DATA =====================
+
+  void onBluetoothDataReceived(String data) {
+    if (_disposed || data.isEmpty) return;
+
+    final normalized = data.trim().toLowerCase();
+
+    // ✅ ACK: device entered calibration mode
+    // You said: within 10 sec device sends '{' if successful
+    if (!_calibrationAckReceived && normalized == "{") {
+      _calibrationAckReceived = true;
+      _stopHandshakeLoop(); // ✅ stop resending ?{
+
+      // ✅ start 100 sec timer ONLY after ACK
+      _startScreenTimer100s();
+
+      // ✅ now start calibration sequence (progress steps/audio)
+      if (!_isRunningCalibration) {
+        _isRunningCalibration = true;
+        Future.delayed(const Duration(seconds: 1), _startCalibrationSequence);
+      }
+      return;
+    }
+
+    // Existing inhale logic
+    if (normalized.contains("inhale") && !state.navigateToInhaleScreen) {
+      _inhaleTimeoutTimer?.cancel();
+      _screenTimer?.cancel();
+      _audioHelper.stopAudio();
+
+      emit(state.copyWith(
+        navigateToInhaleScreen: true,
+        waitForInhaleCmd: false,
+        showPleaseWaitMessage: false,
+      ));
+
+      _cancelStreamsOnly();
+    }
+  }
+
+  // ===================== HANDSHAKE LOOP (?{) =====================
+
+  void _startHandshakeLoop() {
+    if (_disposed) return;
+    if (_handshakeLoopRunning) return;
+
+    _handshakeLoopRunning = true;
+    _calibrationAckReceived = false;
+
+    // reset UI a bit (optional)
+    emit(state.copyWith(
+      isTimeStarted: false,
+      isTimeOver: false,
+      remainingSeconds: 100,
+      completedSteps: 0,
+      waitForInhaleCmd: false,
+      showPleaseWaitMessage: false,
+      allSignalSent: false,
+      navigateToInhaleScreen: false,
+    ));
+
+    _sendHandshakeAndWait();
+  }
+
+  Future<void> _sendHandshakeAndWait() async {
+    if (_disposed || !state.isBluetoothConnected) return;
+    if (_calibrationAckReceived) return;
+
+    try {
+      await repo.sendData("?");
+      await repo.sendData("{");
+    } catch (_) {
+      // ignore -> we will retry anyway
+    }
+
+    // wait 10 sec; if no ACK, send again (repeat forever)
+    _ackRetryTimer?.cancel();
+    _ackRetryTimer = Timer(_ackWait, () {
+      if (_disposed || !state.isBluetoothConnected) return;
+      if (_calibrationAckReceived) return;
+      _sendHandshakeAndWait();
+    });
+  }
+
+  void _stopHandshakeLoop() {
+    _handshakeLoopRunning = false;
+    _ackRetryTimer?.cancel();
+    _ackRetryTimer = null;
+  }
+
+  // ===================== 100s TIMER =====================
 
   void _startScreenTimer100s() {
     if (_disposed) return;
@@ -71,164 +179,12 @@ class BluetoothCalibrationCubit extends Cubit<BluetoothCalibrationState> {
     });
   }
 
-  Future<void> handleBluetoothConnection(bool connected) async {
-    if (_disposed) return;
-
-    emit(state.copyWith(isBluetoothConnected: connected));
-
-    if (connected) {
-      if (state.isTimeOver) _startScreenTimer100s();
-
-      if (!_isRunningCalibration) {
-        _isRunningCalibration = true;
-        await Future.delayed(const Duration(seconds: 1));
-        _startCalibrationSequence();
-      }
-    } else {
-      _audioHelper.stopAudio();
-      _inhaleTimeoutTimer?.cancel();
-      _screenTimer?.cancel();
-      _ackTimer?.cancel();
-
-      _waitingForAck = false;
-      _ackReceived = false;
-      _ackRetryCount = 0;
-
-      signalsAlreadySent = false;
-      _isRunningCalibration = false;
-
-      emit(state.copyWith(
-        completedSteps: 0,
-        waitForInhaleCmd: false,
-        showPleaseWaitMessage: false,
-        allSignalSent: false,
-      ));
-
-      if (!state.isDialogShown) showDisconnectedDialog();
-    }
-  }
-
-  void onBluetoothDataReceived(String data) {
-    if (_disposed || data.isEmpty) return;
-
-    final normalized = data.trim().toLowerCase();
-
-    if (_waitingForAck && !_ackReceived && normalized == "{") {
-      _ackReceived = true;
-      _stopAckWait();
-    }
-
-    if (normalized.contains("inhale") && !state.navigateToInhaleScreen) {
-      _inhaleTimeoutTimer?.cancel();
-      _screenTimer?.cancel();
-      _ackTimer?.cancel();
-      _audioHelper.stopAudio();
-
-      emit(state.copyWith(
-        navigateToInhaleScreen: true,
-        waitForInhaleCmd: false,
-        showPleaseWaitMessage: false,
-      ));
-
-      _cancelStreamsOnly();
-    }
-  }
-
-  void _startAckWaitTimer() {
-    _ackTimer?.cancel();
-    _waitingForAck = true;
-    _ackReceived = false;
-
-    _ackTimer = Timer(const Duration(seconds: 5), () {
-      if (_disposed || _ackReceived) return;
-
-      if (_ackRetryCount < _maxAckRetries) {
-        _ackRetryCount++;
-        _sendHandshakeAgain();
-      } else {
-        _restartCalibrationFromStart();
-      }
-    });
-  }
-
-  Future<void> _sendHandshakeAgain() async {
-    if (_disposed || !state.isBluetoothConnected) return;
-
-    try {
-      await repo.sendData("?");
-      await repo.sendData("{");
-      _startAckWaitTimer();
-    } catch (_) {
-      _restartCalibrationFromStart();
-    }
-  }
-
-  void _stopAckWait() {
-    _ackTimer?.cancel();
-    _waitingForAck = false;
-  }
-
-  void _restartCalibrationFromStart() {
-    if (_disposed) return;
-
-    _ackTimer?.cancel();
-    _inhaleTimeoutTimer?.cancel();
-    _audioHelper.stopAudio();
-
-    signalsAlreadySent = false;
-    _isRunningCalibration = false;
-
-    _waitingForAck = false;
-    _ackReceived = false;
-    _ackRetryCount = 0;
-
-    emit(state.copyWith(
-      completedSteps: 0,
-      waitForInhaleCmd: false,
-      showPleaseWaitMessage: false,
-      allSignalSent: false,
-      navigateToInhaleScreen: false,
-    ));
-
-    if (state.isBluetoothConnected) {
-      _isRunningCalibration = true;
-      _startCalibrationSequence();
-    }
-  }
-
-  Future<void> sendCalibrationCommand(int step) async {
-    if (_disposed || !state.isBluetoothConnected) return;
-
-    if (step == 1 && !signalsAlreadySent) {
-      try {
-        await repo.sendData("?");
-        await repo.sendData("{");
-
-        signalsAlreadySent = true;
-        emit(state.copyWith(allSignalSent: true));
-
-        _ackRetryCount = 0;
-        _startAckWaitTimer();
-      } catch (_) {
-        _restartCalibrationFromStart();
-      }
-    }
-  }
-
-  void sendAbort() {
-    repo.sendData("&");
-  }
+  // ===================== CALIBRATION SEQUENCE (unchanged) =====================
 
   Future<void> _startCalibrationSequence() async {
     if (_disposed || !state.isBluetoothConnected) return;
 
-    signalsAlreadySent = false;
     emit(state.copyWith(allSignalSent: false));
-
-    _ackTimer?.cancel();
-    _waitingForAck = false;
-    _ackReceived = false;
-    _ackRetryCount = 0;
 
     for (int i = 1; i <= 5; i++) {
       if (_disposed || !state.isBluetoothConnected || state.navigateToInhaleScreen) return;
@@ -241,7 +197,15 @@ class BluetoothCalibrationCubit extends Cubit<BluetoothCalibrationState> {
       if (i == 4) _audioHelper.playStartBreathTest();
 
       emit(state.copyWith(completedSteps: i));
-      await sendCalibrationCommand(i);
+
+      // ✅ If you still want to send your command only at step 1:
+      if (i == 1) {
+        try {
+          // You already entered calibration mode (ACK received),
+          // so "allSignalSent" can be treated as true here.
+          emit(state.copyWith(allSignalSent: true));
+        } catch (_) {}
+      }
     }
 
     emit(state.copyWith(waitForInhaleCmd: true));
@@ -254,12 +218,18 @@ class BluetoothCalibrationCubit extends Cubit<BluetoothCalibrationState> {
     });
   }
 
+  // ===================== UI HELPERS =====================
+
+  void sendAbort() {
+    repo.sendData("&");
+  }
+
   void showDisconnectedDialog() {
-    if (_disposed) emit(state.copyWith(isDialogShown: true));
+    if (!_disposed) emit(state.copyWith(isDialogShown: true));
   }
 
   void dialogDismissed() {
-    if (_disposed) emit(state.copyWith(isDialogShown: false));
+    if (!_disposed) emit(state.copyWith(isDialogShown: false));
   }
 
   Future<void> disconnect() async {
@@ -270,12 +240,36 @@ class BluetoothCalibrationCubit extends Cubit<BluetoothCalibrationState> {
     }
   }
 
+  // ===================== STOP/CLEANUP =====================
+
   void _cancelStreamsOnly() {
     _inhaleTimeoutTimer?.cancel();
     _screenTimer?.cancel();
-    _ackTimer?.cancel();
+    _stopHandshakeLoop();
     _connSub?.cancel();
     _dataSub?.cancel();
+  }
+
+  void _stopAll() {
+    _audioHelper.stopAudio();
+
+    _inhaleTimeoutTimer?.cancel();
+    _screenTimer?.cancel();
+    _stopHandshakeLoop();
+
+    _calibrationAckReceived = false;
+    _isRunningCalibration = false;
+
+    emit(state.copyWith(
+      completedSteps: 0,
+      waitForInhaleCmd: false,
+      showPleaseWaitMessage: false,
+      allSignalSent: false,
+      isTimeStarted: false,
+      isTimeOver: false,
+      remainingSeconds: 100,
+      navigateToInhaleScreen: false,
+    ));
   }
 
   void stop() {
@@ -295,7 +289,7 @@ class BluetoothCalibrationCubit extends Cubit<BluetoothCalibrationState> {
 
     _inhaleTimeoutTimer?.cancel();
     _screenTimer?.cancel();
-    _ackTimer?.cancel();
+    _stopHandshakeLoop();
     _audioHelper.stopAudio();
 
     emit(state.copyWith(
