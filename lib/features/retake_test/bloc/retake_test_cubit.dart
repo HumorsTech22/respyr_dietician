@@ -47,12 +47,14 @@ class RetakeTestCubit extends Cubit<RetakeTestState> {
         "details": state.details.trim(),
     };
 
-    debugPrint(jsonEncode(payload));
+    debugPrint("Retake payload => ${jsonEncode(payload)}");
 
-    // ✅ trigger navigation in UI via BlocListener
+    // ✅ JUST set true. Don't set false immediately.
     emit(state.copyWith(submitted: true));
+  }
 
-    // ✅ optional: reset flag so it won't retrigger later
+  // ✅ call this after navigation (from UI)
+  void resetSubmitted() {
     emit(state.copyWith(submitted: false));
   }
 }

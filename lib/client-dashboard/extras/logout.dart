@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:google_sign_in/google_sign_in.dart'; // Added import
+import 'package:google_sign_in/google_sign_in.dart'; // Google Sign-In import
 
 import '../../client_login_manager/client_login_manager.dart';
 import '../../routes/app_routes.dart';
@@ -34,16 +34,26 @@ class Logout {
     bool isCleared = false;
 
     try {
-      // --- Google Sign Out Addition ---
+      debugPrint("🍏 Logout: Start logging out...");
+
+      // --- Google Sign Out ---
       final GoogleSignIn googleSignIn = GoogleSignIn();
       if (await googleSignIn.isSignedIn()) {
+        debugPrint("🍏 Logout: Google Sign-in found, signing out...");
         await googleSignIn.signOut();
+        debugPrint("🍏 Logout: Google Sign-in signed out.");
+      } else {
+        debugPrint("🍏 Logout: Google Sign-in not found.");
       }
       // --------------------------------
 
+      // Clear client profile
       isCleared = await ClientLoginManager().clearClientProfile();
+      debugPrint("🍏 Logout: Profile cleared status: $isCleared");
+
     } catch (_) {
       isCleared = false;
+      debugPrint("🍏 Logout: Error occurred during logout.");
     } finally {
       isLoggingOut(false);
     }
@@ -51,8 +61,10 @@ class Logout {
     if (!context.mounted) return;
 
     if (isCleared) {
-      context.go(AppRoutes.signInOptions);
+      debugPrint("🍏 Logout: Successful logout, navigating to Sign In Options.");
+      context.go(AppRoutes.signInOptions); // Navigate to Sign In Options screen
     } else {
+      debugPrint("🍏 Logout: Logout failed.");
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Failed to logout. Please try again.')),
       );

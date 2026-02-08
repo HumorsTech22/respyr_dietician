@@ -1,8 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../../../core/size/get_height.dart' show rh;
 
 class CheckAbortSheet {
   static void show({
@@ -12,8 +13,10 @@ class CheckAbortSheet {
     showModalBottomSheet(
       context: context,
       isScrollControlled: false,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(rh(context: context, px: 20)),
+        ),
       ),
       backgroundColor: Colors.white,
       builder: (context) {
@@ -108,7 +111,10 @@ class _CoolingDownContentState extends State<_CoolingDownContent> {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+        padding: EdgeInsets.symmetric(
+          horizontal: rh(context: context, px: 20),
+          vertical: rh(context: context, px: 20),
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -117,56 +123,62 @@ class _CoolingDownContentState extends State<_CoolingDownContent> {
               alignment: Alignment.centerRight,
               child: GestureDetector(
                 onTap: () => Navigator.of(context).pop(),
-                child: const CircleAvatar(
-                  radius: 16,
+                child: CircleAvatar(
+                  radius: rh(context: context, px: 16),
                   backgroundColor: Colors.white,
-                  child: Icon(Icons.close, size: 24, color: Colors.black),
+                  child: Icon(
+                    Icons.close,
+                    size: rh(context: context, px: 24),
+                    color: Colors.black,
+                  ),
                 ),
               ),
             ),
-            const SizedBox(height: 10),
-            _isButtonEnabled
-                ? SvgPicture.asset(
-              "assets/images/device_connection/device_ready.svg",
-            )
-                : SvgPicture.asset(
-              "assets/images/device_connection/device_error.svg",
-            ),
-            const SizedBox(height: 10),
+
+            // SizedBox(height: rh(context: context, px: 10)),
+            // _isButtonEnabled
+            //     ? SvgPicture.asset("assets/images/device_connection/device_ready.svg")
+            //     : SvgPicture.asset("assets/images/device_connection/device_error.svg"),
+
+            SizedBox(height: rh(context: context, px: 50)),
             Text(
               _isButtonEnabled ? "Device is Ready Now" : "Device Cooling Down",
               style: GoogleFonts.poppins(
                 color: const Color(0xFF252525),
-                fontSize: 25,
+                fontSize: rh(context: context, px: 25),
                 fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: 10),
-            Text(
-              _isButtonEnabled
-                  ? "Device is ready now. You can continue with the test."
-                  : "You aborted the previous test. Respyr needs to cool down. Please wait for few seconds before starting the next test.",
-              textAlign: TextAlign.center,
-              style: GoogleFonts.poppins(
-                color: const Color(0xFF535359),
-                fontSize: 15,
-                fontWeight: FontWeight.w400,
+            SizedBox(height: rh(context: context, px: 10)),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 30),
+              child: Text(
+                _isButtonEnabled
+                    ? "Device is ready now. You can continue with the test."
+                    : "You aborted the previous test. Respyr needs to cool down. Please wait for few seconds before starting the next test.",
+                textAlign: TextAlign.center,
+                style: GoogleFonts.poppins(
+                  color: const Color(0xFF535359),
+                  fontSize: rh(context: context, px: 15),
+                  fontWeight: FontWeight.w400,
+                ),
               ),
             ),
-            const SizedBox(height: 10),
+            SizedBox(height: rh(context: context, px: 10)),
             if (_remainingSeconds > 0)
               Text(
                 "$_remainingSeconds seconds",
                 textAlign: TextAlign.center,
                 style: GoogleFonts.poppins(
                   color: const Color(0xFF252525),
-                  fontSize: 25,
+                  fontSize: rh(context: context, px: 25),
                   fontWeight: FontWeight.w600,
                 ),
               ),
-            const SizedBox(height: 30),
+            SizedBox(height: rh(context: context, px: 50)),
             SizedBox(
               width: double.infinity,
+              height: rh(context: context, px: 52),
               child: ElevatedButton(
                 onPressed: _isButtonEnabled
                     ? () {
@@ -175,17 +187,23 @@ class _CoolingDownContentState extends State<_CoolingDownContent> {
                 }
                     : null,
                 style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  elevation: 0,
+                  padding: EdgeInsets.symmetric(
+                    vertical: rh(context: context, px: 14),
+                  ),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(
+                      rh(context: context, px: 2500),
+                    ),
                   ),
                   backgroundColor: const Color(0xFF308BF9),
-                  disabledBackgroundColor: const Color(0xFFA1A1A1),
+                  // backgroundColor: const Color(0xFFD9D9D9),
+                  disabledBackgroundColor: const Color(0xFFD9D9D9),
                 ),
                 child: Text(
-                  _isButtonEnabled ? "Start Test" : "Please wait...",
+                  _isButtonEnabled ? "Start Test" : "00 : $_remainingSeconds",
                   style: GoogleFonts.poppins(
-                    fontSize: 16,
+                    fontSize: rh(context: context, px: 16),
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
                   ),

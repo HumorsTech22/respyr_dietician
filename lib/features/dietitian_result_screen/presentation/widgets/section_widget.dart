@@ -146,7 +146,7 @@ class SectionWidget extends StatelessWidget {
 
                 MetabolismTabCard(
                   metabolismSubtype: subTypes[0],
-                  score: metab1Score,
+                  score: metab1Score.toInt(),
                   interpretation: metab1.interpretation,
                   clientState: metab1.clientState,
                   ppmNote: metab1.ppmNote,
@@ -156,7 +156,7 @@ class SectionWidget extends StatelessWidget {
 
                 MetabolismTabCard(
                   metabolismSubtype: subTypes[1],
-                  score: metab2Score,
+                  score: metab2Score.toInt(),
                   interpretation: metab2.interpretation,
                   clientState: metab2.clientState,
                   ppmNote: metab2.ppmNote,

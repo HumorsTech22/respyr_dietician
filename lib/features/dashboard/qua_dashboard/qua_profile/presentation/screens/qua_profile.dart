@@ -232,7 +232,7 @@ class _QuaProfileState extends State<QuaProfile> {
 
   // ✅ FIXED: uses bloc captured from parent context
   void _showUpdateDialog(BuildContext context, QuaDashboardReady state) {
-    final bloc = context.read<QuaDashboardBloc>(); // ✅ IMPORTANT FIX
+    final bloc = context.read<QuaDashboardBloc>();
     final initialText = state.client.weight.trim();
     final controller = TextEditingController(text: initialText);
 
@@ -346,8 +346,8 @@ class _QuaProfileState extends State<QuaProfile> {
                                       final input = controller.text.trim();
                                       final weight = double.tryParse(input);
 
-                                      const double minWeight = 20.0;
-                                      const double maxWeight = 400.0;
+                                      const double minWeight = 20.0;  // Updated min weight to 20
+                                      const double maxWeight = 250.0; // Updated max weight to 250
 
                                       if (weight == null) {
                                         setState(() => errorText = "Enter a valid number");
@@ -364,7 +364,6 @@ class _QuaProfileState extends State<QuaProfile> {
                                         return;
                                       }
 
-                                      // ✅ NOW THIS WILL ALWAYS FIRE
                                       bloc.add(
                                         QuaUpdateWeight(
                                           profileId: state.client.profileId,
@@ -393,6 +392,7 @@ class _QuaProfileState extends State<QuaProfile> {
       },
     );
   }
+
 }
 
 class _CardContainer extends StatelessWidget {

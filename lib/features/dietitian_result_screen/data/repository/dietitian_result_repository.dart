@@ -33,7 +33,7 @@ class DietitianResultRepository {
     required String profileId,
   }) async {
     final url = Uri.parse(
-      'https://humorstech.com/dietitian/api/app/daily_result.php',
+      'https://humorstech.com/dietitian/api/app/daily_result_new.php',
     );
 
     final body = {

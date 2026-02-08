@@ -19,9 +19,12 @@ import 'package:respyr_dietitian/features/dietitian_result_screen/presentation/w
 import 'package:respyr_dietitian/features/dietitian_result_screen/presentation/widgets/tab_widget.dart';
 import 'package:respyr_dietitian/routes/app_routes.dart';
 
+import '../../../../core/size/get_height.dart';
+
 class DietitianResultScreen extends StatefulWidget {
   final GeneratingResultModel result;
   final ClientProfileModel clientProfileModel;
+
   const DietitianResultScreen({
     super.key,
     required this.result,
@@ -37,7 +40,6 @@ class _DietitianResultScreenState extends State<DietitianResultScreen>
   final viewModel = DietitianResultViewModel();
   Timer? _scrollDebounce;
 
-  // cached offsets computed after first layout
   double? _gutOffset;
   double? _fatOffset;
   double? _liverOffset;
@@ -52,16 +54,12 @@ class _DietitianResultScreenState extends State<DietitianResultScreen>
 
   @override
   void didChangeMetrics() {
-    // Window changes (orientation/keyboard) — recompute offsets next frame
     _offsetsComputed = false;
-    WidgetsBinding.instance.addPostFrameCallback(
-      (_) => _computeSectionOffsetsIfNeeded(),
-    );
+    WidgetsBinding.instance.addPostFrameCallback((_) => _computeSectionOffsetsIfNeeded());
     super.didChangeMetrics();
   }
 
   void _onVerticalScroll() {
-    // Throttle scroll updates
     _scrollDebounce?.cancel();
     _scrollDebounce = Timer(const Duration(milliseconds: 120), () {
       if (!mounted) return;
@@ -70,35 +68,26 @@ class _DietitianResultScreenState extends State<DietitianResultScreen>
   }
 
   void _handleScrollPosition() {
-    if (!viewModel.tabScrollController.hasClients || viewModel.isAnimating) {
-      return;
-    }
+    if (!viewModel.tabScrollController.hasClients || viewModel.isAnimating) return;
 
     final offset = viewModel.scrollController.offset;
     final cubit = context.read<DietitianResultCubit>();
 
-    // If offsets not computed yet, try to compute (and then skip handling this pass)
     if (!_offsetsComputed) {
       _computeSectionOffsetsIfNeeded();
       return;
     }
 
-    if (_gutOffset == null || _fatOffset == null || _liverOffset == null) {
-      return;
-    }
+    if (_gutOffset == null || _fatOffset == null || _liverOffset == null) return;
 
     final gutPos = _gutOffset!;
     final fatPos = _fatOffset!;
     final liverPos = _liverOffset!;
 
-    if (offset >= gutPos &&
-        offset < fatPos &&
-        cubit.state.selectedTab != "Gut") {
+    if (offset >= gutPos && offset < fatPos && cubit.state.selectedTab != "Gut") {
       cubit.changeTab("Gut");
       viewModel.tabScrollTo(viewModel.tabGutKey);
-    } else if (offset >= fatPos &&
-        offset < liverPos &&
-        cubit.state.selectedTab != "Fat") {
+    } else if (offset >= fatPos && offset < liverPos && cubit.state.selectedTab != "Fat") {
       cubit.changeTab("Fat");
       viewModel.tabScrollTo(viewModel.tabFatKey);
     } else if (offset >= liverPos && cubit.state.selectedTab != "Liver") {
@@ -107,7 +96,6 @@ class _DietitianResultScreenState extends State<DietitianResultScreen>
     }
   }
 
-  // Compute offsets once after layout; safe guarded
   void _computeSectionOffsetsIfNeeded() {
     if (!mounted) return;
     if (_offsetsComputed) return;
@@ -118,10 +106,7 @@ class _DietitianResultScreenState extends State<DietitianResultScreen>
       final liverCtx = viewModel.liverKey.currentContext;
 
       if (gutCtx == null || fatCtx == null || liverCtx == null) {
-        // not ready yet — try again next frame
-        WidgetsBinding.instance.addPostFrameCallback(
-          (_) => _computeSectionOffsetsIfNeeded(),
-        );
+        WidgetsBinding.instance.addPostFrameCallback((_) => _computeSectionOffsetsIfNeeded());
         return;
       }
 
@@ -131,17 +116,13 @@ class _DietitianResultScreenState extends State<DietitianResultScreen>
       final fatBox = fatCtx.findRenderObject() as RenderBox;
       final liverBox = liverCtx.findRenderObject() as RenderBox;
 
-      // localToGlobal dy + current scroll offset gives stable absolute offset used for comparisons
       _gutOffset = gutBox.localToGlobal(Offset.zero).dy + scrollOffset;
       _fatOffset = fatBox.localToGlobal(Offset.zero).dy + scrollOffset;
       _liverOffset = liverBox.localToGlobal(Offset.zero).dy + scrollOffset;
 
       _offsetsComputed = true;
-    } catch (e) {
-      // If anything fails, schedule another attempt next frame
-      WidgetsBinding.instance.addPostFrameCallback(
-        (_) => _computeSectionOffsetsIfNeeded(),
-      );
+    } catch (_) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _computeSectionOffsetsIfNeeded());
     }
   }
 
@@ -157,60 +138,72 @@ class _DietitianResultScreenState extends State<DietitianResultScreen>
 
   Future<bool> navToDashboard(BuildContext context) async {
     bool didCancel = false;
-
     if (context.mounted) {
       context.go(AppRoutes.clientDashboard, extra: widget.clientProfileModel);
     }
-
     return didCancel;
   }
 
   @override
   Widget build(BuildContext context) {
-
-
-
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
         if (!didPop) {
-          final shouldExit = await navToDashboard(context);
-
-          if (shouldExit) {}
+          await navToDashboard(context);
         }
       },
       child: Scaffold(
         backgroundColor: Colors.white,
-        body: BlocBuilder<DietitianResultCubit, DietitianResultState>(
-          builder: (context, state) {
-            final result = widget.result.respyrResponse;
+        body: Stack(
+          alignment: Alignment.center,
+          children: [
+            Positioned.fill(
+              child: BlocBuilder<DietitianResultCubit, DietitianResultState>(
+                builder: (context, state) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) => _computeSectionOffsetsIfNeeded());
 
-            if (result == null) {
-              return const Center(child: Text("No data available"));
-            }
-
-            // ensure offsets will be computed after this layout
-            WidgetsBinding.instance.addPostFrameCallback(
-              (_) => _computeSectionOffsetsIfNeeded(),
-            );
-
-            return CustomScrollView(
-              controller: viewModel.scrollController,
-              slivers: [
-                _buildAppBar(context),
-                _buildOverviewSection(context, state),
-                _buildStickyTabs(context, state),
-                _buildSections(context, state),
-                _buildDisclaimer(),
-              ],
-            );
-          },
+                  return CustomScrollView(
+                    controller: viewModel.scrollController,
+                    slivers: [
+                      _buildAppBar(context),
+                      _buildOverviewSection(context, state),
+                      _buildStickyTabs(context, state),
+                      _buildSections(context, state),
+                      SliverToBoxAdapter(child: SizedBox(height: rh(context: context, px: 90))),
+                      _buildDisclaimer(),
+                    ],
+                  );
+                },
+              ),
+            ),
+            Positioned(
+              bottom: rh(context: context, px: 12),
+              left: 0,
+              right: 0,
+              child: Center(
+                child: IconButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  style: IconButton.styleFrom(
+                    backgroundColor: const Color(0xFF308BF9),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(rh(context: context, px: 50)),
+                    ),
+                    padding: EdgeInsets.all(rh(context: context, px: 16)),
+                  ),
+                  icon: const Icon(Icons.keyboard_arrow_left, color: Colors.white),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  String _formatDttm(String? dttm) {
+  String _formatDateTime(String? dttm) {
     if (dttm == null || dttm.isEmpty) return '';
     try {
       final date = DateTime.parse(dttm).toLocal();
@@ -220,66 +213,55 @@ class _DietitianResultScreenState extends State<DietitianResultScreen>
     }
   }
 
-  // SliverAppBar
   Widget _buildAppBar(BuildContext context) {
     return SliverAppBar(
       pinned: true,
       automaticallyImplyLeading: false,
       backgroundColor: const Color(0xFF308BF9),
-      expandedHeight: 50,
+      expandedHeight: rh(context: context, px: 50),
       flexibleSpace: FlexibleSpaceBar(
         titlePadding: EdgeInsets.zero,
         title: SizedBox(
           height: kToolbarHeight,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            padding: EdgeInsets.symmetric(horizontal: rh(context: context, px: 8)),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                IconButton(
-                  padding: EdgeInsets.zero,
-                  onPressed: () => navToDashboard(context),
-
-                  icon: SvgPicture.asset(
-                    "assets/images/common/closeicon.svg",
-                    colorFilter: const ColorFilter.mode(
-                      Colors.white,
-                      BlendMode.srcIn,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
+                  spacing: rh(context: context, px: 5),
                   children: [
                     Text(
                       widget.clientProfileModel.profileName,
                       style: GoogleFonts.poppins(
                         color: Colors.white,
-                        fontSize: 18,
+                        fontSize: rh(context: context, px: 18),
                         fontWeight: FontWeight.w600,
                         height: 1.1,
-                        letterSpacing: -0.72,
+                        letterSpacing: rh(context: context, px: -0.72),
                       ),
                     ),
                     Text(
                       formatDateTime(widget.result.dateTime),
                       style: GoogleFonts.poppins(
                         color: Colors.white,
-                        fontSize: 10,
+                        fontSize: rh(context: context, px: 10),
                         fontWeight: FontWeight.w400,
                         height: 1.1,
-                        letterSpacing: -0.2,
+                        letterSpacing: rh(context: context, px: -0.2),
                       ),
                     ),
                   ],
                 ),
-                const Spacer(),
                 IconButton(
-                  onPressed: () {},
+                  padding: EdgeInsets.zero,
+                  onPressed: () => navToDashboard(context),
                   icon: SvgPicture.asset(
-                    "assets/images/result_screen/dietitian_result_share.svg",
+                    "assets/images/common/closeicon.svg",
+                    colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
                   ),
                 ),
               ],
@@ -290,10 +272,7 @@ class _DietitianResultScreenState extends State<DietitianResultScreen>
     );
   }
 
-
   String formatDateTime(DateTime input) {
-
-    print(input);
     final months = [
       "Jan", "Feb", "Mar", "Apr", "May", "Jun",
       "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
@@ -310,11 +289,7 @@ class _DietitianResultScreenState extends State<DietitianResultScreen>
     return "$day $month $year, $hour:$minute $ampm";
   }
 
-  // Overview section (top cards + image)
-  Widget _buildOverviewSection(
-    BuildContext context,
-    DietitianResultState state,
-  ) {
+  Widget _buildOverviewSection(BuildContext context, DietitianResultState state) {
     final rawWeight = widget.clientProfileModel.weight;
     final rawHeight = widget.clientProfileModel.height;
     final rawAge = widget.clientProfileModel.age;
@@ -335,94 +310,98 @@ class _DietitianResultScreenState extends State<DietitianResultScreen>
     Color getZoneColor(String zone) {
       switch (zone.toLowerCase()) {
         case "poor":
-          return const Color(0xFFDA5747); // red
+          return const Color(0xFFDA5747);
         case "fair":
-          return const Color(0xFFF8B10F); // yellow
+          return const Color(0xFFF8B10F);
         case "good":
-          return const Color(0xFF3FAF58); // green
+          return const Color(0xFF3FAF58);
         default:
           return Colors.grey;
       }
     }
 
-
     return SliverToBoxAdapter(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            padding: EdgeInsets.symmetric(
+              horizontal: rh(context: context, px: 16),
+              vertical: rh(context: context, px: 10),
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // BmiBmrCard(bodyMassIndex: bmi, basalMetabolicRate: bmr),
                 Container(
-                    width: double.infinity,
-                    decoration: ShapeDecoration(
-                      color: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        side: BorderSide(
-                          width: 1,
-                          color: const Color(0xFFC7C6CE),
-                        ),
-                        borderRadius: BorderRadius.circular(10),
+                  width: double.infinity,
+                  decoration: ShapeDecoration(
+                    color: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      side: BorderSide(
+                        width: rh(context: context, px: 1),
+                        color: const Color(0xFFC7C6CE),
                       ),
+                      borderRadius: BorderRadius.circular(rh(context: context, px: 10)),
                     ),
-                    padding: EdgeInsets.symmetric(vertical: 14, horizontal: 17),
-                    child: Row(
-                      spacing: 20,
-                      children: [
-                        Expanded(
-                          flex:2,
-                          child: Text("Overall\nMetabolism Score",
-                            style: GoogleFonts.poppins(
-                              color: const Color(0xFF252525),
-                              fontSize: 20,
-                              fontWeight: FontWeight.w700,
-                              height: 1.10,
-                              letterSpacing: -0.40,
-                            ),
+                  ),
+                  padding: EdgeInsets.symmetric(
+                    vertical: rh(context: context, px: 14),
+                    horizontal: rh(context: context, px: 17),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: Text(
+                          "Overall\nMetabolism Score",
+                          style: GoogleFonts.poppins(
+                            color: const Color(0xFF252525),
+                            fontSize: rh(context: context, px: 20),
+                            fontWeight: FontWeight.w700,
+                            height: 1.10,
+                            letterSpacing: rh(context: context, px: -0.40),
                           ),
                         ),
-                        Expanded(
-                          flex:1,
-                          child: Column(
-                            children: [
-                              Text("${widget.result.respyrResponse.fatLossMetabolismScore.score.toStringAsFixed(0)}%",
-                                style: GoogleFonts.poppins(
-                                  color: const Color(0xFF252525),
-                                  fontSize: 34,
-                                  fontWeight: FontWeight.w400,
-                                  height: 1.10,
-                                  letterSpacing: -2.04,
-                                ),
+                      ),
+                      SizedBox(width: rh(context: context, px: 20)),
+                      Expanded(
+                        flex: 1,
+                        child: Column(
+                          children: [
+                            Text(
+                              "${widget.result.respyrResponse.fatLossMetabolismScore.score.toStringAsFixed(0)}%",
+                              style: GoogleFonts.poppins(
+                                color: const Color(0xFF252525),
+                                fontSize: rh(context: context, px: 34),
+                                fontWeight: FontWeight.w400,
+                                height: 1.10,
+                                letterSpacing: rh(context: context, px: -2.04),
                               ),
-                              Text(
-                                widget.result.respyrResponse.fatLossMetabolismScore.zone,
-                                style: GoogleFonts.poppins(
-                                  color: getZoneColor(widget.result.respyrResponse.fatLossMetabolismScore.zone,),
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                  height: 1.10,
-                                  letterSpacing: -0.24,
-                                ),
-                              )
-
-                            ],
-                          ),
-                        )
-                      ],
-                    )
+                            ),
+                            Text(
+                              widget.result.respyrResponse.fatLossMetabolismScore.zone,
+                              style: GoogleFonts.poppins(
+                                color: getZoneColor(widget.result.respyrResponse.fatLossMetabolismScore.zone),
+                                fontSize: rh(context: context, px: 12),
+                                fontWeight: FontWeight.w700,
+                                height: 1.10,
+                                letterSpacing: rh(context: context, px: -0.24),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 30),
+                SizedBox(height: rh(context: context, px: 30)),
                 Text(
                   'Scores Overview',
                   style: GoogleFonts.poppins(
                     color: const Color(0xFF252525),
-                    fontSize: 20,
+                    fontSize: rh(context: context, px: 20),
                     fontWeight: FontWeight.w700,
-                    letterSpacing: -0.4,
+                    letterSpacing: rh(context: context, px: -0.4),
                   ),
                 ),
               ],
@@ -441,23 +420,22 @@ class _DietitianResultScreenState extends State<DietitianResultScreen>
               Align(
                 alignment: Alignment.topRight,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  padding: EdgeInsets.symmetric(horizontal: rh(context: context, px: 10)),
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const SizedBox(height: 15),
+                      SizedBox(height: rh(context: context, px: 15)),
                       MetabolismCard(
                         metabolismType: 'Liver',
                         state: state,
                         result: widget.result,
                       ),
-                      const SizedBox(height: 25),
+                      SizedBox(height: rh(context: context, px: 25)),
                       MetabolismCard(
                         metabolismType: 'Fat',
                         state: state,
                         result: widget.result,
                       ),
-                      const SizedBox(height: 25),
+                      SizedBox(height: rh(context: context, px: 25)),
                       MetabolismCard(
                         metabolismType: 'Gut',
                         state: state,
@@ -470,7 +448,10 @@ class _DietitianResultScreenState extends State<DietitianResultScreen>
             ],
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            padding: EdgeInsets.symmetric(
+              horizontal: rh(context: context, px: 16),
+              vertical: rh(context: context, px: 10),
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -478,25 +459,25 @@ class _DietitianResultScreenState extends State<DietitianResultScreen>
                   'Scores Interpretation',
                   style: GoogleFonts.poppins(
                     color: const Color(0xFF252525),
-                    fontSize: 20,
+                    fontSize: rh(context: context, px: 20),
                     fontWeight: FontWeight.w700,
-                    letterSpacing: -0.4,
+                    letterSpacing: rh(context: context, px: -0.4),
                   ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: rh(context: context, px: 8)),
                 RichText(
                   text: TextSpan(
                     style: GoogleFonts.poppins(
                       color: const Color(0xFF252525),
-                      fontSize: 12,
+                      fontSize: rh(context: context, px: 12),
                       fontWeight: FontWeight.w400,
                       height: 1.26,
-                      letterSpacing: -0.24,
+                      letterSpacing: rh(context: context, px: -0.24),
                     ),
                     children: [
                       const TextSpan(
                         text:
-                            'Scores interpretations are based on the values recorded by Respyr device. Please refer to the reference ',
+                        'Scores interpretations are based on the values recorded by Respyr device. Please refer to the reference ',
                       ),
                       TextSpan(
                         text: 'link',
@@ -510,7 +491,7 @@ class _DietitianResultScreenState extends State<DietitianResultScreen>
                     ],
                   ),
                 ),
-                const SizedBox(height: 15),
+                SizedBox(height: rh(context: context, px: 15)),
               ],
             ),
           ),
@@ -519,7 +500,6 @@ class _DietitianResultScreenState extends State<DietitianResultScreen>
     );
   }
 
-  // Sticky Tabs
   Widget _buildStickyTabs(BuildContext context, DietitianResultState state) {
     return SliverPersistentHeader(
       pinned: true,
@@ -533,12 +513,11 @@ class _DietitianResultScreenState extends State<DietitianResultScreen>
     );
   }
 
-  // Sections (Gut, Fat, Liver)
   Widget _buildSections(BuildContext context, DietitianResultState state) {
     return SliverList(
       delegate: SliverChildListDelegate([
         Padding(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(rh(context: context, px: 16)),
           child: SectionWidget(
             sectionKey: viewModel.gutKey,
             metabolismType: 'Gut',
@@ -548,7 +527,7 @@ class _DietitianResultScreenState extends State<DietitianResultScreen>
           ),
         ),
         Padding(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(rh(context: context, px: 16)),
           child: SectionWidget(
             sectionKey: viewModel.fatKey,
             metabolismType: 'Fat',
@@ -558,7 +537,7 @@ class _DietitianResultScreenState extends State<DietitianResultScreen>
           ),
         ),
         Padding(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(rh(context: context, px: 16)),
           child: SectionWidget(
             sectionKey: viewModel.liverKey,
             metabolismType: 'Liver',
@@ -571,13 +550,12 @@ class _DietitianResultScreenState extends State<DietitianResultScreen>
     );
   }
 
-  // Disclaimer
   Widget _buildDisclaimer() {
     return SliverToBoxAdapter(
       child: SafeArea(
-        minimum: const EdgeInsets.only(bottom: 26),
+        minimum: EdgeInsets.only(bottom: rh(context: context, px: 26)),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: EdgeInsets.symmetric(horizontal: rh(context: context, px: 16)),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -585,21 +563,21 @@ class _DietitianResultScreenState extends State<DietitianResultScreen>
                 'Disclaimer',
                 style: GoogleFonts.poppins(
                   color: const Color(0xFF535359),
-                  fontSize: 12,
+                  fontSize: rh(context: context, px: 12),
                   fontWeight: FontWeight.w600,
                   height: 1.3,
-                  letterSpacing: -0.24,
+                  letterSpacing: rh(context: context, px: -0.24),
                 ),
               ),
-              const SizedBox(height: 10),
+              SizedBox(height: rh(context: context, px: 10)),
               Text(
                 'This is a sample interpretation guide designed for use by certified dietitians and wellness professionals. Respyr is a non-invasive lifestyle monitoring tool. It does not diagnose, prevent, or treat disease. All data is derived from breath-based VOC analysis and should be interpreted within lifestyle and nutritional context. For medical conditions or abnormalities (e.g., diabetic ketoacidosis, chronic liver disease, IBS/SIBO), users should be referred to licensed physicians.',
                 style: GoogleFonts.poppins(
                   color: const Color(0xFF535359),
-                  fontSize: 12,
+                  fontSize: rh(context: context, px: 12),
                   fontWeight: FontWeight.w400,
                   height: 1.3,
-                  letterSpacing: -0.24,
+                  letterSpacing: rh(context: context, px: -0.24),
                 ),
               ),
             ],
@@ -609,7 +587,6 @@ class _DietitianResultScreenState extends State<DietitianResultScreen>
     );
   }
 
-  // Tabs row
   Widget _buildTabs(DietitianResultState state) {
     final cubit = context.read<DietitianResultCubit>();
     return Row(
@@ -621,7 +598,6 @@ class _DietitianResultScreenState extends State<DietitianResultScreen>
           onTap: () async {
             if (!mounted) return;
             cubit.changeTab("Gut");
-            // use ensureVisible to avoid relying on offsets for direct taps
             if (viewModel.gutKey.currentContext != null) {
               await Scrollable.ensureVisible(
                 viewModel.gutKey.currentContext!,
@@ -630,11 +606,8 @@ class _DietitianResultScreenState extends State<DietitianResultScreen>
               );
             }
             viewModel.tabScrollTo(viewModel.tabGutKey);
-            // recompute offsets next frame after animation
             _offsetsComputed = false;
-            WidgetsBinding.instance.addPostFrameCallback(
-              (_) => _computeSectionOffsetsIfNeeded(),
-            );
+            WidgetsBinding.instance.addPostFrameCallback((_) => _computeSectionOffsetsIfNeeded());
           },
         ),
         _divider(),
@@ -654,9 +627,7 @@ class _DietitianResultScreenState extends State<DietitianResultScreen>
             }
             viewModel.tabScrollTo(viewModel.tabFatKey);
             _offsetsComputed = false;
-            WidgetsBinding.instance.addPostFrameCallback(
-              (_) => _computeSectionOffsetsIfNeeded(),
-            );
+            WidgetsBinding.instance.addPostFrameCallback((_) => _computeSectionOffsetsIfNeeded());
           },
         ),
         _divider(),
@@ -676,14 +647,16 @@ class _DietitianResultScreenState extends State<DietitianResultScreen>
             }
             viewModel.tabScrollTo(viewModel.tabLiverKey);
             _offsetsComputed = false;
-            WidgetsBinding.instance.addPostFrameCallback(
-              (_) => _computeSectionOffsetsIfNeeded(),
-            );
+            WidgetsBinding.instance.addPostFrameCallback((_) => _computeSectionOffsetsIfNeeded());
           },
         ),
       ],
     );
   }
 
-  Widget _divider() => Container(height: 43, width: 1, color: Colors.black);
+  Widget _divider() => Container(
+    height: rh(context: context, px: 43),
+    width: rh(context: context, px: 1),
+    color: Colors.black,
+  );
 }

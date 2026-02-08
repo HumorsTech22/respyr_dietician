@@ -1,3 +1,4 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -19,11 +20,11 @@ import '../../../../../client-dashboard/today_result/today_test_data_event.dart'
 import '../../../../../client-dashboard/today_result/today_test_data_repository.dart';
 import '../../../../../client-dashboard/today_result/today_test_data_api_service.dart';
 
-import '../../../../../common/dialogs/disconnection_dialog.dart';
 import '../../../../../rular_arc_progress.dart';
 import '../../../../../test.dart';
 import '../../../../bluetooth_device_connectivity/domain/params/exhale_screen_params.dart';
 import '../../../../bluetooth_device_connectivity/domain/params/generating_result_params.dart';
+import '../../../menu/presentation/screens/menu.dart';
 import '../../bloc/latest_test_bloc.dart';
 import '../../bloc/latest_test_event.dart';
 import '../../bloc/latest_test_state.dart';
@@ -82,7 +83,10 @@ class _QuaDashboardState extends State<QuaDashboard> with WidgetsBindingObserver
 
     _initializeBlocs();
     _refreshData();
+    FirebaseMessaging messaging = FirebaseMessaging.instance;
+
   }
+
 
   void _initializeBlocs() {
     _latestTestBloc = LatestTestBloc(repo: LatestTestRepository(LatestTestService()));
@@ -126,13 +130,21 @@ class _QuaDashboardState extends State<QuaDashboard> with WidgetsBindingObserver
 
   Future<void> _handleStartTest(TestDataState state) async {
 
-    // context.pushReplacement(
-    //   AppRoutes.retakeTestScreen,
-    //   extra: widget.clientProfile,
+
+
+
+
+    //
+    // context.push(
+    //   AppRoutes.bluetoothInhaleScreen,
+    //   extra: ExhaleScreenParams(
+    //     clientProfileModel: widget.clientProfile,
+    //     baseValue: "/913.3/",
+    //     dietPlanStrategyModel: _generateMockStrategy(),
+    //     minRange: widget.currentMinRange,
+    //     maxRange: widget.currentMaxRange,
+    //   ),
     // );
-
-
-
 
     // context.push(
     //   AppRoutes.bluetoothExhaleScreen,
@@ -144,7 +156,8 @@ class _QuaDashboardState extends State<QuaDashboard> with WidgetsBindingObserver
     //     maxRange: widget.currentMinRange,
     //   ),
     // );
-    //
+
+
 
     final isAborted = await AbortDeviceManager.getAbortStatus();
     if (!mounted) return;
@@ -152,21 +165,10 @@ class _QuaDashboardState extends State<QuaDashboard> with WidgetsBindingObserver
     if (isAborted) {
       CheckAbortSheet.show(
         context: context,
-        onTakeTextClick: (){
-          if(state.result!=null){
-            context.go(AppRoutes.retakeTestScreen);
-          }else{
-            _navigateToBluetooth();
-          }
-
-        },
+        onTakeTextClick: (){_navigateToBluetooth(state);},
       );
     } else {
-      if(state.result!=null){
-        context.go(AppRoutes.retakeTestScreen);
-      }else{
-        _navigateToBluetooth();
-      }
+      _navigateToBluetooth(state);
     }
 
 
@@ -203,7 +205,7 @@ class _QuaDashboardState extends State<QuaDashboard> with WidgetsBindingObserver
 
 
 
-    //  context.pushReplacement(
+    // await context.push(
     //   AppRoutes.bluetoothInhaleScreen,
     //   extra: {
     //     "client": widget.clientProfile,
@@ -214,17 +216,30 @@ class _QuaDashboardState extends State<QuaDashboard> with WidgetsBindingObserver
     // );
   }
 
-  Future<void> _navigateToBluetooth() async {
-    await context.push(
-      AppRoutes.bluetoothDeviceConnectivity,
-      extra: {
-        "client": widget.clientProfile,
-        "strategy": _generateMockStrategy(),
-        "min_range": widget.currentMinRange,
-        "max_range": widget.currentMaxRange,
-      },
-    );
+  Future<void> _navigateToBluetooth(TestDataState state) async {
 
+
+    if(state.result==null){
+      await context.push(
+        AppRoutes.bluetoothDeviceConnectivity,
+        extra: {
+          "client": widget.clientProfile,
+          "strategy": _generateMockStrategy(),
+          "min_range": widget.currentMinRange,
+          "max_range": widget.currentMaxRange,
+        },
+      );
+    }else{
+      context.go(
+        AppRoutes.retakeTestScreen,
+        extra: {
+          "client": widget.clientProfile,
+          "strategy": _generateMockStrategy(),
+          "min_range": widget.currentMinRange,
+          "max_range": widget.currentMaxRange,
+        },
+      );
+    }
     _refreshData();
   }
 
@@ -484,37 +499,16 @@ class _QuaDashboardState extends State<QuaDashboard> with WidgetsBindingObserver
       right: 0,
       child: BlocBuilder<TodayTestDataBloc, TestDataState>(
         builder: (context, testState) {
-          //
-          // final dietitianId = widget.clientProfile.dietitianId?.trim().toLowerCase();
-          // if(testState.result!=null && dietitianId != 'respyrd01'){
-          //   return SizedBox.shrink();
-          // }
-          // return Center(
-          //   child: SwipeButtonWidget(
-          //     onSwiped: _handleStartTest,
-          //   ),
-          // );
+
+          final dietitianId = widget.clientProfile.dietitianId?.trim().toLowerCase();
+          if(testState.result!=null && dietitianId != 'respyrd01'){
+            return SizedBox.shrink();
+          }
           return Center(
             child: SwipeButtonWidget(
-              onSwiped: (){
-                _handleStartTest(testState);
-              },
+              onSwiped: (){_handleStartTest(testState);},
             ),
           );
-
-
-          // if(testState.result==null){
-          //   return Center(
-          //     child: SwipeButtonWidget(
-          //       onSwiped: (){
-          //         _handleStartTest(testState);
-          //       },
-          //     ),
-          //   );
-          // }else{
-          //   context.go(AppRoutes.retakeTestScreen);
-          // }
-
         },
       ),
     );

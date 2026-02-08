@@ -1,204 +1,315 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/repository/bluetooth_repository.dart';
 import 'bluetooth_connection_state.dart';
 
 class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
   final BluetoothRepository repo;
-  Timer? _readyTimeoutTimer;
-  bool _waitingReady = false;
-  bool _startupRunning = false;
 
-  static const Duration _readyTimeout = Duration(seconds: 3);
+  Timer? _readyTimeoutTimer;
+
+  StreamSubscription? _connSub;
+  StreamSubscription? _dataSub;
+  StreamSubscription? _readySub;
+  StreamSubscription? _scanSub;
+
+  static const Duration _readyTimeout = Duration(seconds: 5);
+
+  bool _wasEverConnected = false;
+
+  // ✅ NEW: handshake control (prevents infinite loop)
+  bool _handshakeCompleted = false;
+  bool _handshakeInProgress = false;
 
   BluetoothConnectionCubit(this.repo) : super(const BluetoothConnectionState());
 
-  void safeEmit(BluetoothConnectionState s) {
-    if (!isClosed) emit(s);
+  void _log(String msg) {
+    if (kDebugMode) {
+      // ignore: avoid_print
+      print("🟦 BLE_CUBIT | $msg");
+    }
   }
 
-  // ================= INIT =================
+  void safeEmit(BluetoothConnectionState s) {
+    if (!isClosed) {
+      emit(s);
+      _log(
+        "EMIT => status=${s.status}, scan=${s.isScanning}, conn=${s.isConnected}, "
+            "connecting=${s.isConnecting}, id=${s.connectingDeviceId}, ready=${s.deviceReady}",
+      );
+    }
+  }
+
   Future<void> init() async {
-    print("Initializing Bluetooth Connection...");
+    _log("init() repo.isConnected=${repo.isConnected}");
 
     _listenConnection();
     _listenData();
+    _listenDeviceReady();
 
-    // already connected case (coming back from calibration)
     if (repo.isConnected) {
-      print("Device already connected.");
+      _wasEverConnected = true;
       safeEmit(state.copyWith(
         isConnected: true,
+        isConnecting: false,
         status: BluetoothConnectionStatus.connected,
         isScanning: false,
-        deviceReady: false,
-        isDeviceError: false,
       ));
-
-      await _checkDeviceReadiness();
+      await _checkAppReadiness();
     } else {
-      print("Device not connected. Starting scan...");
       startScan();
     }
   }
 
-  // ================= SCAN =================
+  void _listenConnection() {
+    _connSub?.cancel();
+
+    _log("_listenConnection() subscribed");
+    _connSub = repo.connectionStatusStream().listen((connected) async {
+      _log(
+        "CONN_STREAM => connected=$connected | state(connecting=${state.isConnecting}, wasEver=$_wasEverConnected)",
+      );
+
+      if (connected) {
+        _wasEverConnected = true;
+
+        // ✅ reset handshake flags for new connection
+        _handshakeCompleted = false;
+        _handshakeInProgress = false;
+
+        safeEmit(state.copyWith(
+          isConnected: true,
+          isConnecting: false,
+          status: BluetoothConnectionStatus.connected,
+          isScanning: false,
+        ));
+
+        _log("CONNECTED ✅ -> start readiness check");
+        await _checkAppReadiness();
+        return;
+      }
+
+      // Ignore transient false during initial connect attempt
+      if (state.isConnecting && !_wasEverConnected) {
+        _log("IGNORED transient DISCONNECTED (during connecting) ⚠️");
+        return;
+      }
+
+      _log("REAL DISCONNECT ❌ -> teardown flags + startScan()");
+
+      _readyTimeoutTimer?.cancel();
+      _handshakeCompleted = false;
+      _handshakeInProgress = false;
+
+      safeEmit(state.copyWith(
+        isConnected: false,
+        isConnecting: false,
+        deviceReady: false,
+        status: BluetoothConnectionStatus.disconnected,
+      ));
+
+      if (!state.isScanning) startScan();
+    }, onError: (e) {
+      _log("CONN_STREAM ERROR => $e");
+    });
+  }
+
+  void _listenDeviceReady() {
+    _readySub?.cancel();
+
+    _log("_listenDeviceReady() subscribed");
+    _readySub = repo.deviceReadyStream().listen((isGattReady) async {
+      _log("READY_STREAM => isGattReady=$isGattReady | state.isConnected=${state.isConnected}");
+      if (isGattReady && state.isConnected) {
+        await _checkAppReadiness();
+      }
+    }, onError: (e) {
+      _log("READY_STREAM ERROR => $e");
+    });
+  }
+
+  void _listenData() {
+    _dataSub?.cancel();
+
+
+    _log("_listenData() subscribed");
+    _dataSub = repo.receivedDataStream().listen((data) {
+      final cleaned = data.trim();
+      if (cleaned.isEmpty) return;
+
+
+      _log("DATA_STREAM => '$cleaned'");
+
+      if(cleaned.contains("ERROR")){
+        String errorMessage = cleaned=="{ERROR:003}" ? "LOW_BATTERY" : "DEVICE_ERROR";
+        safeEmit(state.copyWith(isDeviceError: true, textError: errorMessage));
+      }
+
+      safeEmit(state.copyWith(lastData: cleaned));
+
+      if (cleaned.contains("%")) {
+        _log("READY PACKET detected (%) ✅");
+        _handleReadyPacket();
+      }
+    }, onError: (e) {
+      _log("DATA_STREAM ERROR => $e");
+    });
+  }
+
+  // ------------------- Handshake -------------------
+
+  Future<void> _checkAppReadiness() async {
+    _log("_checkAppReadiness() called | completed=$_handshakeCompleted, inProgress=$_handshakeInProgress");
+
+    if (!state.isConnected) return;
+    if (_handshakeCompleted) return;
+
+    // ✅ Only allow one timer/session
+    if (_handshakeInProgress) return;
+    _handshakeInProgress = true;
+
+    _readyTimeoutTimer?.cancel();
+
+    // Send once immediately
+    await _sendHandshake();
+
+    // If % not received within 5 sec -> send again until % arrives
+    _readyTimeoutTimer = Timer.periodic(_readyTimeout, (timer) async {
+      if (!state.isConnected) {
+        _log("Stop handshake timer (not connected)");
+        timer.cancel();
+        _handshakeInProgress = false;
+        return;
+      }
+
+      if (_handshakeCompleted) {
+        _log("Stop handshake timer (received %)");
+        timer.cancel();
+        _handshakeInProgress = false;
+        return;
+      }
+
+      _log("Handshake retry (no % yet) -> sending again");
+      await _sendHandshake();
+    });
+  }
+
+  Future<void> _sendHandshake() async {
+    try {
+      _log("SEND '{' and '%' ...");
+      await repo.sendData("{");
+      await repo.sendData("%");
+    } catch (e) {
+      _log("SEND ERROR => $e");
+    }
+  }
+
+  void _handleReadyPacket() {
+    if (_handshakeCompleted) return;
+
+    _log("_handleReadyPacket() -> STOP handshake");
+    _handshakeCompleted = true;
+    _handshakeInProgress = false;
+    _readyTimeoutTimer?.cancel();
+
+    safeEmit(state.copyWith(deviceReady: true));
+  }
+
+  // ------------------- Scan -------------------
+
   void startScan({Duration timeout = const Duration(seconds: 15)}) {
-    print("Starting scan for Bluetooth devices...");
+    if (state.isConnected || state.isConnecting) return;
+
+    _scanSub?.cancel();
 
     safeEmit(state.copyWith(
       status: BluetoothConnectionStatus.scanning,
       isScanning: true,
-      devices: [],
-      connectingDeviceId: null,
-      deviceReady: false,
+      isConnecting: false,
+      devices: const [],
       textError: null,
     ));
 
-    repo.scan(timeout: timeout).listen(
+    _scanSub = repo.scan(timeout: timeout).listen(
           (devices) {
-        print("Scan results: Found ${devices.length} devices.");
-        safeEmit(state.copyWith(devices: devices));
+        safeEmit(state.copyWith(
+          devices: devices,
+          isScanning: true,
+        ));
       },
       onError: (e) {
-        print("Scan error: $e");
         safeEmit(state.copyWith(
           status: BluetoothConnectionStatus.textError,
-          isScanning: false,
           textError: e.toString(),
+          isScanning: false,
+          isConnecting: false,
         ));
+      },
+      onDone: () {
+        safeEmit(state.copyWith(isScanning: false));
       },
     );
   }
 
-  // ================= CONNECT =================
   Future<void> connectById(String id) async {
-    print("Connecting to device with ID: $id");
+    if (state.isConnecting || state.isConnected) return;
+
+    _scanSub?.cancel();
+    try {
+      await repo.stopScan();
+    } catch (_) {}
+
+    _wasEverConnected = false;
+
+    // ✅ reset handshake for new attempt
+    _handshakeCompleted = false;
+    _handshakeInProgress = false;
 
     safeEmit(state.copyWith(
       connectingDeviceId: id,
       status: BluetoothConnectionStatus.connecting,
+      isConnecting: true,
+      isScanning: false,
       textError: null,
       deviceReady: false,
     ));
 
     try {
       await repo.connectById(id);
-      print("Successfully connected to device with ID: $id");
-      await _checkDeviceReadiness();
     } catch (e) {
-      print("Error connecting to device: $e");
       safeEmit(state.copyWith(
-        isConnected: false,
-        connectingDeviceId: null,
         status: BluetoothConnectionStatus.textError,
         textError: e.toString(),
+        isConnecting: false,
+        isConnected: false,
+        connectingDeviceId: null,
       ));
       startScan();
     }
   }
 
-  // ================= CONNECTION LISTENER =================
-  void _listenConnection() {
-    repo.connectionStatusStream().listen((connected) async {
-      print("Connection status changed: $connected");
-
-      if (connected) {
-        safeEmit(state.copyWith(
-          isConnected: true,
-          status: BluetoothConnectionStatus.connected,
-          isScanning: false,
-          textError: null,
-          deviceReady: false,
-        ));
-        await _checkDeviceReadiness();
-      } else {
-        safeEmit(state.copyWith(
-          isConnected: false,
-          connectingDeviceId: null,
-          status: BluetoothConnectionStatus.disconnected,
-          devices: [],
-          deviceReady: false,
-        ));
-        startScan();
-      }
-    });
-  }
-
-  // ================= READY CHECK =================
-  Future<void> _checkDeviceReadiness() async {
-    if (_startupRunning) return;
-    _startupRunning = true;
-
-    print("Checking if the device is ready...");
-
-    // Send readiness check
-    await _sendReadyCheck();
-
-    // Start a timeout to handle failure if no response
-    _readyTimeoutTimer = Timer(_readyTimeout, () {
-      print("Ready timeout reached. Retrying readiness check...");
-      if (!state.deviceReady) {
-        _sendReadyCheck();
-      }
-    });
-  }
-
-  Future<void> _sendReadyCheck() async {
-    print("Sending readiness check...");
-
+  Future<void> disconnect() async {
     try {
-      await repo.sendData("{"); // Send the readiness check command
-      await repo.sendData("%"); // Send the readiness check command
-      print("Ready check sent successfully.");
-    } catch (e) {
-      print("Error sending readiness check: $e");
-      safeEmit(state.copyWith(isDeviceError: true, textError: "Device not ready"));
-    }
+      await repo.disconnect();
+    } catch (_) {}
   }
 
-  // ================= DATA LISTENER =================
-  void _listenData() {
-    print("Listening for data...");
-
-    repo.receivedDataStream().listen((data) {
-      final cleanedData = data.trim();
-      if (cleanedData.isEmpty) return;
-
-      print("Received data: '$cleanedData'");
-
-      if (cleanedData == "%" ) {
-        print("Device is ready.");
-        _handleReadyPacket();
-      }
-    });
-  }
-
-  void _handleReadyPacket() {
-    print("Handling ready packet...");
-    _readyTimeoutTimer?.cancel();
-    _readyTimeoutTimer = null;
-    if(!state.deviceReady){
-      safeEmit(state.copyWith(deviceReady: true));
-    }
-  }
-
-  // ================= SEND =================
   void sendAbort() {
     if (state.isConnected) {
-      print("Sending abort...");
       try {
-        repo.sendData("&"); // Abort command
-      } catch (_) {
-        print("Error sending abort.");
-      }
+        repo.sendData("&");
+      } catch (_) {}
     }
   }
 
   @override
   Future<void> close() async {
-    print("Closing Bluetooth Connection Cubit...");
     _readyTimeoutTimer?.cancel();
-    await super.close();
+    await _connSub?.cancel();
+    await _dataSub?.cancel();
+    await _readySub?.cancel();
+    await _scanSub?.cancel();
+    return super.close();
   }
 }

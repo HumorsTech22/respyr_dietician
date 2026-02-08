@@ -1,12 +1,15 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_connection_cubit/bluetooth_connection_cubit.dart';
-import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_connection_cubit/bluetooth_connection_state.dart';
-import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/widgets/device_list.dart';
+import 'package:http/http.dart';
 
 import '../../../../common/widgets/assets_video_play.dart';
+import '../../../../core/size/get_height.dart';
+import '../cubit/bluetooth_connection_cubit/bluetooth_connection_cubit.dart';
+import '../cubit/bluetooth_connection_cubit/bluetooth_connection_state.dart';
+import 'device_list.dart';
 
 class DeviceSection extends StatelessWidget {
   final BluetoothConnectionState state;
@@ -16,52 +19,67 @@ class DeviceSection extends StatelessWidget {
   bool get isConnected =>
       state.isConnected || state.status == BluetoothConnectionStatus.connected;
 
-  bool get isScanning => state.isScanning || state.status == BluetoothConnectionStatus.scanning;
+  bool get isScanning =>
+      state.isScanning || state.status == BluetoothConnectionStatus.scanning;
 
   bool get hasDevices => state.devices.isNotEmpty;
 
-  bool get validDeviceId => state.connectingDeviceId != null &&
-      RegExp(r'^\d+$').hasMatch(state.connectingDeviceId!);
+  bool get validDeviceId =>
+      state.connectingDeviceId != null &&
+          RegExp(r'^\d+$').hasMatch(state.connectingDeviceId!);
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        const SizedBox(height: 82),
+        SizedBox(height: rh(context: context, px: 82)),
+
         Padding(
-          padding: const EdgeInsets.all(8.0),
+          padding: EdgeInsets.all(rh(context: context, px: 8)),
           child: _buildTopVisualSmooth(),
         ),
+
         if (!isConnected) _buildContent(context),
+
         if (isConnected) ...[
-          const SizedBox(height: 20),
+          SizedBox(height: rh(context: context, px: 20)),
           if (validDeviceId)
-            _buildDeviceInfo()
+            _buildDeviceInfo(context)
           else
-            Text(
-              "Checking device info...",
-              style: GoogleFonts.poppins(
-                color: const Color(0xFF535359),
-                fontSize: 12,
-                fontWeight: FontWeight.w400,
-                height: 1.10,
-                letterSpacing: -0.24,
-              ),
-            ),
-          const SizedBox(height: 30),
+           Row(
+             mainAxisAlignment: MainAxisAlignment.center,
+             spacing: 10,
+             children: [
+              if(state.deviceReady)...[ SvgPicture.asset("assets/images/device_connection/device_id.svg")],
+               Text(
+                 state.deviceReady ? "Device is ready" :"getting your device ready...",
+                 style: GoogleFonts.poppins(
+                   color: const Color(0xFF535359),
+                   fontSize: rh(context: context, px: 12),
+                   fontWeight: FontWeight.w400,
+                   height: 1.10,
+                   letterSpacing: -0.24,
+                 ),
+               ),
+             ],
+           ),
+          SizedBox(height: rh(context: context, px: 30)),
           Text(
             "Device Connected",
             style: GoogleFonts.poppins(
               color: const Color(0xFF252525),
-              fontSize: 20,
+              fontSize: rh(context: context, px: 20),
               fontWeight: FontWeight.w600,
             ),
           ),
         ],
+
         if (!isConnected) ...[
-          const SizedBox(height: 20),
+          SizedBox(height: rh(context: context, px: 20)),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+            padding: EdgeInsets.symmetric(
+              horizontal: rh(context: context, px: 20),
+            ),
             child: DeviceList(state: state),
           ),
         ],
@@ -70,18 +88,14 @@ class DeviceSection extends StatelessWidget {
   }
 
   Widget _buildTopVisualSmooth() {
-    final Widget child = _buildTopVisualWithThumbnailFallback();
+    final child = _buildTopVisualWithThumbnailFallback();
 
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 300),
       switchInCurve: Curves.easeOut,
       switchOutCurve: Curves.easeIn,
-      transitionBuilder: (child, animation) {
-        return FadeTransition(
-          opacity: animation,
-          child: child,
-        );
-      },
+      transitionBuilder: (child, animation) =>
+          FadeTransition(opacity: animation, child: child),
       child: SizedBox(
         key: ValueKey<String>(_topVisualKey()),
         width: double.infinity,
@@ -97,8 +111,7 @@ class DeviceSection extends StatelessWidget {
   }
 
   Widget _buildTopVisualWithThumbnailFallback() {
-    const thumb =
-        "assets/images/device_connection/new_device_not_connected.png";
+    const thumb = "assets/images/device_connection/new_device_not_connected.png";
 
     if (isConnected) {
       return Image.asset(
@@ -111,10 +124,7 @@ class DeviceSection extends StatelessWidget {
       return Stack(
         alignment: Alignment.center,
         children: const [
-          Image(
-            image: AssetImage(thumb),
-            fit: BoxFit.contain,
-          ),
+          Image(image: AssetImage(thumb), fit: BoxFit.contain),
           AssetVideoWidget(
             videoPath: 'assets/images/device_connection/device_scanning.mp4',
             thumbnailPath: thumb,
@@ -126,10 +136,7 @@ class DeviceSection extends StatelessWidget {
     return Stack(
       alignment: Alignment.center,
       children: const [
-        Image(
-          image: AssetImage(thumb),
-          fit: BoxFit.contain,
-        ),
+        Image(image: AssetImage(thumb), fit: BoxFit.contain),
         AssetVideoWidget(
           videoPath:
           'assets/images/device_connection/device_not_connected_video.mp4',
@@ -143,10 +150,10 @@ class DeviceSection extends StatelessWidget {
     if (isScanning) {
       return Center(
         child: Text(
-          "Finding...",
+          "Finding....",
           style: GoogleFonts.poppins(
             color: const Color(0xFF252525),
-            fontSize: 20,
+            fontSize: rh(context: context, px: 20),
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -157,38 +164,48 @@ class DeviceSection extends StatelessWidget {
       return _buildNoDevice(context);
     }
 
+
+    if(state.isConnecting){
+      return Text(
+        'Connecting...',
+        style: GoogleFonts.poppins(
+          color: const Color(0xFF252525),
+          fontSize: rh(context: context, px: 20),
+          fontWeight: FontWeight.w600,
+        ),
+      );
+    }
     return _buildDeviceList(context);
   }
 
-  Widget _buildDeviceInfo() {
+  Widget _buildDeviceInfo(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         SvgPicture.asset('assets/images/device_connection/device_id.svg'),
-        const SizedBox(width: 4),
+        SizedBox(width: rh(context: context, px: 4)),
         Text(
           'Device Id:',
           style: GoogleFonts.poppins(
             color: const Color(0xFF535359),
-            fontSize: 12,
+            fontSize: rh(context: context, px: 12),
             fontWeight: FontWeight.w400,
             height: 1.10,
             letterSpacing: -0.24,
           ),
         ),
-        const SizedBox(width: 4),
+        SizedBox(width: rh(context: context, px: 4)),
         Text(
           'RESPYR${state.connectingDeviceId}',
           style: GoogleFonts.poppins(
             color: const Color(0xFF535359),
-            fontSize: 12,
+            fontSize: rh(context: context, px: 12),
             fontWeight: FontWeight.w400,
             height: 1.10,
             letterSpacing: -0.24,
           ),
         ),
-        const SizedBox(width: 10),
-        // BatteryIndicatorWidget removed from this part
+        SizedBox(width: rh(context: context, px: 10)),
       ],
     );
   }
@@ -200,11 +217,11 @@ class DeviceSection extends StatelessWidget {
           'No Device Found',
           style: GoogleFonts.poppins(
             color: const Color(0xFF252525),
-            fontSize: 20,
+            fontSize: rh(context: context, px: 20),
             fontWeight: FontWeight.w600,
           ),
         ),
-        const SizedBox(height: 10),
+        SizedBox(height: rh(context: context, px: 10)),
         _retryButton(context),
       ],
     );
@@ -217,11 +234,11 @@ class DeviceSection extends StatelessWidget {
           'Found ${state.devices.length} Devices',
           style: GoogleFonts.poppins(
             color: const Color(0xFF252525),
-            fontSize: 20,
+            fontSize: rh(context: context, px: 20),
             fontWeight: FontWeight.w600,
           ),
         ),
-        const SizedBox(height: 10),
+        SizedBox(height: rh(context: context, px: 10)),
         _retryButton(context),
       ],
     );
@@ -229,19 +246,18 @@ class DeviceSection extends StatelessWidget {
 
   Widget _retryButton(BuildContext context) {
     return InkWell(
-      onTap: () {
-        context.read<BluetoothConnectionCubit>().startScan();
-      },
+      onTap: () =>
+          context.read<BluetoothConnectionCubit>().startScan(),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           SvgPicture.asset("assets/images/device_connection/retry.svg"),
-          const SizedBox(width: 5),
+          SizedBox(width: rh(context: context, px: 5)),
           Text(
             'Retry',
             style: GoogleFonts.poppins(
               color: const Color(0xFF308BF9),
-              fontSize: 12,
+              fontSize: rh(context: context, px: 12),
               fontWeight: FontWeight.w600,
             ),
           ),

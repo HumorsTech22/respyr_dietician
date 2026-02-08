@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/size/get_height.dart' show rh;
 import '../theme/test_conditions_tokens.dart';
 import 'test_condition_item.dart';
 
@@ -9,21 +10,39 @@ class TestConditionsSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: TestConditionsTokens.sheetWidth,
-      height: TestConditionsTokens.sheetHeight,
-      decoration: const ShapeDecoration(
+      width: double.infinity,
+      height: rh(
+        context: context,
+        px: TestConditionsTokens.sheetHeight,
+      ),
+      decoration: ShapeDecoration(
         color: TestConditionsTokens.white,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(TestConditionsTokens.sheetTopRadius),
-            topRight: Radius.circular(TestConditionsTokens.sheetTopRadius),
+            topLeft: Radius.circular(
+              rh(
+                context: context,
+                px: TestConditionsTokens.sheetTopRadius,
+              ),
+            ),
+            topRight: Radius.circular(
+              rh(
+                context: context,
+                px: TestConditionsTokens.sheetTopRadius,
+              ),
+            ),
           ),
         ),
       ),
-      child: const SingleChildScrollView(
+      child: SingleChildScrollView(
         child: Padding(
-          padding: TestConditionsTokens.sheetPadding,
-          child: _ConditionsList(),
+          padding: EdgeInsets.all(
+            rh(
+              context: context,
+              px: 17,
+            ),
+          ),
+          child: const _ConditionsList(),
         ),
       ),
     );
@@ -35,9 +54,12 @@ class _ConditionsList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Column(
-      spacing: TestConditionsTokens.itemsColumnSpacing,
-      children: [
+    return Column(
+      spacing: rh(
+        context: context,
+        px: TestConditionsTokens.itemsColumnSpacing,
+      ),
+      children: const [
         TestConditionItem(
           iconAsset: "assets/images/icons/ic_condition_01.svg",
           title: "Fasting / Early Morning",

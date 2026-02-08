@@ -74,7 +74,9 @@ class _ErrorScreenState extends State<ErrorScreen> {
             ),
             SizedBox(height: 60,),
             ElevatedButton(
-                onPressed: (){},
+                onPressed: (){
+                  Navigator.pop(context);
+                },
                 style: ElevatedButton.styleFrom(
                   elevation: 0,
                   backgroundColor: const Color(0xFF308BF9),
@@ -93,14 +95,7 @@ class _ErrorScreenState extends State<ErrorScreen> {
                   ),
                 )
             ),
-            SizedBox(height: 10,),
-            TextButton(onPressed: (){}, child: Text(  'Need help?',
-              style: GoogleFonts.poppins(
-                color: const Color(0xFFDA5747),
-                fontSize: 15,
-                fontWeight: FontWeight.w400,
-                letterSpacing: -0.30,
-              ),))
+
           ],
         ),
       ),
