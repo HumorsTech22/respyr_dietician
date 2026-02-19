@@ -1,13 +1,14 @@
-import 'dart:convert';
 import 'dart:async';
+import 'dart:convert';
 
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import 'package:respyr_dietitian/core/audio/audio_cubit.dart';
@@ -19,29 +20,27 @@ import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/r
 import 'package:respyr_dietitian/features/dietitian_dashboard/data/repository/dietitian_dashboard_repository.dart';
 import 'package:respyr_dietitian/features/dietitian_dashboard/presentation/cubit/dietitian_dashboard_cubit.dart';
 
+import 'package:respyr_dietitian/features/dashboard/bloc/dashboard_bloc.dart';
 import 'package:respyr_dietitian/features/log_food/presentation/cubit/test_timer_cubit/test_timer_cubit.dart';
 import 'package:respyr_dietitian/features/profile_info/data/repository/dietician_repository.dart';
 import 'package:respyr_dietitian/features/profile_info/domain/usecases/calculate_bmi.dart';
 import 'package:respyr_dietitian/features/profile_info/domain/usecases/calculate_bmr.dart';
+import 'package:respyr_dietitian/features/profile_info/presentation/cubit/create_profile_cubit.dart';
 import 'package:respyr_dietitian/features/profile_info/presentation/cubit/profile_cubit.dart';
+
 import 'package:respyr_dietitian/routes/app_router.dart' hide rootNavigatorKey;
 
 import 'core/global_keys.dart';
 import 'features/bluetooth_device_connectivity/presentation/cubit/global_error_cubit/global_error_cubit.dart';
 import 'features/bluetooth_device_connectivity/presentation/widgets/global_ble_popup_manager.dart';
-import 'features/profile_info/presentation/cubit/create_profile_cubit.dart';
-import 'package:respyr_dietitian/features/dashboard/bloc/dashboard_bloc.dart';
 
-/// ✅ UNHIDDEN: Local Notifications plugin instance
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
 FlutterLocalNotificationsPlugin();
 
-/// ✅ UNHIDDEN: Firebase background handler
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
 }
 
-/// Internet Cubit (unchanged)
 class InternetCubit extends Cubit<bool> {
   InternetCubit() : super(true) {
     _init();
@@ -53,7 +52,6 @@ class InternetCubit extends Cubit<bool> {
   Future<void> _init() async {
     final initial = await _connectivity.checkConnectivity();
     emit(!_isOffline(initial));
-
     _sub = _connectivity.onConnectivityChanged.listen((results) {
       emit(!_isOffline(results));
     });
@@ -71,23 +69,56 @@ class InternetCubit extends Cubit<bool> {
   }
 }
 
-Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+Future<String?> _tryGetFcmTokenOnce() async {
+  try {
+    final t = await FirebaseMessaging.instance.getToken();
+    if (t != null && t.isNotEmpty) return t;
+  } catch (e) {
+    // ignore: avoid_print
+    print("❌ getToken failed: $e");
+  }
+  return null;
+}
 
-  // Initialize Firebase before using any Firebase service
-  await Firebase.initializeApp();
+Future<String?> _getFcmTokenWithRetry() async {
+  for (int i = 0; i < 6; i++) {
+    final t = await _tryGetFcmTokenOnce();
+    if (t != null) return t;
+    await Future.delayed(Duration(seconds: 2 + (i * 2)));
+  }
+  return null;
+}
 
-  // Request the necessary permissions at the start
-  await requestPermissions();
-
+Future<void> _initFcmAndLocalNotifs() async {
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-  await Permission.notification.request();
+  try {
+    final notifSettings = await FirebaseMessaging.instance.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+      provisional: false,
+    );
+    // ignore: avoid_print
+    print("🔔 iOS permission: ${notifSettings.authorizationStatus}");
+  } catch (e) {
+    // ignore: avoid_print
+    print("❌ requestPermission failed: $e");
+  }
 
-  /// ✅ UNHIDDEN: Local notifications init (Android + iOS)
+  try {
+    await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+  } catch (e) {
+    // ignore: avoid_print
+    print("❌ setForegroundNotificationPresentationOptions failed: $e");
+  }
+
   const AndroidInitializationSettings androidInit =
   AndroidInitializationSettings('@mipmap/ic_launcher');
-
   const DarwinInitializationSettings iOSInit = DarwinInitializationSettings();
 
   const InitializationSettings initSettings = InitializationSettings(
@@ -119,7 +150,15 @@ Future<void> main() async {
     },
   );
 
-  /// ✅ UNHIDDEN: Android notification channel (required for heads-up)
+  try {
+    final iosPlugin = flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>();
+    await iosPlugin?.requestPermissions(alert: true, badge: true, sound: true);
+  } catch (e) {
+    // ignore: avoid_print
+    print("❌ iOS local notif permission failed: $e");
+  }
+
   const AndroidNotificationChannel channel = AndroidNotificationChannel(
     'high_importance_channel',
     'High Importance Notifications',
@@ -127,12 +166,16 @@ Future<void> main() async {
     importance: Importance.high,
   );
 
-  await flutterLocalNotificationsPlugin
-      .resolvePlatformSpecificImplementation<
-      AndroidFlutterLocalNotificationsPlugin>()
-      ?.createNotificationChannel(channel);
+  try {
+    await flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(channel);
+  } catch (e) {
+    // ignore: avoid_print
+    print("❌ createNotificationChannel failed: $e");
+  }
 
-  /// ✅ UNHIDDEN: Foreground FCM -> show local notification
   FirebaseMessaging.onMessage.listen((RemoteMessage message) {
     final notification = message.notification;
     if (notification == null) return;
@@ -150,18 +193,42 @@ Future<void> main() async {
           priority: Priority.high,
           icon: '@mipmap/ic_launcher',
         ),
-        iOS: const DarwinNotificationDetails(),
+        iOS: const DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        ),
       ),
-      payload: jsonEncode(message.data), // include screen/chatUserId in data
+      payload: jsonEncode(message.data),
     );
   });
 
-  /// Bluetooth + location perms (your existing)
-  await [
-    Permission.bluetoothScan,
-    Permission.bluetoothConnect,
-    Permission.locationWhenInUse,
-  ].request();
+  try {
+    final apnsToken = await FirebaseMessaging.instance.getAPNSToken();
+    // ignore: avoid_print
+    print("✅ APNS TOKEN: $apnsToken");
+  } catch (e) {
+    // ignore: avoid_print
+    print("❌ getAPNSToken failed: $e");
+  }
+
+  Future.microtask(() async {
+    final token = await _getFcmTokenWithRetry();
+    // ignore: avoid_print
+    print("✅ FCM TOKEN: $token");
+  });
+}
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+  await WakelockPlus.enable();
+
+  await Firebase.initializeApp();
+  tzdata.initializeTimeZones();
+
+  await _initFcmAndLocalNotifs();
 
   final calculateBMI = CalculateBMI();
   final calculateBMR = CalculateBMR();
@@ -174,8 +241,6 @@ Future<void> main() async {
     manager: uuidBleManager,
     navigatorKey: rootNavigatorKey,
   );
-
-  await WakelockPlus.enable();
 
   runApp(
     MultiRepositoryProvider(
@@ -213,28 +278,12 @@ Future<void> main() async {
   );
 }
 
-/// (Optional) old iOS local notification callback — not required with Darwin settings
 Future<void> onDidReceiveLocalNotification(
     int id,
     String? title,
     String? body,
     String? payload,
-    ) async {
-  // Handle background notifications here (optional)
-}
-
-// Function to request all necessary permissions
-Future<void> requestPermissions() async {
-  // Request Notification permission
-  await FirebaseMessaging.instance.requestPermission();
-
-  // Request Bluetooth and Location permission
-  await [
-    Permission.bluetoothScan,
-    Permission.bluetoothConnect,
-    Permission.locationWhenInUse,
-  ].request();
-}
+    ) async {}
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -248,6 +297,12 @@ class MyApp extends StatelessWidget {
         primaryColor: const Color(0xFF308BF9),
         textSelectionTheme: const TextSelectionThemeData(
           cursorColor: Color(0xFF308BF9),
+        ),
+        iconTheme: const IconThemeData(
+          color: Color(0xFF252525),
+        ),
+        progressIndicatorTheme: const ProgressIndicatorThemeData(
+          color: Color(0xFF252525),
         ),
       ),
       debugShowCheckedModeBanner: false,

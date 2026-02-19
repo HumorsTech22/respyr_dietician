@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/model/breath_setting_model.dart';
 
 import '../../../../core/size/get_height.dart';
 import '../cubit/bluetooth_exhale_cubit_new/bluetooth_exhale_state.dart';
@@ -8,7 +9,8 @@ import 'breathing_graph.dart';
 
 class NewExhaleScreen2 extends StatefulWidget {
   final BluetoothExhaleState state;
-  const NewExhaleScreen2({super.key, required this.state});
+  final BreathingSettings breathingSettings;
+  const NewExhaleScreen2({super.key, required this.state, required this.breathingSettings});
 
   @override
   State<NewExhaleScreen2> createState() => _NewExhaleScreen2State();
@@ -27,7 +29,6 @@ class _NewExhaleScreen2State extends State<NewExhaleScreen2> {
   void didUpdateWidget(covariant NewExhaleScreen2 oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    // ✅ only update the notifier (no full rebuild needed for graph)
     if (oldWidget.state.progress != widget.state.progress) {
       _reading.value = widget.state.progress;
     }
@@ -47,17 +48,11 @@ class _NewExhaleScreen2State extends State<NewExhaleScreen2> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(height: rh(context: context, px: 20)),
-
-        /// TITLE
         SizedBox(
           width: double.infinity,
           child: _buildMainTitle(context, state),
         ),
-
         SizedBox(height: rh(context: context, px: 20)),
-
-        /// SUB TITLE
         SizedBox(
           width: double.infinity,
           child: Text(
@@ -74,11 +69,9 @@ class _NewExhaleScreen2State extends State<NewExhaleScreen2> {
             ),
           ),
         ),
-
         SizedBox(height: rh(context: context, px: 22)),
-
-        /// GRAPH
         Expanded(
+          flex: 2,
           child: LayoutBuilder(
             builder: (ctx, constraints) {
               final safeH = (constraints.maxHeight <= 0)
@@ -86,12 +79,12 @@ class _NewExhaleScreen2State extends State<NewExhaleScreen2> {
                   : constraints.maxHeight;
 
               return Center(
-                child: RepaintBoundary( // ✅ isolates paint work
+                child: RepaintBoundary(
                   child: BreathingTargetGraph(
-                    reading: _reading, // ✅ changed
+                    reading: _reading,
                     height: safeH,
-                    targetMin: 40,
-                    targetMax: 80,
+                    targetMin: widget.breathingSettings.exhale.minBand.toDouble(),
+                    targetMax: widget.breathingSettings.exhale.maxBand.toDouble(),
                     hold: false,
                     holdCounter: 0,
                   ),
@@ -100,13 +93,7 @@ class _NewExhaleScreen2State extends State<NewExhaleScreen2> {
             },
           ),
         ),
-
-        SizedBox(height: rh(context: context, px: 51)),
-        IconButton(
-          onPressed: () {},
-          icon: const Icon(CupertinoIcons.speaker),
-        ),
-        SizedBox(height: rh(context: context, px: 52)),
+        SizedBox(height: rh(context: context, px: 127)),
       ],
     );
   }

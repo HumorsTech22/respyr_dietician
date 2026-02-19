@@ -1,5 +1,8 @@
 import 'dart:async';
+import 'dart:io';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/datasource/uuid_bluetooth_manager.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/model/bluetooth_device_model.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/repository/bluetooth_repository.dart';
@@ -25,8 +28,40 @@ class BluetoothRepositoryImpl implements BluetoothRepository {
   Future<void> stopScan() => _ds.stopScan();
 
   @override
+  Future<void> ensureScanPrerequisites() async {
+    final s = await FlutterBluePlus.adapterState.first;
+    if (s != BluetoothAdapterState.on) {
+      await FlutterBluePlus.adapterState
+          .firstWhere((x) => x == BluetoothAdapterState.on);
+    }
+
+    if (Platform.isIOS) {
+      return;
+    }
+
+    if (!Platform.isAndroid) {
+      return;
+    }
+
+    final sdk = (await DeviceInfoPlugin().androidInfo).version.sdkInt;
+
+    if (sdk >= 31) {
+      final scan = await Permission.bluetoothScan.request();
+      final connect = await Permission.bluetoothConnect.request();
+
+      if (!scan.isGranted || !connect.isGranted) {
+        throw Exception("Bluetooth permission denied");
+      }
+    } else {
+      final loc = await Permission.locationWhenInUse.request();
+      if (!loc.isGranted) {
+        throw Exception("Location permission denied");
+      }
+    }
+  }
+
+  @override
   Stream<List<BluetoothDeviceModel>> scan({Duration? timeout}) {
-    // timeout is ignored intentionally because scan is continuous.
     final ctrl = StreamController<List<BluetoothDeviceModel>>.broadcast();
     bool started = false;
 
@@ -68,7 +103,6 @@ class BluetoothRepositoryImpl implements BluetoothRepository {
 
   @override
   Future<void> connectById(String id) async {
-    // stop scan before connecting
     try {
       await _ds.stopScan();
     } catch (_) {}

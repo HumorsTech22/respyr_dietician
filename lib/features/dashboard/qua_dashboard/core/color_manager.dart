@@ -5,11 +5,11 @@ class ColorManager {
 
   static Color getZoneColor({required String zone}) {
     switch (zone.toLowerCase()) {
-      case "poor":
-        return const Color(0xFFDA5747); // red
-      case "fair":
-        return const Color(0xFFF8B10F); // yellow
-      case "good":
+      case "focus":
+        return const Color(0xFFE48326); // red
+      case "moderate":
+        return const Color(0xFFFFBF2D); // yellow
+      case "optimal":
         return const Color(0xFF3FAF58); // green
       default:
         return Colors.grey;

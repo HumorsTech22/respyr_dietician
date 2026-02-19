@@ -41,6 +41,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.3.0"
+  app_settings:
+    dependency: "direct main"
+    description:
+      name: app_settings
+      sha256: "476df1d85cec143c3d27dd1c7451629a59c0c5ccf70a0adcbfa92a0a2d928705"
+      url: "https://pub.dev"
+    source: hosted
+    version: "5.2.0"
   archive:
     dependency: transitive
     description:
@@ -130,7 +138,7 @@ packages:
     source: hosted
     version: "9.2.0"
   bloc_test:
-    dependency: "direct main"
+    dependency: "direct dev"
     description:
       name: bloc_test
       sha256: "1dd549e58be35148bc22a9135962106aa29334bc1e3f285994946a1057b29d7b"
@@ -185,14 +193,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.4.0"
-  checked_yaml:
-    dependency: transitive
-    description:
-      name: checked_yaml
-      sha256: "959525d3162f249993882720d52b7e0c833978df229be20702b33d48d91de70f"
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.0.4"
   cli_config:
     dependency: transitive
     description:
@@ -201,14 +201,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.2.0"
-  cli_util:
-    dependency: transitive
-    description:
-      name: cli_util
-      sha256: ff6785f7e9e3c38ac98b2fb035701789de90154024a75b6cb926445e83197d1c
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.4.2"
   clock:
     dependency: transitive
     description:
@@ -413,10 +405,10 @@ packages:
     dependency: transitive
     description:
       name: ffi
-      sha256: d07d37192dbf97461359c1518788f203b0c9102cfd2c35a716b823741219542c
+      sha256: "6d7fd89431262d8f3125e81b50d3847a091d846eafcd4fdb88dd06f36d705a45"
       url: "https://pub.dev"
     source: hosted
-    version: "2.1.5"
+    version: "2.2.0"
   file:
     dependency: transitive
     description:
@@ -615,7 +607,7 @@ packages:
     source: hosted
     version: "7.0.2"
   flutter_cache_manager:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: flutter_cache_manager
       sha256: "400b6592f16a4409a7f2bb929a9a7e38c72cceb8ffb99ee57bbf2cb2cecf8386"
@@ -686,14 +678,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.8"
-  flutter_launcher_icons:
-    dependency: "direct main"
-    description:
-      name: flutter_launcher_icons
-      sha256: "526faf84284b86a4cb36d20a5e45147747b7563d921373d4ee0559c54fcdbcea"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.13.1"
   flutter_lints:
     dependency: "direct dev"
     description:
@@ -792,6 +776,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.0.0"
+  get:
+    dependency: "direct main"
+    description:
+      name: get
+      sha256: e4e7335ede17452b391ed3b2ede016545706c01a02292a6c97619705e7d2a85e
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.6.6"
   glob:
     dependency: transitive
     description:
@@ -1000,6 +992,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.2.2"
+  in_app_update:
+    dependency: "direct main"
+    description:
+      name: in_app_update
+      sha256: "9924a3efe592e1c0ec89dda3683b3cfec3d4cd02d908e6de00c24b759038ddb1"
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.2.5"
   init:
     dependency: "direct main"
     description:
@@ -1048,14 +1048,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.7.2"
-  json_annotation:
-    dependency: transitive
-    description:
-      name: json_annotation
-      sha256: "805fa86df56383000f640384b282ce0cb8431f1a7a2396de92fb66186d8c57df"
-      url: "https://pub.dev"
-    source: hosted
-    version: "4.10.0"
   jwt_decoder:
     dependency: "direct main"
     description:
@@ -1153,7 +1145,7 @@ packages:
     source: hosted
     version: "2.0.0"
   mocktail:
-    dependency: "direct main"
+    dependency: "direct dev"
     description:
       name: mocktail
       sha256: "890df3f9688106f25755f26b1c60589a92b3ab91a22b8b224947ad041bf172d8"
@@ -1176,6 +1168,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.0"
+  new_version_plus:
+    dependency: "direct main"
+    description:
+      name: new_version_plus
+      sha256: "5a8ff14d7b93c60e7a42e1dd3e9fc3290fd76864faa180cd649615769d19b4e9"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.1"
   nm:
     dependency: transitive
     description:
@@ -1590,7 +1590,7 @@ packages:
     source: hosted
     version: "1.10.2"
   sqflite:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: sqflite
       sha256: e2297b1da52f127bc7a3da11439985d9b536f75070f3325e62ada69a5c585d03
@@ -1710,7 +1710,7 @@ packages:
     source: hosted
     version: "0.6.12"
   timezone:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: timezone
       sha256: dd14a3b83cfd7cb19e7888f1cbc20f258b8d71b54c06f79ac585f14093a287d1
@@ -1734,7 +1734,7 @@ packages:
     source: hosted
     version: "1.1.0"
   url_launcher:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: url_launcher
       sha256: f6a7e5c4835bb4e3026a04793a4199ca2d14c739ec378fdfe23fc8075d0439f8
@@ -1753,10 +1753,10 @@ packages:
     dependency: transitive
     description:
       name: url_launcher_ios
-      sha256: cfde38aa257dae62ffe79c87fab20165dfdf6988c1d31b58ebf59b9106062aad
+      sha256: b1aca26728b7cc7a3af971bb6f601554a8ae9df2e0a006de8450ba06a17ad36a
       url: "https://pub.dev"
     source: hosted
-    version: "6.3.6"
+    version: "6.4.0"
   url_launcher_linux:
     dependency: transitive
     description:
@@ -1910,13 +1910,13 @@ packages:
     source: hosted
     version: "1.2.1"
   web:
-    dependency: transitive
+    dependency: "direct overridden"
     description:
       name: web
-      sha256: "868d88a33d8a87b18ffc05f9f030ba328ffefba92d6c127917a2ba740f9cfe4a"
+      sha256: afe077240a270dcfd2aafe77602b4113645af95d0ad31128cc02bce5ac5d5152
       url: "https://pub.dev"
     source: hosted
-    version: "1.1.1"
+    version: "0.3.0"
   web_socket:
     dependency: transitive
     description:

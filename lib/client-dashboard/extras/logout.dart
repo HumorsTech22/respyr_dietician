@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart'; // ✅ cache clear
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:google_sign_in/google_sign_in.dart'; // Google Sign-In import
+import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../client_login_manager/client_login_manager.dart';
 import '../../routes/app_routes.dart';
@@ -36,24 +38,32 @@ class Logout {
     try {
       debugPrint("🍏 Logout: Start logging out...");
 
-      // --- Google Sign Out ---
+      // ✅ Google Sign-Out (if signed in)
       final GoogleSignIn googleSignIn = GoogleSignIn();
-      if (await googleSignIn.isSignedIn()) {
+      final bool signedIn = await googleSignIn.isSignedIn();
+      if (signedIn) {
         debugPrint("🍏 Logout: Google Sign-in found, signing out...");
         await googleSignIn.signOut();
         debugPrint("🍏 Logout: Google Sign-in signed out.");
       } else {
         debugPrint("🍏 Logout: Google Sign-in not found.");
       }
-      // --------------------------------
 
-      // Clear client profile
+      // ✅ Clear Flutter image MEMORY cache
+      debugPrint("🧹 Logout: Clearing Flutter image memory cache...");
+      PaintingBinding.instance.imageCache.clear();
+      PaintingBinding.instance.imageCache.clearLiveImages();
+
+      // ✅ Clear DISK cache (cached_network_image / flutter_cache_manager)
+      debugPrint("🧹 Logout: Clearing disk cache...");
+      await DefaultCacheManager().emptyCache();
+
+      // ✅ Clear your app session/profile storage
       isCleared = await ClientLoginManager().clearClientProfile();
       debugPrint("🍏 Logout: Profile cleared status: $isCleared");
-
-    } catch (_) {
+    } catch (e) {
       isCleared = false;
-      debugPrint("🍏 Logout: Error occurred during logout.");
+      debugPrint("🍏 Logout: Error occurred during logout -> $e");
     } finally {
       isLoggingOut(false);
     }
@@ -62,11 +72,17 @@ class Logout {
 
     if (isCleared) {
       debugPrint("🍏 Logout: Successful logout, navigating to Sign In Options.");
-      context.go(AppRoutes.signInOptions); // Navigate to Sign In Options screen
+      context.go(AppRoutes.signInOptions);
     } else {
       debugPrint("🍏 Logout: Logout failed.");
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to logout. Please try again.')),
+        SnackBar(
+          content: Text(
+            'Failed to logout. Please try again.',
+            style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
+          ),
+          behavior: SnackBarBehavior.floating,
+        ),
       );
     }
   }
@@ -102,7 +118,7 @@ class _ConfirmCard extends StatelessWidget {
           BoxShadow(
             blurRadius: 24,
             offset: Offset(0, 12),
-            color: Color(0x1A000000), // subtle shadow
+            color: Color(0x1A000000),
           ),
         ],
         border: Border.all(color: const Color(0xFFEFEFF4)),
@@ -125,8 +141,6 @@ class _ConfirmCard extends StatelessWidget {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
-
-          // Message
           Text(
             message,
             style: GoogleFonts.poppins(
@@ -138,10 +152,7 @@ class _ConfirmCard extends StatelessWidget {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 50),
-
-          // Actions
           Column(
-            mainAxisSize: MainAxisSize.max,
             children: [
               SizedBox(
                 width: double.infinity,
@@ -154,10 +165,16 @@ class _ConfirmCard extends StatelessWidget {
                     ),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
-                  child: const Text('Cancel', style: TextStyle(color: Color(0xFF252525))),
+                  child: Text(
+                    cancelText,
+                    style: GoogleFonts.poppins(
+                      color: const Color(0xFF252525),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
               ),
-              const SizedBox(height: 12), // Adjusted spacing for vertical layout
+              const SizedBox(height: 12),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -171,7 +188,13 @@ class _ConfirmCard extends StatelessWidget {
                     ),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
-                  child: const Text('Logout'),
+                  child: Text(
+                    confirmText,
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
                 ),
               ),
             ],

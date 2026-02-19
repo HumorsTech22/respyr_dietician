@@ -1,12 +1,16 @@
 import 'dart:async';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/repository/bluetooth_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../../../../../common/widgets/threshold.dart';
+import '../../../data/model/breath_setting_model.dart';
 import 'bluetooth_inhale_new_state.dart';
 
 class BluetoothInhaleCubitNew extends Cubit<BluetoothInhaleCubitNewState> {
   final BluetoothRepository repo;
+  final BreathingSettings breathingSettings;
 
   static const bool kDebug = true;
   void d(String msg) {
@@ -28,7 +32,6 @@ class BluetoothInhaleCubitNew extends Cubit<BluetoothInhaleCubitNewState> {
 
   bool _cancelled = false;
 
-  // ✅ Stop further packet processing after success/fail (set true on fail/cancel)
   bool _flowStopped = false;
 
   final RegExp _slashNum = RegExp(r'^\s*/\s*(\d+(?:\.\d+)?)\s*/\s*$');
@@ -40,12 +43,16 @@ class BluetoothInhaleCubitNew extends Cubit<BluetoothInhaleCubitNewState> {
   bool _armed = false;
   static const double _armAt = 10.0;
 
-  static const double _minBand = 25.0;
-  static const double _maxBand = 80.0;
+  double get _minBand => breathingSettings.inhale.minBand.toDouble();
+  double get _maxBand => breathingSettings.inhale.maxBand.toDouble();
 
-  // ✅ Inhale target = 3 sec, but accept >= 2.5 sec (same like exhale)
-  static const Duration _inhaleNeed = Duration(milliseconds: 3000);
-  static const Duration _inhaleAccept = Duration(milliseconds: 2500);
+  Duration get _inhaleNeed => Duration(milliseconds: breathingSettings.inhale.timeMs);
+
+  Duration get _inhaleAccept {
+    final need = _inhaleNeed;
+    if (need <= const Duration(milliseconds: 500)) return need;
+    return need - const Duration(milliseconds: 500);
+  }
 
   static const Duration _failOutOfBand = Duration(seconds: 2);
 
@@ -61,25 +68,28 @@ class BluetoothInhaleCubitNew extends Cubit<BluetoothInhaleCubitNewState> {
   bool _dropFailTriggered = false;
 
   // ---------------- HOLD RULES ----------------
-  static const Duration _holdNeed = Duration(seconds: 8);
+  Duration get _holdNeed {
+    final int ms = breathingSettings.hold.timeMs;
+    if (ms <= 0) return const Duration(seconds: 8);
+    return Duration(milliseconds: ms);
+  }
 
   bool _holdActive = false;
   bool _holdDone = false;
   Timer? _holdTicker;
   DateTime? _holdStartAt;
 
-  // first 1 sec ignore; after that strict RAW check
   static const Duration _holdStartCheckingAfter = Duration(seconds: 1);
-
-  // RAW tolerance (base ± 3)
   static const double _holdRawTolerance = 3.0;
 
   int _packetCount = 0;
 
+  // (kept same even if not used now)
   Timer? _exhaleTimer;
   bool _exhaleTimerRunning = false;
 
-  BluetoothInhaleCubitNew(this.repo) : super(const BluetoothInhaleCubitNewState()) {
+  BluetoothInhaleCubitNew(this.repo, this.breathingSettings)
+      : super(const BluetoothInhaleCubitNewState()) {
     d("Cubit init | connected=${repo.isConnected}");
     _listen();
     emit(state.copyWith(isConnected: repo.isConnected));
@@ -117,15 +127,12 @@ class BluetoothInhaleCubitNew extends Cubit<BluetoothInhaleCubitNewState> {
     });
 
     _dataSub = repo.receivedDataStream().listen((data) {
-      // ✅ guards
       if (_disposed || _cancelled || _flowStopped) return;
       if (data.isEmpty || !_testStarted) return;
       if (!repo.isConnected) return;
 
-      // ✅ IMPORTANT FIX:
-      // During HOLD, inhaleFinished is TRUE, but we still must process packets.
       if (state.inhaleFailed) return;
-      if (state.inhaleFinished && !_holdActive) return; // stop only after hold ends
+      if (state.inhaleFinished && !_holdActive) return;
 
       final clean = data.trim();
       emit(state.copyWith(receivedData: clean, error: null));
@@ -153,14 +160,15 @@ class BluetoothInhaleCubitNew extends Cubit<BluetoothInhaleCubitNewState> {
 
       _packetCount++;
       if (_packetCount <= 8 || _packetCount % 25 == 0) {
-        d("Packet #$_packetCount | raw={$inhaleValue} | base=$_base | hold=$_holdActive done=$_holdDone inhaleFinished=${state.inhaleFinished}");
+        d(
+          "Packet #$_packetCount | raw={$inhaleValue} | base=$_base | hold=$_holdActive done=$_holdDone inhaleFinished=${state.inhaleFinished}",
+        );
       }
 
       if (_holdDone) return;
 
       // ---------------- HOLD PHASE ----------------
       if (_holdActive) {
-        // raw delta from base (for UI only)
         final delta = inhaleValue - _base;
 
         emit(state.copyWith(
@@ -173,18 +181,16 @@ class BluetoothInhaleCubitNew extends Cubit<BluetoothInhaleCubitNewState> {
 
         final elapsedHold = DateTime.now().difference(holdStart);
 
-        // ✅ 0–1 sec: ignore
         if (elapsedHold < _holdStartCheckingAfter) return;
 
-        // ✅ 1–8 sec: strict RAW check
-        if (inhaleValue > (_base + _holdRawTolerance)) {
+        if (inhaleValue > (_base + 1.5)) {
           emit(state.copyWith(holdBreathViolation: "Exhale detected during hold"));
           unawaited(setCancelOrDisconnectFlag());
           _finishFail("Exhale detected during hold");
           return;
         }
 
-        if (inhaleValue < (_base - _holdRawTolerance)) {
+        if (inhaleValue < (_base - 1.5)) {
           emit(state.copyWith(holdBreathViolation: "Inhale detected during hold"));
           unawaited(setCancelOrDisconnectFlag());
           _finishFail("Inhale detected during hold");
@@ -195,15 +201,23 @@ class BluetoothInhaleCubitNew extends Cubit<BluetoothInhaleCubitNewState> {
       }
 
       // ---------------- INHALE PHASE ----------------
-      // exhale detected during inhale (raw check)
-      if (inhaleValue > (_base + 3)) {
+      // ✅ UPDATED RULE (as you asked):
+      // If value goes ABOVE base => exhaled => inhale must FAIL immediately.
+      if (inhaleValue > _base + 1.5) {
+        d("FAIL: Exhale detected during inhale | raw=$inhaleValue base=$_base");
+        unawaited(setCancelOrDisconnectFlag());
         _finishFail("Exhale detected instead of inhale");
         return;
-      } else {
-        _cancelExhaleFailTimer();
       }
 
-      final signed = Thresholds.calculateInhalePercentage(_base, inhaleValue);
+      // (kept same, now basically not needed but no harm)
+      _cancelExhaleFailTimer();
+
+      final signed = Thresholds.calculateInhalePercentage(
+        _base,
+        inhaleValue,
+        breathingSettings.inhale.threshold.toDouble(),
+      );
       final inhaleProgress = signed < 0 ? (-signed) : 0.0;
       final bool startedNow = inhaleProgress >= _armAt;
 
@@ -232,6 +246,20 @@ class BluetoothInhaleCubitNew extends Cubit<BluetoothInhaleCubitNewState> {
     });
   }
 
+  // kept same
+  void _startExhaleFailTimerIfNeeded() {
+    if (_exhaleTimerRunning) return;
+    _exhaleTimerRunning = true;
+
+    _exhaleTimer?.cancel();
+    _exhaleTimer = Timer(const Duration(milliseconds: 700), () {
+      _exhaleTimerRunning = false;
+      if (_disposed || _cancelled || _flowStopped || state.inhaleFinished) return;
+      _finishFail("Exhale detected instead of inhale");
+    });
+  }
+
+  // kept same
   void _cancelExhaleFailTimer() {
     _exhaleTimer?.cancel();
     _exhaleTimer = null;
@@ -278,7 +306,7 @@ class BluetoothInhaleCubitNew extends Cubit<BluetoothInhaleCubitNewState> {
       inhaleFailReason: "",
       inBandSeconds: 0,
       inhaleNeedRunning: false,
-      inhaleNeedTotalMillis: _inhaleNeed.inMilliseconds, // ✅ 3000
+      inhaleNeedTotalMillis: _inhaleNeed.inMilliseconds,
       inhaleNeedStartsAtEpochMs: 0,
       inhaleNeedEndsAtEpochMs: 0,
       holdStarted: false,
@@ -335,7 +363,7 @@ class BluetoothInhaleCubitNew extends Cubit<BluetoothInhaleCubitNewState> {
       final nowMs = DateTime.now().millisecondsSinceEpoch;
       emit(state.copyWith(
         inhaleNeedRunning: true,
-        inhaleNeedTotalMillis: _inhaleNeed.inMilliseconds, // ✅ 3000
+        inhaleNeedTotalMillis: _inhaleNeed.inMilliseconds,
         inhaleNeedStartsAtEpochMs: nowMs,
         inhaleNeedEndsAtEpochMs: 0,
       ));
@@ -370,13 +398,11 @@ class BluetoothInhaleCubitNew extends Cubit<BluetoothInhaleCubitNewState> {
 
       _inhaleNeedAccumulated += now.difference(last);
 
-      // ✅ UI progress can still show 0..3 sec (target), but accept at 2.5 sec
       final seconds = (_inhaleNeedAccumulated.inMilliseconds / 1000.0)
           .clamp(0.0, _inhaleNeed.inMilliseconds / 1000.0);
 
       emit(state.copyWith(inBandSeconds: seconds));
 
-      // ✅ ACCEPT if >= 2.5 sec
       if (_inhaleNeedAccumulated >= _inhaleAccept) {
         _finishInhaleSuccessStartHold();
       }
@@ -421,7 +447,7 @@ class BluetoothInhaleCubitNew extends Cubit<BluetoothInhaleCubitNewState> {
       inhaleFailed: false,
       inhaleFailReason: "",
       inhaleNeedRunning: false,
-      inhaleNeedTotalMillis: _inhaleNeed.inMilliseconds, // ✅ 3000
+      inhaleNeedTotalMillis: _inhaleNeed.inMilliseconds,
       inhaleNeedEndsAtEpochMs: nowMs,
       holdStarted: true,
       holdFinished: false,
@@ -485,7 +511,7 @@ class BluetoothInhaleCubitNew extends Cubit<BluetoothInhaleCubitNewState> {
       inhaleFailed: true,
       inhaleFailReason: reason,
       inhaleNeedRunning: false,
-      inhaleNeedTotalMillis: _inhaleNeed.inMilliseconds, // ✅ 3000
+      inhaleNeedTotalMillis: _inhaleNeed.inMilliseconds,
       inhaleNeedEndsAtEpochMs: (state.inhaleNeedStartsAtEpochMs == 0) ? 0 : nowMs,
       holdStarted: false,
       holdFinished: false,
@@ -529,6 +555,22 @@ class BluetoothInhaleCubitNew extends Cubit<BluetoothInhaleCubitNewState> {
   }
 
   Future<void> cancelTest() async {
+
+    if (_canSaveAbortTime) {
+      await setCancelOrDisconnectFlag();
+    }
+
+    if (repo.isConnected) {
+      try {
+       if(!state.inhaleFailed) repo.sendData("&");
+      } catch (e) {
+        emit(state.copyWith(error: e.toString()));
+      }
+    } else {
+      d("CANCEL: skip '&' (not connected)");
+    }
+
+
     if (_disposed) return;
     if (_cancelled) return;
 
@@ -552,20 +594,7 @@ class BluetoothInhaleCubitNew extends Cubit<BluetoothInhaleCubitNewState> {
     _holdActive = false;
     _holdDone = false;
 
-    if (_canSaveAbortTime) {
-      await setCancelOrDisconnectFlag();
-    }
 
-    if (repo.isConnected) {
-      try {
-        d("CANCEL: SEND '&'");
-        if (!state.startCounterFinished) repo.sendData("&");
-      } catch (e) {
-        emit(state.copyWith(error: e.toString()));
-      }
-    } else {
-      d("CANCEL: skip '&' (not connected)");
-    }
 
     emit(state.copyWith(
       inhaleFinished: true,

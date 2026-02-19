@@ -5,11 +5,12 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:respyr_dietitian/client-dashboard/data/model/client_profile_model.dart';
 import '../../../../bluetooth_device_connectivity/data/model/generating_result_model.dart';
+import '../../../../bluetooth_device_connectivity/presentation/widgets/metabolism_scale.dart';
 import '../../../../dashboard/test_history/score_trend/bloc/score_trend_bloc.dart';
 import '../../../../dashboard/test_history/score_trend/bloc/score_trend_event.dart';
 import '../../../../dashboard/test_history/score_trend/data/repository/score_trend_repository.dart';
 import '../../../../dashboard/test_history/score_trend/presentation/widgets/score_trend_view.dart';
-import '../../../../dietitian_result_screen/presentation/pages/overall_metabolism_score.dart';
+import '../../../../dietitian_result_screen/presentation/pages/overall_metabolism_score.dart' hide MetabolismScale;
 
 class TestResultHistory extends StatefulWidget {
   final GeneratingResultModel? result;
@@ -33,7 +34,7 @@ class _TestResultHistoryState extends State<TestResultHistory> {
         return const Color(0xFFDA5747); // red
       case "fair":
         return const Color(0xFFF8B10F); // yellow
-      case "good":
+      case "Optimal":
         return const Color(0xFF3FAF58); // green
       default:
         return Colors.grey;

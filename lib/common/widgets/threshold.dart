@@ -21,78 +21,18 @@ class Thresholds {
 
 
 
-  static double calculateBlowPercentage1(double baseValue, double blowValue) {
-    // Define the range that represents 100%
-    const double fullRange = 11.7;
-    // Calculate the progress
-    double progress = ((blowValue - baseValue) / fullRange) * 100;
-    // Optional: Prevent negative numbers or values over 100%
-
-    debugPrint("progress :$progress");
-    debugPrint("baseValue :$progress");
-    debugPrint("blowValue :$blowValue");
-
-    return progress;
-  }
-
-
-  // static double calculateBlowPercentage2(double baseValue, double blowValue) {
-  //   // Define the range that represents 100%
-  //   const double fullRange = 12;
-  //   // Calculate the progress
-  //   double progress = ((blowValue - baseValue) / fullRange) * 100;
-  //   // Optional: Prevent negative numbers or values over 100%
-  //
-  //   debugPrint("progress :$progress");
-  //   debugPrint("baseValue :$progress");
-  //   debugPrint("blowValue :$blowValue");
-  //
-  //   return progress;
-  // }
-  //
-  // static double calculateInhalePercentage(
-  //     double baseValue,
-  //     double inhaleValue,
-  //     ) {
-  //   double diff = inhaleValue - baseValue; // negative
-  //
-  //   return (diff / 5) * 100;
-  // }
-
-  static double calculateBlowPercentage2(
-      double baseValue,
-      double blowValue,
-      ) {
-    // 12 raw units = 100% (device calibration)
-    const double fullRange = 12.0;
-
-    double progress = ((blowValue - baseValue) / fullRange) * 100;
-
-    debugPrint("progress : $progress");
-    debugPrint("baseValue : $baseValue");
-    debugPrint("blowValue : $blowValue");
-
-    return progress;
-  }
-
-  static double calculateInhalePercentage(
-      double baseValue,
-      double inhaleValue,
-      ) {
-    // For normal human inhale:
-    // 5 raw units drop = 100% inhale (~3 seconds)
-    double diff = inhaleValue - baseValue; // negative during inhale
-
-    double progress = (diff / 12) * 100;
-
-    debugPrint("inhaleProgress : $progress");
-    debugPrint("baseValue : $baseValue");
-    debugPrint("inhaleValue : $inhaleValue");
-
+  static double calculateBlowPercentage1(double baseValue, double blowValue, double exhaleThreshold) {
+    double diff = blowValue - baseValue;
+    double progress = (diff/exhaleThreshold) * 100;
     return progress;
   }
 
 
 
+  static double calculateInhalePercentage(double baseValue, double inhaleValue, double inhaleThreshold) {
+    double diff = inhaleValue - baseValue;
+    double progress = (diff / inhaleThreshold) * 100;
+    return progress;
+  }
 
 }

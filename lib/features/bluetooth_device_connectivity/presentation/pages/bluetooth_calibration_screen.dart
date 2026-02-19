@@ -18,6 +18,9 @@ import 'package:respyr_dietitian/common/dialogs/disconnection_dialog.dart';
 import 'package:respyr_dietitian/routes/app_routes.dart';
 import '../../../../common/dialogs/exhale_timeout_dialog.dart';
 import '../../../../core/size/get_height.dart';
+import '../../data/datasource/bluetooth_manager.dart';
+import '../../data/model/breath_setting_model.dart';
+import '../../data/services/breathing_config_service.dart';
 
 class BluetoothCalibrationScreen extends StatefulWidget {
   final ClientProfileModel clientProfileModel;
@@ -151,9 +154,11 @@ class _BluetoothCalibrationScreenState
             prev.textError != curr.textError ||
             prev.isDialogShown != curr.isDialogShown ||
             prev.isTimeOver != curr.isTimeOver ||
-            prev.isBluetoothConnected != curr.isBluetoothConnected,
+            prev.isBluetoothConnected != curr.isBluetoothConnected ||
+            prev.startCalibrationTime != curr.startCalibrationTime,
         listener: (context, state) {
           final cubit = context.read<BluetoothCalibrationCubit>();
+
 
           if (state.navigateToInhaleScreen) {
             _postFrame(() {
@@ -165,6 +170,7 @@ class _BluetoothCalibrationScreenState
                   "strategy": widget.dietPlanStrategyModel,
                   "min_range": widget.minRange,
                   "max_range": widget.maxRange,
+                  "breath_settings": state.breathingSettings,
                 },
               );
             });
@@ -183,6 +189,7 @@ class _BluetoothCalibrationScreenState
           }
 
           if (state.isDialogShown || !state.isBluetoothConnected) {
+             UuidBluetoothManager().clearAllConnections();
             _showDisconnectedDialog(cubit);
           }
         },
@@ -231,18 +238,33 @@ class _BluetoothCalibrationScreenState
                       SizedBox(height: rh(context: context, px: 20),),
                       SizedBox(
                         width: double.infinity,
-                        child: Text(
-                          state.remainingSeconds >= 100
-                              ? "Please wait..."
-                              : "Please wait...${state.remainingSeconds}",
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.poppins(
-                            color: const Color(0xFF252525),
-                            fontSize: rh(context: context, px: 25),
-                            fontWeight: FontWeight.w600,
-                            height: 1.10,
-                            letterSpacing:
-                            rh(context: context, px: -1),
+                        child: Visibility(
+                          visible: state.startCalibrationTime,
+                          replacement: Text(
+                            "Please wait...",
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.poppins(
+                              color: const Color(0xFF252525),
+                              fontSize: rh(context: context, px: 25),
+                              fontWeight: FontWeight.w600,
+                              height: 1.10,
+                              letterSpacing:
+                              rh(context: context, px: -1),
+                            ),
+                          ),
+                          child: Text(
+                            state.remainingSeconds >= 100
+                                ? "Please wait..."
+                                : state.remainingSeconds <= 0 ? "Starting..." : "Please wait...${state.remainingSeconds}",
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.poppins(
+                              color: const Color(0xFF252525),
+                              fontSize: rh(context: context, px: 25),
+                              fontWeight: FontWeight.w600,
+                              height: 1.10,
+                              letterSpacing:
+                              rh(context: context, px: -1),
+                            ),
                           ),
                         ),
                       ),

@@ -3,12 +3,14 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/model/breath_setting_model.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/repository/bluetooth_repository.dart';
 import '../../../../client-dashboard/data/model/client_profile_model.dart';
 import '../../../../client-dashboard/data/model/diet_plan_strategy_model.dart';
 import '../../../../common/dialogs/cancel_Test_dialog.dart';
 import '../../../../common/dialogs/disconnection_dialog.dart';
 import '../../../../routes/app_routes.dart';
+import '../../data/datasource/bluetooth_manager.dart';
 import '../../domain/params/generating_result_params.dart';
 import '../../domain/processor/bluetooth_blow_processor.dart';
 import '../cubit/bluetooth_exhale_cubit_new/bluetooth_exhale_cubit.dart';
@@ -23,6 +25,7 @@ class BluetoothNewExhaleScreen extends StatelessWidget {
   final DietPlanStrategyModel dietPlanStrategyModel;
   final double minRange;
   final double maxRange;
+  final BreathingSettings breathingSettings;
 
   const BluetoothNewExhaleScreen({
     super.key,
@@ -31,6 +34,7 @@ class BluetoothNewExhaleScreen extends StatelessWidget {
     required this.dietPlanStrategyModel,
     required this.minRange,
     required this.maxRange,
+     required this.breathingSettings,
   });
 
   @override
@@ -41,13 +45,13 @@ class BluetoothNewExhaleScreen extends StatelessWidget {
       create: (_) => BluetoothExhaleCubit(
         repo: context.read<BluetoothRepository>(),
         processor: BluetoothBlowProcessor(),
-        baseValue: wrappedBase,
+        baseValue: wrappedBase, breathingSettings: breathingSettings,
       ),
       child: _BluetoothNewExhaleScreenView(
         clientProfileModel: clientProfileModel,
         dietPlanStrategyModel: dietPlanStrategyModel,
         minRange: minRange,
-        maxRange: maxRange,
+        maxRange: maxRange, breathingSettings: breathingSettings,
       ),
     );
   }
@@ -58,12 +62,13 @@ class _BluetoothNewExhaleScreenView extends StatefulWidget {
   final DietPlanStrategyModel dietPlanStrategyModel;
   final double minRange;
   final double maxRange;
+  final BreathingSettings breathingSettings;
 
   const _BluetoothNewExhaleScreenView({
     required this.clientProfileModel,
     required this.dietPlanStrategyModel,
     required this.minRange,
-    required this.maxRange,
+    required this.maxRange, required this.breathingSettings,
   });
 
   @override
@@ -126,6 +131,7 @@ class _BluetoothNewExhaleScreenViewState extends State<_BluetoothNewExhaleScreen
         if (state.cancelTest || state.navigateToDashboard) {
           _closeDisconnectDialogIfOpen(context);
 
+
           // if navigating is already requested, do it and return
           if (state.navigateToDashboard) {
             context.go(AppRoutes.clientDashboard, extra: widget.clientProfileModel);
@@ -133,6 +139,7 @@ class _BluetoothNewExhaleScreenViewState extends State<_BluetoothNewExhaleScreen
           return;
         }
         if (!state.isConnected) {
+          UuidBluetoothManager().clearAllConnections();
           _showDisconnectDialog(context);
           return;
         } else {
@@ -165,7 +172,6 @@ class _BluetoothNewExhaleScreenViewState extends State<_BluetoothNewExhaleScreen
           context.go(AppRoutes.clientDashboard, extra: widget.clientProfileModel);
         }
       },
-
       child: BlocBuilder<BluetoothExhaleCubit, BluetoothExhaleState>(
         buildWhen: (p, c) =>
         p.progress != c.progress ||
@@ -209,7 +215,7 @@ class _BluetoothNewExhaleScreenViewState extends State<_BluetoothNewExhaleScreen
               backgroundColor: Colors.white,
               appBar: ExhaleScreenAppBar(context: context,  cancelTestClicked: () {   _onCancel(context, state);  }),
               body: SafeArea(
-                child: NewExhaleScreen2(state: state),
+                child: NewExhaleScreen2(state: state, breathingSettings: widget.breathingSettings,),
               ),
             ),
           );

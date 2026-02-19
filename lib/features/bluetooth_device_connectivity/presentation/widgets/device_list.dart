@@ -11,7 +11,12 @@ class DeviceList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (state.devices.isEmpty && !state.isConnecting) {
+    final respyrDevices = state.devices.where((d) {
+      final name = d.name.trim().toLowerCase();
+      return name.contains("respyr");
+    }).toList();
+
+    if (respyrDevices.isEmpty && !state.isConnecting) {
       return Container(
         height: 111,
         alignment: Alignment.center,
@@ -43,28 +48,29 @@ class DeviceList extends StatelessWidget {
         radius: const Radius.circular(10),
         thickness: 6,
         child: ListView.separated(
-          itemCount: state.devices.length,
+          itemCount: respyrDevices.length,
           shrinkWrap: true,
           separatorBuilder: (_, __) => const SizedBox(height: 10),
           itemBuilder: (_, i) {
-            final d = state.devices[i];
+            final d = respyrDevices[i];
 
             final bool isThisConnecting =
                 state.isConnecting && state.connectingDeviceId == d.id;
 
-            // If you keep connectingDeviceId after connected, this will show "Connected" too.
             final bool isThisConnected =
                 state.isConnected && state.connectingDeviceId == d.id;
 
-            // ✅ block taps while connecting OR already connected
             final bool disableTap = state.isConnecting || state.isConnected;
 
             return InkWell(
               onTap: disableTap
                   ? null
-                  : () => context.read<BluetoothConnectionCubit>().connectById(d.id),
+                  : () => context
+                  .read<BluetoothConnectionCubit>()
+                  .connectById(d.id),
               child: Opacity(
-                opacity: disableTap && !isThisConnecting && !isThisConnected ? 0.55 : 1.0,
+                opacity:
+                disableTap && !isThisConnecting && !isThisConnected ? 0.55 : 1.0,
                 child: Row(
                   children: [
                     const CircleAvatar(
@@ -78,7 +84,7 @@ class DeviceList extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            d.name.isEmpty ? '(no name)' : d.name,
+                            d.name.isEmpty ? '(no name)' : formatRespyrDeviceName(d.name),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: GoogleFonts.poppins(
@@ -106,8 +112,6 @@ class DeviceList extends StatelessWidget {
                         ],
                       ),
                     ),
-
-                    // ✅ right side indicator
                     if (isThisConnecting)
                       const SizedBox(
                         height: 16,
@@ -115,7 +119,8 @@ class DeviceList extends StatelessWidget {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     else if (isThisConnected)
-                      const Icon(Icons.check_circle, size: 18, color: Color(0xFF3FAF58)),
+                      const Icon(Icons.check_circle,
+                          size: 18, color: Color(0xFF3FAF58)),
                   ],
                 ),
               ),
@@ -124,5 +129,20 @@ class DeviceList extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String formatRespyrDeviceName(String? rawName) {
+    if (rawName == null || rawName.trim().isEmpty) {
+      return "RESPYR METABOLISM - BT";
+    }
+
+    final match = RegExp(r'\d+').firstMatch(rawName);
+    final id = match != null ? match.group(0)! : "";
+
+    if (id.isEmpty) {
+      return "RESPYR METABOLISM - BT";
+    }
+
+    return "RESPYR METABOLISM ($id) - BT";
   }
 }

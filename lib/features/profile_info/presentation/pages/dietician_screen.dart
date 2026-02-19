@@ -246,8 +246,14 @@ class _DietitianScreenState extends State<DietitianScreen> {
         ),
         bottomNavigationBar: SafeArea(
           child: ProfileBottomNavigation(
-            onBack: () => Navigator.pop(context),
+            onBack: (){
+
+              print("clicked");
+              context.go(AppRoutes.signInOptions);
+            },
             onNext: (){
+
+
                       FocusScope.of(context).unfocus();
                       _validateAndProceed(context.read<ProfileCubit>().state);
             },

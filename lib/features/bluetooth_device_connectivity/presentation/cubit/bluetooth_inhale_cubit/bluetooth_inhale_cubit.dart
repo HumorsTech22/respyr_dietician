@@ -317,7 +317,7 @@ class BluetoothInhaleCubit extends Cubit<BluetoothInhaleState> {
     if (_baseCaptured && curlyMatch != null && !_blowNowReceived) {
       final inhaleValue = double.parse(curlyMatch.group(1)!);
 
-      final raw = Thresholds.calculateInhalePercentage(_base, inhaleValue);
+      final raw = Thresholds.calculateInhalePercentage(_base, inhaleValue, 6.0);
 
       // keep your original logic
       if (raw > 0) return;

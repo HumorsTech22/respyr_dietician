@@ -98,17 +98,6 @@ class _ConsultantInfoCardState extends State<ConsultantInfoCard> with TickerProv
                       SizedBox(height: 8,),
                       Row(
                         children: [
-                          Text(
-                            "Dietitian",
-                            style: GoogleFonts.poppins(
-                              color: const Color(0xFF535359),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w400,
-                              letterSpacing: -0.24,
-                              height: 1.2,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
                           Container(
                             width: 4,
                             height: 4,
@@ -119,7 +108,7 @@ class _ConsultantInfoCardState extends State<ConsultantInfoCard> with TickerProv
                           ),
                           const SizedBox(width: 10),
                           Text(
-                            widget.dietitianModel.location,
+                            widget.dietitianModel.email,
                             style: GoogleFonts.poppins(
                               color: const Color(0xFF535359),
                               fontSize: 12,

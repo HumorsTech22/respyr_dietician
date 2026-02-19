@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -7,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:http/http.dart' as http;
+import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../../../client_login_manager/client_login_manager.dart';
 import '../../../../common/dialogs/floating_message.dart';
@@ -26,30 +28,60 @@ class SignInOptions extends StatefulWidget {
 }
 
 class _SignInOptionsState extends State<SignInOptions> {
-  // Separate loading states for better UX
   bool _isGoogleLoading = false;
   bool _isAppleLoading = false;
 
-  // Global loading state to disable all buttons during any process
   bool get _isAnyTaskLoading => _isGoogleLoading || _isAppleLoading;
 
   static const _googleButtonColor = Color(0xFF252525);
   static const _emailBorderColor = Color(0xFFC7C6CE);
   static const _titleColor = Color(0xFF252525);
 
+  bool _resetDoneOnce = false;
+
   @override
   void initState() {
     super.initState();
-    // Use post-frame callback to avoid build-phase errors with Bloc
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        context.read<ProfileCubit>().clearProfileData();
-      }
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      context.read<ProfileCubit>().clearProfileData();
+      await _resetAllSessionsOnce();
     });
+  }
+
+  Future<void> _resetAllSessionsOnce() async {
+    if (_resetDoneOnce) return;
+    _resetDoneOnce = true;
+    await _resetAllSessions();
+  }
+
+  Future<void> _resetAllSessions() async {
+    try {
+      await ClientLoginManager().clearClientProfile();
+    } catch (_) {}
+
+    try {
+      await signOutGoogle();
+    } catch (_) {}
+
+    try {
+      final g = GoogleSignIn();
+      await g.signOut();
+      await g.disconnect();
+    } catch (_) {}
+
+    try {
+      if (Platform.isIOS) {
+        const channel = MethodChannel('auth_session_clear');
+        await channel.invokeMethod('clearAppleAuthSession');
+      }
+    } catch (_) {}
   }
 
   Future<void> _handleEmailSignIn() async {
     if (_isAnyTaskLoading) return;
+    await _resetAllSessions();
+    if (!mounted) return;
     context.push(AppRoutes.signInWithEmail);
   }
 
@@ -58,7 +90,8 @@ class _SignInOptionsState extends State<SignInOptions> {
     setState(() => _isGoogleLoading = true);
 
     try {
-      await signOutGoogle();
+      await _resetAllSessions();
+
       final user = await handleGoogleSignIn();
 
       if (!mounted) return;
@@ -103,7 +136,7 @@ class _SignInOptionsState extends State<SignInOptions> {
           );
         }
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
         FloatingMessage.show(
           context,
@@ -121,6 +154,8 @@ class _SignInOptionsState extends State<SignInOptions> {
     setState(() => _isAppleLoading = true);
 
     try {
+      await _resetAllSessions();
+
       final isAvailable = await SignInWithApple.isAvailable();
       if (!isAvailable) {
         if (!mounted) return;
@@ -142,6 +177,8 @@ class _SignInOptionsState extends State<SignInOptions> {
       if (!mounted) return;
 
       final email = credential.email;
+      final id = credential.userIdentifier;
+      print(id);
       final fullName = [
         credential.givenName,
         credential.familyName,
@@ -159,7 +196,9 @@ class _SignInOptionsState extends State<SignInOptions> {
 
       if (response.isNotEmpty && response["status"] == "success") {
         if (response["message"] == "User exists") {
-          final clientProfile = await checkClientProfile(userEmail: response["data"]["email"]);
+          final clientProfile = await checkClientProfile(
+            userEmail: response["data"]["email"],
+          );
 
           if (clientProfile != null && mounted) {
             bool isSaved = await ClientLoginManager().saveClientProfile(clientProfile);
@@ -193,7 +232,7 @@ class _SignInOptionsState extends State<SignInOptions> {
           type: FloatingMessageType.error,
         );
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
         FloatingMessage.show(
           context,
@@ -279,7 +318,7 @@ class _SignInOptionsState extends State<SignInOptions> {
                 ),
               ),
             ),
-            const SizedBox(width: 48), // Balancing the leading icon
+            const SizedBox(width: 48),
           ],
         ),
       ),
@@ -321,7 +360,6 @@ class _SignInOptionsState extends State<SignInOptions> {
                 ),
               ),
               SizedBox(height: rh(context: context, px: 30)),
-
               _buildCustomButton(
                 context: context,
                 text: "Continue with Email",
@@ -330,9 +368,7 @@ class _SignInOptionsState extends State<SignInOptions> {
                 textColor: _titleColor,
                 borderSide: const BorderSide(width: 1, color: _emailBorderColor),
               ),
-
               SizedBox(height: rh(context: context, px: 20)),
-
               _buildCustomButton(
                 context: context,
                 text: "Continue with Google",
@@ -345,41 +381,41 @@ class _SignInOptionsState extends State<SignInOptions> {
                   width: rh(context: context, px: 24),
                 ),
               ),
-
               SizedBox(height: rh(context: context, px: 25)),
-
-              _buildCustomButton(
-                context: context,
-                text: "Continue with Apple",
-                isLoading: _isAppleLoading,
-                onPressed: _isAnyTaskLoading ? null : _handleAppleSignInPressed,
-                backgroundColor: _googleButtonColor,
-                textColor: Colors.white,
-                leading: SvgPicture.asset(
-                  "assets/images/icons/ic_apple1.svg",
-                  colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
-                  width: 26,
+              Visibility(
+                visible: Platform.isIOS,
+                child: _buildCustomButton(
+                  context: context,
+                  text: "Continue with Apple",
+                  isLoading: _isAppleLoading,
+                  onPressed: _isAnyTaskLoading ? null : _handleAppleSignInPressed,
+                  backgroundColor: _googleButtonColor,
+                  textColor: Colors.white,
+                  leading: SvgPicture.asset(
+                    "assets/images/icons/ic_apple1.svg",
+                    colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+                    width: 26,
+                  ),
                 ),
               ),
-
               SizedBox(height: rh(context: context, px: 25)),
               TermsPolicyWidgets().termsPolicyFooter(context),
-
               Spacer(),
-          SizedBox(
-            width: double.infinity,
-            child: Padding(
-              padding: const EdgeInsets.all(16.0), // Padding around the text
-              child: Text(
-                "For lifestyle tracking only.\nNot for medical use or diagnosis.",
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14, // You can adjust the font size
-                  color: Colors.grey[600], // Lighter color for the disclaimer
-                  fontWeight: FontWeight.w400, // You can make it lighter
+              SizedBox(
+                width: double.infinity,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text(
+                    "For lifestyle tracking only.\nNot for medical use or diagnosis.",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
                 ),
               ),
-            ),),
               SizedBox(height: rh(context: context, px: 25)),
             ],
           ),

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:respyr_dietitian/client-dashboard/data/model/client_profile_model.dart';
 import 'package:respyr_dietitian/client-dashboard/data/model/diet_plan_strategy_model.dart';
 import 'package:respyr_dietitian/common/widgets/audio_helper.dart';
+import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/model/breath_setting_model.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/params/exhale_screen_params.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/repository/bluetooth_repository.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_inhale_cubit/bluetooth_inhale_cubit.dart';
@@ -23,13 +24,14 @@ class BluetoothInhaleScreen extends StatelessWidget {
   final DietPlanStrategyModel dietPlanStrategyModel;
   final double minRange;
   final double maxRange;
+  final BreathingSettings breathingSettings;
 
   const BluetoothInhaleScreen({
     super.key,
     required this.clientProfileModel,
     required this.dietPlanStrategyModel,
     required this.minRange,
-    required this.maxRange,
+    required this.maxRange, required this.breathingSettings,
   });
 
   @override
@@ -45,6 +47,7 @@ class BluetoothInhaleScreen extends StatelessWidget {
         dietPlanStrategyModel: dietPlanStrategyModel,
         minRange: minRange,
         maxRange: maxRange,
+        breathingSettings: breathingSettings,
       ),
     );
   }
@@ -56,12 +59,13 @@ class _BluetoothInhaleView extends StatelessWidget {
   final DietPlanStrategyModel dietPlanStrategyModel;
   final double minRange;
   final double maxRange;
+  final BreathingSettings breathingSettings;
 
   const _BluetoothInhaleView({
     required this.clientProfileModel,
     required this.dietPlanStrategyModel,
     required this.minRange,
-    required this.maxRange,
+    required this.maxRange, required this.breathingSettings,
   });
 
   Future<bool> showCancelTestDialogBox(BuildContext context, bool hold) async {
@@ -155,6 +159,7 @@ class _BluetoothInhaleView extends StatelessWidget {
                   dietPlanStrategyModel: dietPlanStrategyModel,
                   minRange: minRange,
                   maxRange: maxRange,
+                  breathingSettings: breathingSettings,
                 ),
               );
             }

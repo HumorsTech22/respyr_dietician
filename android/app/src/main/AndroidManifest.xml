@@ -10,6 +10,7 @@
 
     <!-- Only if you truly need All files access (special approval in Settings) -->
 
+    <uses-permission android:name="android.permission.INTERNET"/>
 
     <!-- Notifications (Android 13+) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -31,12 +32,15 @@
         android:name="android.permission.BLUETOOTH_SCAN"
         android:usesPermissionFlags="neverForLocation" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
-    <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
 
     <!-- USB host capability (mark not strictly required) -->
     <uses-feature
         android:name="android.hardware.usb.host"
         android:required="false" />
+    <uses-feature
+        android:name="android.hardware.bluetooth_le"
+        android:required="true" />
+
 
     <!-- Optional: intents your app can query -->
     <queries>
@@ -52,6 +56,7 @@
         android:name="${applicationName}"
         android:label="Respyr Metabolism"
         android:icon="@mipmap/ic_launcher"
+        android:usesCleartextTraffic="true"
         android:enableOnBackInvokedCallback="true">
 
         <activity
@@ -64,7 +69,6 @@
             android:exported="true"
             android:launchMode="singleTop"
             android:taskAffinity=""
-
             android:theme="@style/LaunchTheme"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"

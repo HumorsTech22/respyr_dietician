@@ -2,7 +2,7 @@ import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/mod
 
 abstract class BluetoothRepository {
   Stream<List<BluetoothDeviceModel>> scan({Duration? timeout});
-  Future<void> stopScan(); // ✅ NEW
+  Future<void> stopScan();
 
   Future<void> connectById(String id);
   Future<void> disconnect();
@@ -16,4 +16,7 @@ abstract class BluetoothRepository {
   Future<String?> getAlreadyConnectedDeviceId();
 
   Future<void> sendData(String data);
+
+  // ✅ NEW: must be called before scanning (Android permissions + iOS readiness)
+  Future<void> ensureScanPrerequisites();
 }

@@ -4,6 +4,19 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
 class UuidBluetoothManager {
+  static final UuidBluetoothManager _instance = UuidBluetoothManager._internal();
+
+  factory UuidBluetoothManager() => _instance;
+
+  UuidBluetoothManager._internal() {
+    _adapterStateSub = FlutterBluePlus.adapterState.listen((state) {
+      if (state == BluetoothAdapterState.off ||
+          state == BluetoothAdapterState.turningOff) {
+        _handleBluetoothOff();
+      }
+    });
+  }
+
   BluetoothDevice? _device;
   BluetoothCharacteristic? _notifyChar;
   BluetoothCharacteristic? _writeChar;
@@ -17,6 +30,10 @@ class UuidBluetoothManager {
   StreamSubscription<List<int>>? _notifySub;
   StreamSubscription<BluetoothAdapterState>? _adapterStateSub;
 
+  Timer? _scanLoopTimer;
+  bool _stopScanRequested = false;
+  DateTime? _lastScanResultAt;
+
   bool _isConnected = false;
 
   final Guid serviceUuid = Guid("6e400001-b5a3-f393-e0a9-e50e24dcca9e");
@@ -29,15 +46,6 @@ class UuidBluetoothManager {
   Stream<bool> get connectionStream => _connCtrl.stream;
   Stream<String> get dataStream => _dataCtrl.stream;
   Stream<bool> get deviceReadyStream => _readyCtrl.stream;
-
-  UuidBluetoothManager() {
-    _adapterStateSub = FlutterBluePlus.adapterState.listen((state) {
-      if (state == BluetoothAdapterState.off ||
-          state == BluetoothAdapterState.turningOff) {
-        _handleBluetoothOff();
-      }
-    });
-  }
 
   void _log(String msg) {
     if (kDebugMode) {
@@ -54,42 +62,77 @@ class UuidBluetoothManager {
     _teardown();
   }
 
-  // ===================== SCAN (Continuous) =====================
-
-  /// Continuous scanning: runs until you call stopScan().
+  // ✅ "100%" reliability: do NOT over-filter on scan.
+  // iOS often doesn't provide platformName/serviceUuids in first advertisements.
   Future<void> startScan({
     void Function(List<ScanResult>)? onResults,
   }) async {
-    final adapterState = await FlutterBluePlus.adapterState.first;
-    if (adapterState != BluetoothAdapterState.on) {
-      _log("startScan blocked: adapterState=$adapterState");
+    _stopScanRequested = false;
+
+    final s = await FlutterBluePlus.adapterState.first;
+    if (s != BluetoothAdapterState.on) {
+      _log("startScan blocked: adapterState=$s");
       return;
     }
 
-    await stopScan(); // ensure single scan session
+    await stopScan();
+    await Future.delayed(const Duration(milliseconds: 250));
 
-    _log("startScan() continuous...");
-    await FlutterBluePlus.startScan(); // ✅ no timeout
+    _lastScanResultAt = null;
+    _log("startScan() with loop");
 
+    // ✅ Attach listener FIRST
     _scanSub = FlutterBluePlus.scanResults.listen((results) {
-      final filtered = results.where((r) {
-        final name = r.device.platformName;
-        final matchesName = name.contains("Respyr");
-        final matchesService =
-        r.advertisementData.serviceUuids.contains(serviceUuid.toString());
-        return matchesName || matchesService;
-      }).toList();
+      _lastScanResultAt = DateTime.now();
 
-      // ✅ Always emit (even empty) so UI stays synced
-      onResults?.call(filtered);
+      // ✅ fail-safe: always forward results (no filtering here)
+      onResults?.call(results);
     }, onError: (e) {
       _log("scanResults error: $e");
     });
+
+    Future<void> startOneShot() async {
+      try {
+        await FlutterBluePlus.stopScan();
+      } catch (_) {}
+
+      try {
+        await FlutterBluePlus.startScan(timeout: const Duration(seconds: 4));
+      } catch (e) {
+        _log("startScan oneShot error: $e");
+      }
+    }
+
+    await startOneShot();
+
+    // ✅ Self-healing: restart scan if no results coming
+    _scanLoopTimer?.cancel();
+    _scanLoopTimer = Timer.periodic(const Duration(seconds: 5), (_) async {
+      if (_stopScanRequested) return;
+
+      final st = await FlutterBluePlus.adapterState.first;
+      if (st != BluetoothAdapterState.on) return;
+
+      final last = _lastScanResultAt;
+      final noResultsRecently = last == null ||
+          DateTime.now().difference(last) > const Duration(seconds: 4);
+
+      if (noResultsRecently) {
+        _log("scanLoop: no results -> restarting scan");
+        await startOneShot();
+      }
+    });
   }
 
-  /// Stops scanning only when you explicitly call it.
   Future<void> stopScan() async {
     _log("stopScan()");
+    _stopScanRequested = true;
+
+    try {
+      _scanLoopTimer?.cancel();
+    } catch (_) {}
+    _scanLoopTimer = null;
+
     try {
       await _scanSub?.cancel();
     } catch (_) {}
@@ -100,14 +143,9 @@ class UuidBluetoothManager {
     } catch (_) {}
   }
 
-  // ===================== CONNECT =====================
-
-  /// Connect to a device by id. If not currently visible, it will keep scanning
-  /// until it appears (no timeout).
   Future<void> connectById(String id) async {
     _log("connectById($id)");
 
-    // if already connected by OS
     final connected = await FlutterBluePlus.connectedDevices;
     final already = connected.where((d) => d.remoteId.str == id).toList();
     if (already.isNotEmpty) {
@@ -115,12 +153,11 @@ class UuidBluetoothManager {
       return connect(already.first);
     }
 
-    // Keep scanning until found
     final found = Completer<void>();
     StreamSubscription<List<ScanResult>>? sub;
 
     await stopScan();
-    await FlutterBluePlus.startScan(); // ✅ continuous
+    await Future.delayed(const Duration(milliseconds: 200));
 
     sub = FlutterBluePlus.scanResults.listen((results) async {
       for (final r in results) {
@@ -129,7 +166,7 @@ class UuidBluetoothManager {
           try {
             await FlutterBluePlus.stopScan();
             await sub?.cancel();
-            await connect(r.device); // ✅ waits until really connected
+            await connect(r.device);
             if (!found.isCompleted) found.complete();
           } catch (e) {
             if (!found.isCompleted) found.completeError(e);
@@ -140,19 +177,21 @@ class UuidBluetoothManager {
     });
 
     try {
-      await found.future; // ✅ no timeout restriction
+      await FlutterBluePlus.startScan(timeout: const Duration(seconds: 6));
+      await found.future;
     } finally {
       await sub?.cancel();
       await stopScan();
     }
   }
 
-  /// Stable connect: returns only when connected + services discovered + notify enabled.
   Future<void> connect(
       BluetoothDevice device, {
         Duration readyTimeout = const Duration(seconds: 12),
       }) async {
     _log("connect(${device.remoteId.str})");
+
+    await stopScan();
 
     if (_device != null && _device!.remoteId != device.remoteId) {
       try {
@@ -194,7 +233,6 @@ class UuidBluetoothManager {
           _teardown();
         }
       } else {
-        // ✅ Ignore transient disconnected while still connecting
         if (!connectedCompleter.isCompleted) return;
         _teardown();
       }
@@ -203,12 +241,10 @@ class UuidBluetoothManager {
     try {
       await device.connect(autoConnect: false);
     } catch (e) {
-      // iOS might throw "already connected"
       final msg = e.toString().toLowerCase();
       if (!msg.contains("already connected")) rethrow;
     }
 
-    // ✅ Wait until really connected + ready
     await connectedCompleter.future.timeout(readyTimeout, onTimeout: () {
       throw TimeoutException("BLE connect timeout");
     });
@@ -224,8 +260,6 @@ class UuidBluetoothManager {
       _teardown();
     }
   }
-
-  // ===================== DISCOVER + NOTIFY =====================
 
   Future<void> _discoverAndSubscribe() async {
     if (_device == null) throw Exception('No device');
@@ -271,8 +305,8 @@ class UuidBluetoothManager {
     if (_device == null || !_isConnected || _writeChar == null) return;
 
     final bytes = data.codeUnits;
-    final withoutResponse =
-        _writeChar!.properties.writeWithoutResponse && !_writeChar!.properties.write;
+    final withoutResponse = _writeChar!.properties.writeWithoutResponse &&
+        !_writeChar!.properties.write;
 
     for (int i = 1; i <= maxRetries; i++) {
       try {
@@ -284,8 +318,6 @@ class UuidBluetoothManager {
       }
     }
   }
-
-  // ===================== TEARDOWN =====================
 
   void _teardownInternalFields() {
     _notifyChar = null;
@@ -306,12 +338,35 @@ class UuidBluetoothManager {
 
   void dispose() {
     _log("dispose()");
-    _adapterStateSub?.cancel();
     stopScan();
-    _teardown();
+  }
 
-    if (!_connCtrl.isClosed) _connCtrl.close();
-    if (!_dataCtrl.isClosed) _dataCtrl.close();
-    if (!_readyCtrl.isClosed) _readyCtrl.close();
+  Future<void> shutdown() async {
+    _log("shutdown()");
+    await stopScan();
+    await disconnect();
+
+    await _adapterStateSub?.cancel();
+    _adapterStateSub = null;
+
+    if (!_connCtrl.isClosed) await _connCtrl.close();
+    if (!_dataCtrl.isClosed) await _dataCtrl.close();
+    if (!_readyCtrl.isClosed) await _readyCtrl.close();
+  }
+
+  Future<bool> getCurrentConnectionState() async {
+    final d = _device;
+    if (d == null) return false;
+
+    final s = await d.connectionState.first;
+    final connected = s == BluetoothConnectionState.connected;
+
+    _isConnected = connected;
+    if (!_connCtrl.isClosed) _connCtrl.add(connected);
+    if (!_readyCtrl.isClosed) {
+      _readyCtrl.add(connected && _notifyChar != null && _writeChar != null);
+    }
+
+    return connected;
   }
 }

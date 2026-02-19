@@ -65,13 +65,10 @@ class EmailOtp extends StatelessWidget {
 
             if (state.profile != null) {
               bool isSaved = await ClientLoginManager().saveClientProfile(state.profile);
-              if (isSaved) {
-                context.go(AppRoutes.clientDashboard, extra: state.profile);
-              } else {
-                FloatingMessage.show(context, message: 'Failed to save client profile.');
-              }
+              context.go(AppRoutes.clientDashboard, extra: state.profile);
+              if(!isSaved) return;
             } else {
-              context.push(
+              context.go(
                 AppRoutes.dietitianScreen,
                 extra: {
                   "enteredEmail": enteredEmail,
@@ -79,6 +76,7 @@ class EmailOtp extends StatelessWidget {
                   "profileName": "NA",
                 },
               );
+
             }
           }
         },

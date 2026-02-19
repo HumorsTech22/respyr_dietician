@@ -7,9 +7,9 @@ class OtpState {
   final bool isVerifying;
   final String? errorText;
   final bool isSuccess;
-  final dynamic profile; // To store result of checkClientProfile
+  final dynamic profile;
 
-  OtpState({
+  const OtpState({
     this.receivedOtp,
     this.enteredOtp,
     this.secondsRemaining = 60,

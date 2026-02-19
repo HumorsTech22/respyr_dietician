@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:respyr_dietitian/routes/app_routes.dart';
+import 'package:respyr_dietitian/core/size/get_height.dart';
 
 import '../../bloc/walkthrough_bloc.dart';
 import '../../bloc/walkthrough_event.dart';
@@ -41,7 +42,8 @@ class _WalkthroughBodyState extends State<_WalkthroughBody> {
     super.dispose();
   }
 
-  Future<void> _handleStateChange(BuildContext context, WalkthroughState state,) async {
+  Future<void> _handleStateChange(
+      BuildContext context, WalkthroughState state) async {
     if (state.isCompleted) {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('has_seen_walkthrough', true);
@@ -55,7 +57,9 @@ class _WalkthroughBodyState extends State<_WalkthroughBody> {
       if (currentPage != state.currentPage) {
         _pageController.animateToPage(
           state.currentPage,
-          duration: const Duration(milliseconds: 450),
+          duration: Duration(
+            milliseconds: rh(context: context, px: 450).round(),
+          ),
           curve: Curves.easeOutCubic,
         );
       }
@@ -79,36 +83,45 @@ class _WalkthroughBodyState extends State<_WalkthroughBody> {
           backgroundColor: Colors.white,
           body: SafeArea(
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 18),
+              padding: EdgeInsets.symmetric(
+                vertical: rh(context: context, px: 18),
+              ),
               child: Column(
                 children: [
                   buildWalkThoughProgressIndicator(state.currentPage),
                   Align(
                     alignment: Alignment.centerRight,
                     child: state.currentPage < totalPages - 1
-                        ? TextButton(
-                      onPressed: () =>
-                          bloc.add(const SkipPressed()), // 👉 will set isCompleted in Bloc
-                      child: Text(
-                        "Skip",
-                        style: GoogleFonts.poppins(
-                          color: const Color(0xFFA1A1A1),
-                          fontSize: 18,
-                          fontWeight: FontWeight.w400,
-                          letterSpacing: -0.36,
+                        ? SizedBox(
+                      height: rh(context: context, px: 60),
+                      child: TextButton(
+                        onPressed: () =>
+                            bloc.add(const SkipPressed()),
+                        child: Text(
+                          "Skip",
+                          style: GoogleFonts.poppins(
+                            color: const Color(0xFF308BF9),
+                            fontSize:
+                            rh(context: context, px: 15),
+                            fontWeight: FontWeight.w600,
+                            letterSpacing:
+                            rh(context: context, px: 0.30),
+                          ),
                         ),
                       ),
                     )
-                        : const SizedBox.shrink(),
+                        : SizedBox(
+                      height: rh(context: context, px: 60),
+                    ),
                   ),
                   Expanded(
                     child: PageView(
                       controller: _pageController,
-                      physics: const NeverScrollableScrollPhysics(),
+                      physics:
+                      const NeverScrollableScrollPhysics(),
                       children: walkThroughContent,
                     ),
                   ),
-                  const SizedBox(height: 100),
                   WalkThroughBottomNav(
                     bloc: bloc,
                     currentPage: state.currentPage,

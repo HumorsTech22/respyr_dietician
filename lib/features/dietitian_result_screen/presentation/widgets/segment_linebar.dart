@@ -1,238 +1,176 @@
-// import 'package:flutter/material.dart';
-// import 'package:syncfusion_flutter_gauges/gauges.dart';
-
-// class SegmentedScoreBar extends StatelessWidget {
-//   final double score; // actual score from 0 to 100
-
-//   const SegmentedScoreBar({super.key, required this.score});
-
-//   double mapScoreToSegment(double score) {
-//     if (score <= 60) {
-//       // map 0-60 => 0-1
-//       return (score / 60) * 1;
-//     } else if (score <= 80) {
-//       // map 61-80 => 1-2
-//       return 1 + ((score - 60) / 20) * 1;
-//     } else {
-//       // map 81-100 => 2-3
-//       return 2 + ((score - 80) / 20) * 1;
-//     }
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     final double mappedValue = mapScoreToSegment(score);
-
-//     return SizedBox(
-//       height: 80,
-//       child: SfLinearGauge(
-//         minimum: 0,
-//         maximum: 3,
-//         interval: 1,
-//         showTicks: false,
-//         showLabels: true,
-//         labelFormatterCallback: (label) {
-//           switch (label) {
-//             case '0':
-//               return '0';
-//             case '1':
-//               return '60';
-//             case '2':
-//               return '80';
-//             case '3':
-//               return '100';
-//             default:
-//               return '';
-//           }
-//         },
-//         axisTrackStyle: const LinearAxisTrackStyle(
-//           thickness: 10,
-//           edgeStyle: LinearEdgeStyle.bothCurve,
-//           color: Colors.transparent,
-//         ),
-//         ranges: const [
-//           LinearGaugeRange(
-//             startValue: 0,
-//             endValue: 1,
-//             color: Colors.red,
-//             startWidth: 10,
-//             endWidth: 10,
-//           ),
-//           LinearGaugeRange(
-//             startValue: 1,
-//             endValue: 2,
-//             color: Colors.orange,
-//             startWidth: 10,
-//             endWidth: 10,
-//           ),
-//           LinearGaugeRange(
-//             startValue: 2,
-//             endValue: 3,
-//             color: Colors.green,
-//             startWidth: 10,
-//             endWidth: 10,
-//           ),
-//         ],
-//         markerPointers: [
-//           LinearShapePointer(
-//             value: mappedValue,
-//             shapeType: LinearShapePointerType.diamond,
-//             color: Colors.black,
-//             height: 20,
-//             width: 8,
-//             position: LinearElementPosition.cross,
-//           ),
-//         ],
-//       ),
-//     );
-//   }
-// }
-
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_gauges/gauges.dart';
 
+enum ScoreZone { optimal, moderate, focus }
+
 class SegmentedScoreBar extends StatelessWidget {
   final double score;
-  final String metabolismSubtype;
+  final bool isRange1;
 
   const SegmentedScoreBar({
     super.key,
     required this.score,
-    required this.metabolismSubtype,
+    required this.isRange1,
   });
 
-  // Detect which type this is
-  bool get isReverseType {
-    final name = metabolismSubtype.toLowerCase();
-    return name.contains('ferment') ||
-        name.contains('glucose') ||
-        name.contains('detox');
-  }
+  ScoreZone get zone {
+    final v = score.clamp(0.0, 100.0);
 
-  double mapScoreToSegment(double score) {
-    if (isReverseType) {
-      // 0–20–60–100 scale
-      if (score <= 20) return (score / 20);
-      if (score <= 60) return 1 + ((score - 20) / 40);
-      return 2 + ((score - 60) / 40);
+    if (isRange1) {
+      if (v >= 80.0) return ScoreZone.optimal;
+      if (v >= 70.0) return ScoreZone.moderate;
+      return ScoreZone.focus;
     } else {
-      // 0–60–80–100 scale
-      if (score <= 60) return (score / 60);
-      if (score <= 80) return 1 + ((score - 60) / 20);
-      return 2 + ((score - 80) / 20);
+      if (v <= 20.0) return ScoreZone.optimal;
+      if (v <= 30.0) return ScoreZone.moderate;
+      return ScoreZone.focus;
     }
   }
 
-  String getScoreLabel() {
-    if (isReverseType) {
-      if (score <= 20) return 'Good';
-      if (score <= 60) return 'Fair';
-      return 'Poor';
-    } else {
-      if (score <= 60) return 'Poor';
-      if (score <= 80) return 'Fair';
-      return 'Good';
+  static String zoneText(ScoreZone z) {
+    switch (z) {
+      case ScoreZone.optimal:
+        return "Optimal";
+      case ScoreZone.moderate:
+        return "Moderate";
+      case ScoreZone.focus:
+        return "Focus";
     }
   }
 
-  Color getRangeColor(double start, double end) {
-    if (isReverseType) {
-      // Reverse types: green → orange → red
-      if (score <= 20) return Colors.green;
-      if (score <= 60) return Colors.orange;
-      return Colors.red;
+  static Color zoneColor(ScoreZone z) {
+    switch (z) {
+      case ScoreZone.optimal:
+        return const Color(0xFF3FAF58);
+      case ScoreZone.moderate:
+        return const Color(0xFFFFBF2D);
+      case ScoreZone.focus:
+        return const Color(0xFFE48326);
+    }
+  }
+
+  double mapScoreToSegment(double s) {
+    final v = s.clamp(0.0, 100.0);
+
+    if (isRange1) {
+      // Visual scale: 0–70–80–100
+      if (v < 70.0) return v / 70.0; // 0..1
+      if (v < 80.0) return 1.0 + ((v - 70.0) / 10.0); // 1..2
+      return 2.0 + ((v - 80.0) / 20.0); // 2..3
     } else {
-      // Normal types: red → orange → green
-      if (score <= 60) return Colors.red;
-      if (score <= 80) return Colors.orange;
-      return Colors.green;
+      // Visual scale: 0–20–30–100
+      if (v <= 20.0) return v / 20.0; // 0..1
+      if (v <= 30.0) return 1.0 + ((v - 20.0) / 10.0); // 1..2
+      return 2.0 + ((v - 30.0) / 70.0); // 2..3
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    print("lineScore: $score");
-    print("linemetabolismSubtype: $metabolismSubtype");
-    final double mappedValue = mapScoreToSegment(score).clamp(0, 3);
+    final mappedValue = mapScoreToSegment(score).clamp(0.0, 3.0);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          height: 70,
-          child: SfLinearGauge(
-            minimum: 0,
-            maximum: 3,
-            interval: 1,
-            showTicks: false,
-            showLabels: true,
-            labelFormatterCallback: (label) {
-              if (isReverseType) {
-                switch (label) {
-                  case '0':
-                    return '0';
-                  case '1':
-                    return '20';
-                  case '2':
-                    return '60';
-                  case '3':
-                    return '100';
-                }
-              } else {
-                switch (label) {
-                  case '0':
-                    return '0';
-                  case '1':
-                    return '60';
-                  case '2':
-                    return '80';
-                  case '3':
-                    return '100';
-                }
-              }
-              return '';
-            },
-            axisTrackStyle: const LinearAxisTrackStyle(
-              thickness: 2.5,
-              edgeStyle: LinearEdgeStyle.bothCurve,
-              color: Colors.transparent,
-            ),
-            ranges: [
-              LinearGaugeRange(
-                startValue: 0,
-                endValue: 1,
-                color: isReverseType ? Colors.green : Colors.red,
-                startWidth: 10,
-                endWidth: 10,
-              ),
-              LinearGaugeRange(
-                startValue: 1,
-                endValue: 2,
-                color: Colors.orange,
-                startWidth: 10,
-                endWidth: 10,
-              ),
-              LinearGaugeRange(
-                startValue: 2,
-                endValue: 3,
-                color: isReverseType ? Colors.red : Colors.green,
-                startWidth: 10,
-                endWidth: 10,
-              ),
-            ],
-            markerPointers: [
-              LinearShapePointer(
-                value: mappedValue,
-                shapeType: LinearShapePointerType.diamond,
-                color: Colors.black,
-                height: 20,
-                width: 8,
-                position: LinearElementPosition.cross,
-              ),
-            ],
-          ),
+    return SizedBox(
+      height: 70,
+      child: SfLinearGauge(
+        minimum: 0,
+        maximum: 3,
+        interval: 1,
+        showTicks: false,
+        showLabels: true,
+        labelFormatterCallback: (label) {
+          if (isRange1) {
+            // 0–70–80–100
+            switch (label) {
+              case '0':
+                return '0';
+              case '1':
+                return '70';
+              case '2':
+                return '80';
+              case '3':
+                return '100';
+              default:
+                return '';
+            }
+          } else {
+            // 0–20–30–100
+            switch (label) {
+              case '0':
+                return '0';
+              case '1':
+                return '20';
+              case '2':
+                return '30';
+              case '3':
+                return '100';
+              default:
+                return '';
+            }
+          }
+        },
+        axisTrackStyle: const LinearAxisTrackStyle(
+          thickness: 2.5,
+          edgeStyle: LinearEdgeStyle.bothCurve,
+          color: Colors.transparent,
         ),
-      ],
+        ranges: isRange1
+            ? const [
+          LinearGaugeRange(
+            startValue: 0,
+            endValue: 1,
+            color: Color(0xFFE48326), // Focus
+            startWidth: 10,
+            endWidth: 10,
+          ),
+          LinearGaugeRange(
+            startValue: 1,
+            endValue: 2,
+            color: Color(0xFFFFBF2D), // Moderate
+            startWidth: 10,
+            endWidth: 10,
+          ),
+          LinearGaugeRange(
+            startValue: 2,
+            endValue: 3,
+            color: Color(0xFF3FAF58), // Optimal
+            startWidth: 10,
+            endWidth: 10,
+          ),
+        ]
+            : const [
+          LinearGaugeRange(
+            startValue: 0,
+            endValue: 1,
+            color: Color(0xFF3FAF58), // Optimal
+            startWidth: 10,
+            endWidth: 10,
+          ),
+          LinearGaugeRange(
+            startValue: 1,
+            endValue: 2,
+            color: Color(0xFFFFBF2D), // Moderate
+            startWidth: 10,
+            endWidth: 10,
+          ),
+          LinearGaugeRange(
+            startValue: 2,
+            endValue: 3,
+            color: Color(0xFFE48326), // Focus
+            startWidth: 10,
+            endWidth: 10,
+          ),
+        ],
+        markerPointers: [
+          LinearShapePointer(
+            value: mappedValue,
+            shapeType: LinearShapePointerType.diamond,
+            color: Colors.black,
+            height: 20,
+            width: 8,
+            position: LinearElementPosition.cross,
+          ),
+        ],
+      ),
     );
   }
 }

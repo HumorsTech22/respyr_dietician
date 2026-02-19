@@ -149,10 +149,10 @@ class MetabolismTabCard extends StatelessWidget {
               ),
             ],
           ),
-          SegmentedScoreBar(
-            score: score.toDouble(),
-            metabolismSubtype: metabolismSubtype,
-          ),
+          // SegmentedScoreBar(
+          //   score: score.toDouble(),
+          //   metabolismSubtype: metabolismSubtype,
+          // ),
           const SizedBox(height: 10),
           Text(
             'Score Meaning',

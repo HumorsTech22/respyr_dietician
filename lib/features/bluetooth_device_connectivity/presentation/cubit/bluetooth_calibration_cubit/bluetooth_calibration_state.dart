@@ -1,5 +1,7 @@
 import 'package:equatable/equatable.dart';
 
+import '../../../data/model/breath_setting_model.dart' show BreathingSettings;
+
 class BluetoothCalibrationState extends Equatable {
   final String? textError;
   final bool hasInternet;
@@ -11,11 +13,12 @@ class BluetoothCalibrationState extends Equatable {
   final bool waitForInhaleCmd;
   final bool showPleaseWaitMessage;
   final bool allSignalSent;
+  final bool startCalibrationTime;
 
-  // ✅ NEW: screen timer fields
   final bool isTimeStarted;
   final int remainingSeconds;
   final bool isTimeOver;
+  final BreathingSettings breathingSettings;
 
   const BluetoothCalibrationState({
     this.textError,
@@ -28,12 +31,18 @@ class BluetoothCalibrationState extends Equatable {
     this.waitForInhaleCmd = false,
     this.showPleaseWaitMessage = false,
     this.allSignalSent = false,
-
-    // ✅ NEW defaults
     this.isTimeStarted = false,
     this.remainingSeconds = 100,
     this.isTimeOver = false,
+    required this.breathingSettings,
+    this.startCalibrationTime=false,
   });
+
+  factory BluetoothCalibrationState.initial() {
+    return BluetoothCalibrationState(
+      breathingSettings: BreathingSettings.defaults(),
+    );
+  }
 
   BluetoothCalibrationState copyWith({
     String? textError,
@@ -46,28 +55,31 @@ class BluetoothCalibrationState extends Equatable {
     bool? waitForInhaleCmd,
     bool? showPleaseWaitMessage,
     bool? allSignalSent,
-
-    // ✅ NEW
     bool? isTimeStarted,
     int? remainingSeconds,
     bool? isTimeOver,
+    BreathingSettings? breathingSettings,
+    bool? startCalibrationTime,
   }) {
     return BluetoothCalibrationState(
       textError: textError ?? this.textError,
       hasInternet: hasInternet ?? this.hasInternet,
-      isBluetoothConnected: isBluetoothConnected ?? this.isBluetoothConnected,
+      isBluetoothConnected:
+      isBluetoothConnected ?? this.isBluetoothConnected,
       isDialogShown: isDialogShown ?? this.isDialogShown,
-      navigateToInhaleScreen: navigateToInhaleScreen ?? this.navigateToInhaleScreen,
+      navigateToInhaleScreen:
+      navigateToInhaleScreen ?? this.navigateToInhaleScreen,
       isMuted: isMuted ?? this.isMuted,
       completedSteps: completedSteps ?? this.completedSteps,
       waitForInhaleCmd: waitForInhaleCmd ?? this.waitForInhaleCmd,
-      showPleaseWaitMessage: showPleaseWaitMessage ?? this.showPleaseWaitMessage,
+      showPleaseWaitMessage:
+      showPleaseWaitMessage ?? this.showPleaseWaitMessage,
       allSignalSent: allSignalSent ?? this.allSignalSent,
-
-      // ✅ NEW
       isTimeStarted: isTimeStarted ?? this.isTimeStarted,
       remainingSeconds: remainingSeconds ?? this.remainingSeconds,
       isTimeOver: isTimeOver ?? this.isTimeOver,
+      breathingSettings: breathingSettings ?? this.breathingSettings,
+      startCalibrationTime: startCalibrationTime ?? this.startCalibrationTime,
     );
   }
 
@@ -83,10 +95,10 @@ class BluetoothCalibrationState extends Equatable {
     waitForInhaleCmd,
     showPleaseWaitMessage,
     allSignalSent,
-
-    // ✅ NEW
     isTimeStarted,
     remainingSeconds,
     isTimeOver,
+    breathingSettings,
+    startCalibrationTime,
   ];
 }

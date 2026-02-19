@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:http/http.dart';
 
 import '../../../../common/widgets/assets_video_play.dart';
 import '../../../../core/size/get_height.dart';
@@ -33,36 +32,36 @@ class DeviceSection extends StatelessWidget {
     return Column(
       children: [
         SizedBox(height: rh(context: context, px: 82)),
-
         Padding(
           padding: EdgeInsets.all(rh(context: context, px: 8)),
-          child: _buildTopVisualSmooth(),
+          child: _buildTopVisualSmooth(state),
         ),
-
         if (!isConnected) _buildContent(context),
-
         if (isConnected) ...[
           SizedBox(height: rh(context: context, px: 20)),
           if (validDeviceId)
             _buildDeviceInfo(context)
           else
-           Row(
-             mainAxisAlignment: MainAxisAlignment.center,
-             spacing: 10,
-             children: [
-              if(state.deviceReady)...[ SvgPicture.asset("assets/images/device_connection/device_id.svg")],
-               Text(
-                 state.deviceReady ? "Device is ready" :"getting your device ready...",
-                 style: GoogleFonts.poppins(
-                   color: const Color(0xFF535359),
-                   fontSize: rh(context: context, px: 12),
-                   fontWeight: FontWeight.w400,
-                   height: 1.10,
-                   letterSpacing: -0.24,
-                 ),
-               ),
-             ],
-           ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (state.deviceReady)
+                  SvgPicture.asset("assets/images/device_connection/device_id.svg"),
+                if (state.deviceReady) const SizedBox(width: 10),
+                Text(
+                  state.deviceReady
+                      ? "Device is ready"
+                      : "getting your device ready...",
+                  style: GoogleFonts.poppins(
+                    color: const Color(0xFF535359),
+                    fontSize: rh(context: context, px: 12),
+                    fontWeight: FontWeight.w400,
+                    height: 1.10,
+                    letterSpacing: -0.24,
+                  ),
+                ),
+              ],
+            ),
           SizedBox(height: rh(context: context, px: 30)),
           Text(
             "Device Connected",
@@ -73,13 +72,10 @@ class DeviceSection extends StatelessWidget {
             ),
           ),
         ],
-
         if (!isConnected) ...[
           SizedBox(height: rh(context: context, px: 20)),
           Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: rh(context: context, px: 20),
-            ),
+            padding: EdgeInsets.symmetric(horizontal: rh(context: context, px: 20)),
             child: DeviceList(state: state),
           ),
         ],
@@ -87,8 +83,8 @@ class DeviceSection extends StatelessWidget {
     );
   }
 
-  Widget _buildTopVisualSmooth() {
-    final child = _buildTopVisualWithThumbnailFallback();
+  Widget _buildTopVisualSmooth(BluetoothConnectionState state) {
+    final child = _buildTopVisualWithThumbnailFallback(state);
 
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 300),
@@ -97,23 +93,23 @@ class DeviceSection extends StatelessWidget {
       transitionBuilder: (child, animation) =>
           FadeTransition(opacity: animation, child: child),
       child: SizedBox(
-        key: ValueKey<String>(_topVisualKey()),
+        key: ValueKey<String>(_topVisualKey(state)),
         width: double.infinity,
         child: child,
       ),
     );
   }
 
-  String _topVisualKey() {
-    if (isConnected) return "connected";
-    if (isScanning) return "scanning";
+  String _topVisualKey(BluetoothConnectionState state) {
+    if (state.isConnected) return "connected";
+    if (state.isScanning) return "scanning";
     return "not_connected";
   }
 
-  Widget _buildTopVisualWithThumbnailFallback() {
+  Widget _buildTopVisualWithThumbnailFallback(BluetoothConnectionState state) {
     const thumb = "assets/images/device_connection/new_device_not_connected.png";
 
-    if (isConnected) {
+    if (state.isConnected) {
       return Image.asset(
         "assets/images/device_connection/new_device_connected.png",
         fit: BoxFit.contain,
@@ -138,8 +134,7 @@ class DeviceSection extends StatelessWidget {
       children: const [
         Image(image: AssetImage(thumb), fit: BoxFit.contain),
         AssetVideoWidget(
-          videoPath:
-          'assets/images/device_connection/device_not_connected_video.mp4',
+          videoPath: 'assets/images/device_connection/device_not_connected_video.mp4',
           thumbnailPath: thumb,
         ),
       ],
@@ -164,8 +159,7 @@ class DeviceSection extends StatelessWidget {
       return _buildNoDevice(context);
     }
 
-
-    if(state.isConnecting){
+    if (state.isConnecting) {
       return Text(
         'Connecting...',
         style: GoogleFonts.poppins(
@@ -175,6 +169,7 @@ class DeviceSection extends StatelessWidget {
         ),
       );
     }
+
     return _buildDeviceList(context);
   }
 
@@ -246,8 +241,7 @@ class DeviceSection extends StatelessWidget {
 
   Widget _retryButton(BuildContext context) {
     return InkWell(
-      onTap: () =>
-          context.read<BluetoothConnectionCubit>().startScan(),
+      onTap: () => context.read<BluetoothConnectionCubit>().startScan(),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [

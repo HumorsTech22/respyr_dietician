@@ -8,6 +8,9 @@ class LatestTestService {
     required String profileId,
     required String date, // YYYY-MM-DD
   }) async {
+
+    print(date);
+
     final res = await http.post(
       Uri.parse("https://humorstech.com/dietitian/api/app/get_scores_data_by_date.php"),
       headers: {"Content-Type": "application/json"},

@@ -1,16 +1,16 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-
-
+import 'package:permission_handler/permission_handler.dart';
 
 // Model Imports
 import 'package:respyr_dietitian/client-dashboard/data/model/client_profile_model.dart';
 import 'package:respyr_dietitian/client-dashboard/data/model/diet_plan_strategy_model.dart';
-import 'package:respyr_dietitian/features/retake_test/presentation/screens/retake_test_screen.dart';
+import 'package:respyr_dietitian/core/size/get_height.dart';
 import '../../../../../client-dashboard/data/model/dietitian_model.dart';
 
 // Bloc Imports
@@ -19,17 +19,11 @@ import '../../../../../client-dashboard/today_result/today_test_data_state.dart'
 import '../../../../../client-dashboard/today_result/today_test_data_event.dart';
 import '../../../../../client-dashboard/today_result/today_test_data_repository.dart';
 import '../../../../../client-dashboard/today_result/today_test_data_api_service.dart';
-
-import '../../../../../rular_arc_progress.dart';
-import '../../../../../test.dart';
-import '../../../../bluetooth_device_connectivity/domain/params/exhale_screen_params.dart';
-import '../../../../bluetooth_device_connectivity/domain/params/generating_result_params.dart';
+import '../../../../bluetooth_device_connectivity/data/datasource/bluetooth_manager.dart';
 import '../../../menu/presentation/screens/menu.dart';
 import '../../bloc/latest_test_bloc.dart';
 import '../../bloc/latest_test_event.dart';
 import '../../bloc/latest_test_state.dart';
-
-// Utility & Widget Imports
 import '../../../../../common/dialogs/abort_sheet_dialog.dart';
 import '../../../../../common/dialogs/floating_message.dart';
 import '../../../../../common/widgets/abort_device_manager.dart';
@@ -44,8 +38,6 @@ import '../../core/color_manager.dart';
 import '../../data/models/latest_test_data.dart';
 import '../../data/repository/latest_test_repository.dart';
 import '../../data/services/latest_test_service.dart';
-
-import '../../qua_profile/presentation/screens/qua_profile.dart';
 import '../widgets/dietitian_info.dart';
 import '../widgets/hero_calender_widget.dart';
 import '../widgets/score_chart.dart';
@@ -83,14 +75,35 @@ class _QuaDashboardState extends State<QuaDashboard> with WidgetsBindingObserver
 
     _initializeBlocs();
     _refreshData();
-    FirebaseMessaging messaging = FirebaseMessaging.instance;
 
+    Future.microtask(() async {
+      await _requestRuntimePermissions();
+      await _warmUpFcmToken();
+    });
   }
 
+  Future<void> _requestRuntimePermissions() async {
+    try {
+      await [
+        Permission.notification,
+        Permission.bluetoothScan,
+        Permission.bluetoothConnect,
+        Permission.locationWhenInUse,
+      ].request();
+    } catch (_) {}
+  }
+
+  Future<void> _warmUpFcmToken() async {
+    try {
+      await FirebaseMessaging.instance.getToken();
+    } catch (_) {}
+  }
 
   void _initializeBlocs() {
-    _latestTestBloc = LatestTestBloc(repo: LatestTestRepository(LatestTestService()));
-    _todayTestDataBloc = TodayTestDataBloc(TodayTestDataRepository(TodayTestDataApiService()));
+    _latestTestBloc =
+        LatestTestBloc(repo: LatestTestRepository(LatestTestService()));
+    _todayTestDataBloc =
+        TodayTestDataBloc(TodayTestDataRepository(TodayTestDataApiService()));
   }
 
   void _refreshData() {
@@ -129,35 +142,8 @@ class _QuaDashboardState extends State<QuaDashboard> with WidgetsBindingObserver
   }
 
   Future<void> _handleStartTest(TestDataState state) async {
-
-
-
-
-
-    //
-    // context.push(
-    //   AppRoutes.bluetoothInhaleScreen,
-    //   extra: ExhaleScreenParams(
-    //     clientProfileModel: widget.clientProfile,
-    //     baseValue: "/913.3/",
-    //     dietPlanStrategyModel: _generateMockStrategy(),
-    //     minRange: widget.currentMinRange,
-    //     maxRange: widget.currentMaxRange,
-    //   ),
-    // );
-
-    // context.push(
-    //   AppRoutes.bluetoothExhaleScreen,
-    //   extra: ExhaleScreenParams(
-    //     clientProfileModel: widget.clientProfile,
-    //     baseValue: "/913/",
-    //     dietPlanStrategyModel: _generateMockStrategy(),
-    //     minRange: widget.currentMinRange,
-    //     maxRange: widget.currentMinRange,
-    //   ),
-    // );
-
-
+    await _requestRuntimePermissions();
+    if (!mounted) return;
 
     final isAborted = await AbortDeviceManager.getAbortStatus();
     if (!mounted) return;
@@ -165,81 +151,46 @@ class _QuaDashboardState extends State<QuaDashboard> with WidgetsBindingObserver
     if (isAborted) {
       CheckAbortSheet.show(
         context: context,
-        onTakeTextClick: (){_navigateToBluetooth(state);},
+        onTakeTextClick: () {
+          _navigateToBluetooth(state);
+        },
       );
     } else {
       _navigateToBluetooth(state);
     }
-
-
-    // final dummyParams = GeneratingResultParams(
-    //   maxPressure: 120.0,
-    //   bestPressure: 95.0,
-    //   blowDuration: 6, // seconds
-    //   blowValuesList: [20, 35, 50, 70, 90, 95],
-    //
-    //   clientProfileModel: widget.clientProfile,
-    //
-    //   dietPlanStrategyModel: _generateMockStrategy(),
-    //
-    //   minRange: 60,
-    //   maxRange: 110,
-    // );
-    //
-    //
-    // await context.push(
-    //   AppRoutes.bluetoothGeneratingResultScreen,
-    //   extra:  dummyParams,
-    // );
-
-
-    // await context.push(
-    //   AppRoutes.bluetoothCalibrationScreen,
-    //   extra: {
-    //     "client": widget.clientProfile,
-    //     "strategy": _generateMockStrategy(),
-    //     "min_range": widget.currentMinRange,
-    //     "max_range": widget.currentMaxRange,
-    //   },
-    // );
-
-
-
-    // await context.push(
-    //   AppRoutes.bluetoothInhaleScreen,
-    //   extra: {
-    //     "client": widget.clientProfile,
-    //     "strategy": _generateMockStrategy(),
-    //     "min_range": widget.currentMinRange,
-    //     "max_range": widget.currentMaxRange,
-    //   },
-    // );
   }
 
   Future<void> _navigateToBluetooth(TestDataState state) async {
+    await _requestRuntimePermissions();
+    if (!mounted) return;
 
+    final connected = FlutterBluePlus.connectedDevices;
 
-    if(state.result==null){
-      await context.push(
+    if (connected.isEmpty) {
+      context.push(
+        AppRoutes.bluetoothDeviceStartTest,
+        extra: {
+          "client": widget.clientProfile,
+          "strategy": _generateMockStrategy(),
+          "min_range": widget.currentMinRange,
+          "max_range": widget.currentMaxRange,
+          "is_test_taken": state.result != null,
+        },
+      );
+    } else {
+      context.push(
         AppRoutes.bluetoothDeviceConnectivity,
         extra: {
           "client": widget.clientProfile,
           "strategy": _generateMockStrategy(),
           "min_range": widget.currentMinRange,
           "max_range": widget.currentMaxRange,
-        },
-      );
-    }else{
-      context.go(
-        AppRoutes.retakeTestScreen,
-        extra: {
-          "client": widget.clientProfile,
-          "strategy": _generateMockStrategy(),
-          "min_range": widget.currentMinRange,
-          "max_range": widget.currentMaxRange,
+          "is_test_taken": state.result != null,
         },
       );
     }
+
+    if (!mounted) return;
     _refreshData();
   }
 
@@ -250,52 +201,109 @@ class _QuaDashboardState extends State<QuaDashboard> with WidgetsBindingObserver
         BlocProvider.value(value: _latestTestBloc),
         BlocProvider.value(value: _todayTestDataBloc),
       ],
-      child: BlocBuilder<LatestTestBloc, LatestTestState>(
-        builder: (context, state) {
-          if (state is LatestTestLoading) return const LoadingScreen();
-
-          final LatestTestData? testData =
-          state is LatestTestLoaded ? state.data : null;
-
-          final bool hasData = testData != null;
-
-          final String? zone =
-              testData?.testJsonData?.fatLossMetabolismScore?.zone;
-
-          final Color themeColor = (hasData && zone != null)
-              ? ColorManager.getZoneColor(zone: zone)
-              : const Color(0xFFA5A9AF);
-
-          return Scaffold(
-            backgroundColor: Colors.white,
-            appBar: AppBar(
-              backgroundColor: themeColor,
-              toolbarHeight: 0,
-            ),
-            body: SafeArea(
-              child: Stack(
-                children: [
-                  _buildScrollableContent(context, hasData, testData, themeColor),
-                  _buildSwipeActionOverlay(),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
+      child: const _QuaDashboardBody(),
     );
   }
+}
 
+class _QuaDashboardBody extends StatelessWidget {
+  const _QuaDashboardBody();
 
+  @override
+  Widget build(BuildContext context) {
+    final stateful = context.findAncestorStateOfType<_QuaDashboardState>()!;
+    final widgetRef = stateful.widget;
 
-  Widget _buildScrollableContent(
-      BuildContext context,
-      bool hasData,
-      LatestTestData? data,
-      Color themeColor,
-      ) {
-    final double minRange = data?.minRange ?? widget.currentMinRange;
-    final double maxRange = data?.maxRange ?? widget.currentMaxRange;
+    return BlocBuilder<LatestTestBloc, LatestTestState>(
+      buildWhen: (prev, curr) =>
+      prev.runtimeType != curr.runtimeType || curr is LatestTestLoaded,
+      builder: (context, state) {
+        if (state is LatestTestLoading) return const LoadingScreen();
+
+        final LatestTestData? testData =
+        state is LatestTestLoaded ? state.data : null;
+        final bool hasData = testData != null;
+
+        final String? zone = testData?.testJsonData?.fatLossMetabolismScore?.zone;
+
+        final Color themeColor = (hasData && zone != null)
+            ? ColorManager.getZoneColor(zone: zone)
+            : const Color(0xFFA5A9AF);
+
+        return Scaffold(
+          backgroundColor: Colors.white,
+          appBar: AppBar(
+            backgroundColor: themeColor,
+            toolbarHeight: 0,
+          ),
+          body: SafeArea(
+            child: Stack(
+              children: [
+                _ScrollableContent(
+                  hasData: hasData,
+                  data: testData,
+                  themeColor: themeColor,
+                  clientProfile: widgetRef.clientProfile,
+                  dietitianDetailModel: widgetRef.dietitianDetailModel,
+                  currentMinRange: widgetRef.currentMinRange,
+                  currentMaxRange: widgetRef.currentMaxRange,
+                  selectedDate: stateful._selectedDate,
+                  dateList: stateful._dateList,
+                  onDateSelected: (date) {
+                    stateful.setState(() => stateful._selectedDate = date);
+                    stateful._refreshData();
+                  },
+                  navigateToDetailedResult: (testId) =>
+                      stateful._navigateToDetailedResult(testId),
+                ),
+                _SwipeActionOverlay(
+                  clientProfile: widgetRef.clientProfile,
+                  onSwiped: (testState) => stateful._handleStartTest(testState),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ScrollableContent extends StatelessWidget {
+  final bool hasData;
+  final LatestTestData? data;
+  final Color themeColor;
+
+  final ClientProfileModel clientProfile;
+  final DietitianDetailModel? dietitianDetailModel;
+
+  final double currentMinRange;
+  final double currentMaxRange;
+
+  final DateTime selectedDate;
+  final List<DateTime> dateList;
+
+  final ValueChanged<DateTime> onDateSelected;
+  final Future<void> Function(String testId) navigateToDetailedResult;
+
+  const _ScrollableContent({
+    required this.hasData,
+    required this.data,
+    required this.themeColor,
+    required this.clientProfile,
+    required this.dietitianDetailModel,
+    required this.currentMinRange,
+    required this.currentMaxRange,
+    required this.selectedDate,
+    required this.dateList,
+    required this.onDateSelected,
+    required this.navigateToDetailedResult,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final double minRange = data?.minRange ?? currentMinRange;
+    final double maxRange = data?.maxRange ?? currentMaxRange;
 
     final double latestScore =
         data?.testJsonData?.fatLossMetabolismScore?.score.toDouble() ?? 0.0;
@@ -303,39 +311,76 @@ class _QuaDashboardState extends State<QuaDashboard> with WidgetsBindingObserver
     return SingleChildScrollView(
       child: Column(
         children: [
-          _buildGradientHeader(themeColor, hasData, data),
-          const SizedBox(height: 30),
-
-          if (hasData && data != null) _buildViewResultAction(data),
-
-          const SizedBox(height: 40),
-
-          _buildScoreChartSection(latestScore, minRange, maxRange),
-
-          const SizedBox(height: 24),
-          DietitianInfo(dietitianDetailModel: widget.dietitianDetailModel),
-          const SizedBox(height: 120),
-
-
-          // ElevatedButton(
-          //   onPressed: (){
-          //     Navigator.push(
-          //       context,
-          //       MaterialPageRoute(
-          //         builder: (_) => Test(),
-          //       ),
-          //     );
-          //   },
-          //   child: Text("Button",
-          //
-          //   ),
-          // )
+          _GradientHeader(
+            color: themeColor,
+            hasData: hasData,
+            data: data,
+            clientProfile: clientProfile,
+            selectedDate: selectedDate,
+            dateList: dateList,
+            onDateSelected: onDateSelected,
+          ),
+          SizedBox(height: rh(context: context, px: 30)),
+          if (hasData && data != null)
+            TextButton(
+              onPressed: () {
+                navigateToDetailedResult(data!.testId);
+              },
+              child: Text(
+                "View Result",
+                style: GoogleFonts.poppins(
+                  color: const Color(0xFF308BF9),
+                  fontSize: rh(context: context, px: 15),
+                  fontWeight: FontWeight.w700,
+                  height: 1.10,
+                  letterSpacing: 0.30,
+                ),
+              ),
+            ),
+          SizedBox(height: rh(context: context, px: 40)),
+          ScoreChart(
+            clientProfileModel: clientProfile,
+            latestScore: latestScore,
+            latestScoreMinRange: minRange,
+            latestScoreMaxRange: maxRange,
+          ),
+          SizedBox(height: rh(context: context, px: 24)),
+          DietitianInfo(dietitianDetailModel: dietitianDetailModel),
+          ElevatedButton(
+            onPressed: () {
+              context.push(AppRoutes.practiceFlowShell);
+            },
+            child: const Text("start practice"),
+          ),
+          SizedBox(height: rh(context: context, px: 120)),
         ],
       ),
     );
   }
+}
 
-  Widget _buildGradientHeader(Color color, bool hasData, LatestTestData? data) {
+class _GradientHeader extends StatelessWidget {
+  final Color color;
+  final bool hasData;
+  final LatestTestData? data;
+
+  final ClientProfileModel clientProfile;
+  final DateTime selectedDate;
+  final List<DateTime> dateList;
+  final ValueChanged<DateTime> onDateSelected;
+
+  const _GradientHeader({
+    required this.color,
+    required this.hasData,
+    required this.data,
+    required this.clientProfile,
+    required this.selectedDate,
+    required this.dateList,
+    required this.onDateSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     final scoreObj = data?.testJsonData?.fatLossMetabolismScore;
 
     return Container(
@@ -351,34 +396,39 @@ class _QuaDashboardState extends State<QuaDashboard> with WidgetsBindingObserver
         bottom: false,
         child: Column(
           children: [
-            _buildTopNavBar(),
+            _TopNavBar(clientProfile: clientProfile),
             HeroCalenderWidget(
-              selectedDate: _selectedDate,
-              onDateSelected: (date) {
-                setState(() => _selectedDate = date);
-                _refreshData();
-              },
-              dateList: _dateList,
+              selectedDate: selectedDate,
+              onDateSelected: onDateSelected,
+              dateList: dateList,
             ),
-            const SizedBox(height: 40),
-
+            SizedBox(height: rh(context: context, px: 40)),
             if (hasData && scoreObj != null) ...[
-              _buildScoreDisplay(scoreObj),
-              const SizedBox(height: 60),
-              _buildZoneInfoCard(color, scoreObj),
+              _ScoreDisplay(fatLossScore: scoreObj),
+              SizedBox(height: rh(context: context, px: 60)),
+              _ZoneInfoCard(themeColor: color, score: scoreObj),
             ] else ...[
-              const SizedBox(height: 40),
-              _buildNoDataPrompt(),
+              SizedBox(height: rh(context: context, px: 40)),
+              _NoDataPrompt(selectedDate: selectedDate),
             ],
           ],
         ),
       ),
     );
   }
+}
 
-  Widget _buildTopNavBar() {
+class _TopNavBar extends StatelessWidget {
+  final ClientProfileModel clientProfile;
+  const _TopNavBar({required this.clientProfile});
+
+  @override
+  Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      padding: EdgeInsets.symmetric(
+        horizontal: rh(context: context, px: 20),
+        vertical: rh(context: context, px: 10),
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -386,39 +436,48 @@ class _QuaDashboardState extends State<QuaDashboard> with WidgetsBindingObserver
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                widget.clientProfile.profileName,
-                style: GoogleFonts.poppins(color: Colors.white, fontSize: 12),
+                clientProfile.profileName,
+                style: GoogleFonts.poppins(
+                  color: Colors.white,
+                  fontSize: rh(context: context, px: 12),
+                ),
               ),
               Text(
                 DateHelper.getGreeting(),
                 style: GoogleFonts.poppins(
                   color: Colors.white,
-                  fontSize: 22,
+                  fontSize: rh(context: context, px: 22),
                   fontWeight: FontWeight.bold,
                 ),
               ),
             ],
           ),
-          _ProfileCircle(clientProfile: widget.clientProfile),
+          _ProfileCircle(clientProfile: clientProfile),
         ],
       ),
     );
   }
+}
 
-  Widget _buildScoreDisplay(dynamic fatLossScore) {
+class _ScoreDisplay extends StatelessWidget {
+  final dynamic fatLossScore;
+  const _ScoreDisplay({required this.fatLossScore});
+
+  @override
+  Widget build(BuildContext context) {
     final num score = fatLossScore.score ?? 0;
 
     return Column(
       children: [
         Text(
-          "Metabolism Score",
+          "Fat-Use Pattern Trend",
           style: GoogleFonts.poppins(
             color: Colors.white,
-            fontSize: 18,
+            fontSize: rh(context: context, px: 18),
             fontWeight: FontWeight.w500,
           ),
         ),
-        const SizedBox(height: 10),
+        SizedBox(height: rh(context: context, px: 10)),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -428,16 +487,16 @@ class _QuaDashboardState extends State<QuaDashboard> with WidgetsBindingObserver
               score.toDouble().toStringAsFixed(0),
               style: GoogleFonts.poppins(
                 color: Colors.white,
-                fontSize: 100,
+                fontSize: rh(context: context, px: 100),
                 fontWeight: FontWeight.w300,
               ),
             ),
-            const SizedBox(width: 4),
+            SizedBox(width: rh(context: context, px: 4)),
             Text(
               "%",
               style: GoogleFonts.poppins(
                 color: Colors.white,
-                fontSize: 24,
+                fontSize: rh(context: context, px: 24),
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -446,35 +505,46 @@ class _QuaDashboardState extends State<QuaDashboard> with WidgetsBindingObserver
       ],
     );
   }
+}
 
-  Widget _buildZoneInfoCard(Color themeColor, dynamic score) {
+class _ZoneInfoCard extends StatelessWidget {
+  final Color themeColor;
+  final dynamic score;
+  const _ZoneInfoCard({required this.themeColor, required this.score});
+
+  @override
+  Widget build(BuildContext context) {
     final String zone = score.zone ?? "NA";
     final String interpretation = score.clientInterpretation ?? "";
+    final String zoneBase = zone.toLowerCase() == "focus" ? "needs to" : "is";
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(24),
+      margin: EdgeInsets.symmetric(horizontal: rh(context: context, px: 16)),
+      padding: EdgeInsets.all(rh(context: context, px: 20)),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.25),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(rh(context: context, px: 30)),
+        ),
       ),
       child: Column(
         children: [
           Text(
-            "Your Score is $zone!",
+            "Your Score $zoneBase $zone!",
+            textAlign: TextAlign.center,
             style: GoogleFonts.poppins(
               color: themeColor,
-              fontSize: 24,
+              fontSize: rh(context: context, px: 18),
               fontWeight: FontWeight.bold,
             ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: rh(context: context, px: 12)),
           Text(
             interpretation,
             textAlign: TextAlign.center,
             style: GoogleFonts.poppins(
               color: const Color(0xFF4A4A4A),
-              fontSize: 13,
+              fontSize: rh(context: context, px: 13),
               height: 1.5,
             ),
           ),
@@ -482,95 +552,102 @@ class _QuaDashboardState extends State<QuaDashboard> with WidgetsBindingObserver
       ),
     );
   }
+}
 
-  Widget _buildScoreChartSection(double latestScore, double minRange, double maxRange) {
-    return ScoreChart(
-      clientProfileModel: widget.clientProfile,
-      latestScore: latestScore,
-      latestScoreMinRange: minRange,
-      latestScoreMaxRange: maxRange,
+class _NoDataPrompt extends StatelessWidget {
+  final DateTime selectedDate;
+  const _NoDataPrompt({required this.selectedDate});
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isToday = DateUtils.isSameDay(selectedDate, DateTime.now());
+
+    return Container(
+      width: double.infinity,
+      margin: EdgeInsets.symmetric(horizontal: rh(context: context, px: 16)),
+      padding: EdgeInsets.symmetric(
+        vertical: rh(context: context, px: 40),
+        horizontal: rh(context: context, px: 20),
+      ),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.2),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(rh(context: context, px: 30)),
+        ),
+      ),
+      child: Column(
+        children: [
+          SvgPicture.asset(
+            "assets/images/icons/no_test.svg",
+            height: rh(context: context, px: 80),
+          ),
+          SizedBox(height: rh(context: context, px: 24)),
+          Text(
+            isToday ? "You Haven’t Tested\nYet Today" : "No Test Data Found",
+            textAlign: TextAlign.center,
+            style: GoogleFonts.poppins(
+              fontSize: rh(context: context, px: 22),
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          SizedBox(height: rh(context: context, px: 8)),
+          Text(
+            isToday
+                ? "Swipe below to start \nyour metabolism test!"
+                : "Select another date to see\nyour history.",
+            textAlign: TextAlign.center,
+            style: GoogleFonts.poppins(
+              color: Colors.black54,
+              fontSize: rh(context: context, px: 14),
+            ),
+          ),
+        ],
+      ),
     );
   }
+}
 
-  Widget _buildSwipeActionOverlay() {
+class _SwipeActionOverlay extends StatelessWidget {
+  final ClientProfileModel clientProfile;
+  final void Function(TestDataState testState) onSwiped;
+
+  const _SwipeActionOverlay({
+    required this.clientProfile,
+    required this.onSwiped,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Positioned(
-      bottom: 30,
+      bottom: rh(context: context, px: 30),
       left: 0,
       right: 0,
       child: BlocBuilder<TodayTestDataBloc, TestDataState>(
+        buildWhen: (prev, curr) => prev.result != curr.result,
         builder: (context, testState) {
-
-          final dietitianId = widget.clientProfile.dietitianId?.trim().toLowerCase();
-          if(testState.result!=null && dietitianId != 'respyrd01'){
-            return SizedBox.shrink();
+          final dietitianId = clientProfile.dietitianId?.trim().toLowerCase();
+          if (testState.result != null && dietitianId != 'respyrd01') {
+            return const SizedBox.shrink();
           }
           return Center(
             child: SwipeButtonWidget(
-              onSwiped: (){_handleStartTest(testState);},
+              onSwiped: () {
+                onSwiped(testState);
+              },
             ),
           );
         },
       ),
     );
   }
+}
 
-  Widget _buildNoDataPrompt() {
-    final bool isToday = DateUtils.isSameDay(_selectedDate, DateTime.now());
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.2),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
-      ),
-      child: Column(
-        children: [
-          SvgPicture.asset("assets/images/icons/no_test.svg", height: 80),
-          const SizedBox(height: 24),
-          Text(
-            isToday ? "You Haven’t Tested\nYet Today" : "No Test Data Found",
-            textAlign: TextAlign.center,
-            style: GoogleFonts.poppins(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            isToday
-                ? "Swipe below to start \nyour metabolism test!"
-                : "Select another date to see\nyour history.",
-            textAlign: TextAlign.center,
-            style: GoogleFonts.poppins(color: Colors.black54),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildViewResultAction(LatestTestData data) {
-
-    return TextButton(
-        onPressed: (){
-          _navigateToDetailedResult(data.testId);
-        },
-        child: Text("View Result",
-          style: GoogleFonts.poppins(
-            color: const Color(0xFF308BF9),
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
-            height: 1.10,
-            letterSpacing: 0.30,
-          ),
-        )
-    );
-  }
-
+extension on _QuaDashboardState {
   Future<void> _navigateToDetailedResult(String testId) async {
     try {
-      final result = await TestHistoryCompleteService.fetchTestHistoryComplete(
+      final result =
+      await TestHistoryCompleteService.fetchTestHistoryCompleteNew(
         dietitianId: widget.clientProfile.dietitianId,
         profileId: widget.clientProfile.profileId,
         testId: int.parse(testId),
@@ -580,7 +657,7 @@ class _QuaDashboardState extends State<QuaDashboard> with WidgetsBindingObserver
 
       context.go(
         AppRoutes.dietitianResultScreen,
-        extra: ResultScreenParams(
+        extra: ResultScreenParamsNew(
           result: result,
           clientProfileModel: widget.clientProfile,
         ),
@@ -641,11 +718,12 @@ class _ProfileCircle extends StatelessWidget {
       onTap: () => Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => QuaProfile(clientProfileModel: clientProfile),
+          builder: (_) =>
+              DashboardMenuScreen(clientProfileModel: clientProfile),
         ),
       ),
       child: Container(
-        padding: const EdgeInsets.all(8),
+        padding: EdgeInsets.all(rh(context: context, px: 8)),
         decoration: const BoxDecoration(
           color: Colors.white24,
           shape: BoxShape.circle,
@@ -653,6 +731,8 @@ class _ProfileCircle extends StatelessWidget {
         child: SvgPicture.asset(
           "assets/images/icons/ic_profile.svg",
           colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+          width: rh(context: context, px: 24),
+          height: rh(context: context, px: 24),
         ),
       ),
     );

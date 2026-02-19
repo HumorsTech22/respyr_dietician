@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:respyr_dietitian/core/size/get_height.dart';
 
 class ProfileBottomNavigation extends StatelessWidget {
   final VoidCallback? onNext;
@@ -15,62 +16,49 @@ class ProfileBottomNavigation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom + 5;
+    final bottomInset =
+        MediaQuery.of(context).viewInsets.bottom + rh(context: context, px: 5);
 
     return Padding(
       padding: EdgeInsets.only(
-        bottom: bottomInset > 5 ? bottomInset : 30,
-        left: 26,
-        right: 26,
+        bottom: bottomInset > rh(context: context, px: 5)
+            ? bottomInset
+            : rh(context: context, px: 30),
+        left: rh(context: context, px: 26),
+        right: rh(context: context, px: 26),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          GestureDetector(
-            onTap: onBack,
-            child: const Icon(
+          IconButton(
+            onPressed: onBack,
+            style: IconButton.styleFrom(
+              backgroundColor: Colors.white,
+              padding: EdgeInsets.all(
+                rh(context: context, px: 16),
+              ),
+            ),
+            icon: Icon(
               Icons.chevron_left_outlined,
-              size: 26,
-              color: Colors.black,
+              size: rh(context: context, px: 24),
             ),
           ),
-          InkWell(
-            onTap: onNext,
-            borderRadius: BorderRadius.circular(30),
-            child: Container(
-              padding: nextLabel != null
-                  ? const EdgeInsets.symmetric(horizontal: 20, vertical: 10)
-                  : const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: const Color(0xFF308BF9),
-                borderRadius: BorderRadius.circular(30),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (nextLabel != null)
-                    Text(
-                      nextLabel!,
-                      style: GoogleFonts.poppins(
-                        color: Colors.white,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.30,
-                      ),
-                    ),
-                  if (nextLabel != null) const SizedBox(width: 8),
-                  const Icon(
-                    Icons.chevron_right_outlined,
-                    color: Colors.white,
-                    size: 22,
-                  ),
-                ],
+          IconButton(
+            onPressed: onNext,
+            style: IconButton.styleFrom(
+              backgroundColor: const Color(0xFF308BF9),
+              padding: EdgeInsets.all(
+                rh(context: context, px: 16),
               ),
             ),
+            icon: Icon(
+              Icons.chevron_right_outlined,
+              size: rh(context: context, px: 24),
+            ),
+            color: Colors.white,
           ),
         ],
       ),
     );
   }
 }
-

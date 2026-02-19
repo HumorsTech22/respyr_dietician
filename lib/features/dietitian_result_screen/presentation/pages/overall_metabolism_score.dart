@@ -336,11 +336,11 @@ class _OverallMetabolismScoreState extends State<OverallMetabolismScore> {
 
   Color getZoneColor(String zone) {
     switch (zone.toLowerCase()) {
-      case "poor":
-        return const Color(0xFFDA5747);
-      case "fair":
-        return const Color(0xFFF8B10F);
-      case "good":
+      case "focus":
+        return const Color(0xFFE48326);
+      case "moderate":
+        return const Color(0xFFFFBF2D);
+      case "optimal":
         return const Color(0xFF3FAF58);
       default:
         return Colors.grey;
@@ -389,14 +389,31 @@ class _OverallMetabolismScoreState extends State<OverallMetabolismScore> {
   }
 }
 
+
+
 class MetabolismScale extends StatelessWidget {
   final double value;
 
   const MetabolismScale({super.key, required this.value});
 
+  String getStatus(double v) {
+    final clamped = v.clamp(0.0, 100.0);
+    if (clamped <= 69.9) return "Poor";
+    if (clamped <= 79.9) return "Fair";
+    return "Good";
+  }
+
+  Color getStatusColor(double v) {
+    final clamped = v.clamp(0.0, 100.0);
+    if (clamped <= 69.9) return const Color(0xFFE48326);
+    if (clamped <= 79.9) return const Color(0xFFFFBF2D);
+    return const Color(0xFF3EAF58);
+  }
+
   @override
   Widget build(BuildContext context) {
     const double barHeight = 54;
+    final double clampedValue = value.clamp(0.0, 100.0);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -417,8 +434,8 @@ class MetabolismScale extends StatelessWidget {
         ),
         LayoutBuilder(
           builder: (context, constraints) {
-            final double clampedValue = value.clamp(0, 100);
-            final double indicatorX = constraints.maxWidth * (clampedValue / 100);
+            final double indicatorX =
+                constraints.maxWidth * (clampedValue / 100.0);
 
             return Column(
               mainAxisSize: MainAxisSize.min,
@@ -429,11 +446,11 @@ class MetabolismScale extends StatelessWidget {
                     Row(
                       children: [
                         Expanded(
-                          flex: 60,
+                          flex: 70,
                           child: Container(
                             height: barHeight,
                             decoration: const BoxDecoration(
-                              color: Color(0xFFDA5747),
+                              color: Color(0xFFE48326),
                               borderRadius: BorderRadius.only(
                                 topLeft: Radius.circular(10),
                                 bottomLeft: Radius.circular(10),
@@ -442,10 +459,10 @@ class MetabolismScale extends StatelessWidget {
                           ),
                         ),
                         Expanded(
-                          flex: 20,
+                          flex: 10,
                           child: Container(
                             height: barHeight,
-                            color: const Color(0xFFF8B10F),
+                            color: const Color(0xFFFFBF2D),
                           ),
                         ),
                         Expanded(
@@ -464,7 +481,7 @@ class MetabolismScale extends StatelessWidget {
                       ],
                     ),
                     Positioned(
-                      left: indicatorX - 1.5,
+                      left: indicatorX - 2.5,
                       top: 20,
                       bottom: 0,
                       child: Container(
@@ -497,9 +514,9 @@ class MetabolismScale extends StatelessWidget {
                         ),
                       ),
                       Align(
-                        alignment: const Alignment((2 * 0.60) - 1, 0),
+                        alignment: const Alignment((2 * 0.70) - 1, 0),
                         child: Text(
-                          '60',
+                          '70',
                           style: GoogleFonts.poppins(
                             color: const Color(0xFF535359),
                             fontSize: 8,
@@ -546,3 +563,5 @@ class MetabolismScale extends StatelessWidget {
     );
   }
 }
+
+

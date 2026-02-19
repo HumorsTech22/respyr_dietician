@@ -72,14 +72,15 @@ class TestConditionsScreen extends StatelessWidget {
   }
 
   void _navigateToBluetooth(BuildContext context) {
-    context.go(
-      AppRoutes.bluetoothDeviceConnectivity,
-      extra: <String, Object?>{
+    context.push(
+      AppRoutes.bluetoothCalibrationScreen,
+      extra: {
         "client": clientProfileModel,
         "strategy": dietPlanStrategyModel,
         "min_range": minRange,
         "max_range": maxRange,
       },
     );
+
   }
 }

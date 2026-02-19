@@ -118,7 +118,7 @@ class _BluetoothGeneratingResultScreenState
         if (!mounted) return;
         context.go(
           AppRoutes.dietitianResultScreen,
-          extra: ResultScreenParams(
+          extra: (
             result: state.dietitianResult!,
             clientProfileModel: widget.clientProfileModel,
           ),

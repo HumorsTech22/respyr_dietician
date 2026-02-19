@@ -21,13 +21,13 @@ abstract class AppRoutes {
 
 
 
+  static const bluetoothDeviceStartTest = '/bluetooth-device-start-test';
   static const bluetoothDeviceConnectivity = '/bluetooth-device-connectivity';
   static const bluetoothBreatheTube = '/bluetooth-breathe-tube';
   static const bluetoothCalibrationScreen = '/bluetooth-calibration-screen';
   static const bluetoothInhaleScreen = '/bluetooth-inhale-screen';
   static const bluetoothExhaleScreen = '/bluetooth-exhale-screen';
-  static const bluetoothGeneratingResultScreen =
-      '/bluetooth-generating-result-screen';
+  static const bluetoothGeneratingResultScreen = '/bluetooth-generating-result-screen';
 
   static const logFoodPage = "/log-food-page";
   static const helpCenterPage = "/help-center-page";
@@ -37,6 +37,7 @@ abstract class AppRoutes {
 
   static const dietitianResultScreen = '/dietitian-result-screen';
   static const overallResultScreen = '/overall-result-screen';
+  static const overallScore = '/overall-result-screen-new';
 
 
   /// notification
@@ -50,5 +51,12 @@ abstract class AppRoutes {
 
   static const retakeTestScreen = '/retake-test-screen';
   static const testConditionScreen = '/test-conditions-screen';
+
+  // practice test
+  static const practiceFlowShell = '/practice-flow_shell';
+  static const startDeviceScreen = 'start-device-screen';
+  static const practiceTestScreen = 'practice-test-screen';
+  static const practiceTestConnectivity = 'practice-test-connectivity';
+  static const practiceTestInhaleScreen= 'practice-test-inhale-screen';
 
 }

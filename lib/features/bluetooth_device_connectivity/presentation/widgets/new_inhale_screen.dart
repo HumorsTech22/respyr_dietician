@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/model/breath_setting_model.dart';
 
 import '../../../../core/size/get_height.dart';
 import '../cubit/bluetooth_inhale_cubit_new/bluetooth_inhale_new_state.dart';
@@ -8,7 +9,8 @@ import 'breathing_graph.dart';
 
 class NewInhaleScreen extends StatefulWidget {
   final BluetoothInhaleCubitNewState state;
-  const NewInhaleScreen({super.key, required this.state});
+  final BreathingSettings breathingSettings;
+   NewInhaleScreen({super.key, required this.state, required this.breathingSettings});
 
   @override
   State<NewInhaleScreen> createState() => _NewInhaleScreenState();
@@ -27,7 +29,6 @@ class _NewInhaleScreenState extends State<NewInhaleScreen> {
   void didUpdateWidget(covariant NewInhaleScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    // ✅ only update painter input (super cheap)
     if (oldWidget.state.progress != widget.state.progress) {
       _reading.value = widget.state.progress;
     }
@@ -42,26 +43,16 @@ class _NewInhaleScreenState extends State<NewInhaleScreen> {
   @override
   Widget build(BuildContext context) {
     final state = widget.state;
-
-    // Hold constants
-    const int totalHoldTime = 8;
-    final holdRemaining =
-    (totalHoldTime - state.holdSeconds).ceil().clamp(0, totalHoldTime);
-
+    final int totalHoldTime = (widget.breathingSettings.hold.timeMs / 1000).toInt();
+    final holdRemaining = (totalHoldTime - state.holdSeconds).ceil().clamp(0, totalHoldTime);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(height: rh(context: context, px: 20)),
-
-        // Main Header Text
         SizedBox(
           width: double.infinity,
           child: _buildMainTitle(context, state, holdRemaining),
         ),
-
         SizedBox(height: rh(context: context, px: 20)),
-
-        // Sub-text Label
         SizedBox(
           width: double.infinity,
           child: Text(
@@ -76,11 +67,9 @@ class _NewInhaleScreenState extends State<NewInhaleScreen> {
             ),
           ),
         ),
-
         SizedBox(height: rh(context: context, px: 22)),
-
-        // Graph Section
         Expanded(
+          flex: 2,
           child: LayoutBuilder(
             builder: (ctx, constraints) {
               final safeH = (constraints.maxHeight <= 0)
@@ -93,10 +82,10 @@ class _NewInhaleScreenState extends State<NewInhaleScreen> {
               return Center(
                 child: RepaintBoundary(
                   child: BreathingTargetGraph(
-                    reading: _reading, // ✅ updated
+                    reading: _reading,
                     height: safeH,
-                    targetMin: 25,
-                    targetMax: 80,
+                    targetMin: widget.breathingSettings.inhale.minBand.toDouble(),
+                    targetMax: widget.breathingSettings.inhale.maxBand.toDouble(),
                     hold: holdFlag,
                     holdCounter: holdRemaining,
                   ),
@@ -105,13 +94,8 @@ class _NewInhaleScreenState extends State<NewInhaleScreen> {
             },
           ),
         ),
+        SizedBox(height: rh(context: context, px: 127)),
 
-        SizedBox(height: rh(context: context, px: 51)),
-        IconButton(
-          onPressed: () {},
-          icon: const Icon(CupertinoIcons.speaker),
-        ),
-        SizedBox(height: rh(context: context, px: 52)),
       ],
     );
   }
