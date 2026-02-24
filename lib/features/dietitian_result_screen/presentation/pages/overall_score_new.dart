@@ -9,21 +9,24 @@ import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/p
 
 import '../../../../core/size/get_height.dart';
 import '../../../../routes/app_routes.dart';
-import '../../../bluetooth_device_connectivity/data/datasource/bluetooth_manager.dart';
 import '../../../bluetooth_device_connectivity/data/model/test_result_data_model_v2.dart';
 import '../../../bluetooth_device_connectivity/presentation/widgets/metabolism_scale.dart';
 
 class OverallScoreNew extends StatefulWidget {
   final TestResultResponse testResultResponse;
   final ClientProfileModel clientProfileModel;
-  const OverallScoreNew({super.key, required this.testResultResponse, required this.clientProfileModel});
+
+  const OverallScoreNew({
+    super.key,
+    required this.testResultResponse,
+    required this.clientProfileModel,
+  });
 
   @override
   State<OverallScoreNew> createState() => _OverallScoreNewState();
 }
 
 class _OverallScoreNewState extends State<OverallScoreNew> {
-
   @override
   void initState() {
     super.initState();
@@ -45,6 +48,7 @@ class _OverallScoreNewState extends State<OverallScoreNew> {
   Widget build(BuildContext context) {
     final Size screenSize = MediaQuery.of(context).size;
     final bool isSmallScreen = screenSize.width < 360;
+
     final double horizontalPadding = isSmallScreen
         ? rh(context: context, px: 16.0)
         : rh(context: context, px: 20.0);
@@ -59,7 +63,7 @@ class _OverallScoreNewState extends State<OverallScoreNew> {
       child: Scaffold(
         backgroundColor: Colors.white,
         appBar: AppBar(
-          backgroundColor: Color(0xFFF0F6FD),
+          backgroundColor: const Color(0xFFF0F6FD),
           surfaceTintColor: Colors.white,
           actions: [
             IconButton(
@@ -85,6 +89,7 @@ class _OverallScoreNewState extends State<OverallScoreNew> {
             ),
             child: Stack(
               children: [
+                // ✅ Scroll content
                 Positioned.fill(
                   child: SingleChildScrollView(
                     padding: EdgeInsets.only(
@@ -101,6 +106,8 @@ class _OverallScoreNewState extends State<OverallScoreNew> {
                     ),
                   ),
                 ),
+
+                // ✅ Bottom CTA button
                 Positioned(
                   bottom: rh(context: context, px: 12),
                   left: 0,
@@ -119,16 +126,19 @@ class _OverallScoreNewState extends State<OverallScoreNew> {
                       style: IconButton.styleFrom(
                         backgroundColor: const Color(0xFF308BF9),
                         shape: RoundedRectangleBorder(
-                          borderRadius:
-                          BorderRadius.circular(rh(context: context, px: 50)),
+                          borderRadius: BorderRadius.circular(
+                            rh(context: context, px: 50),
+                          ),
                         ),
                         padding: EdgeInsets.all(rh(context: context, px: 16)),
                       ),
-                      icon: const Icon(Icons.keyboard_arrow_right,
-                          color: Colors.white),
+                      icon: const Icon(
+                        Icons.keyboard_arrow_right,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
-                )
+                ),
               ],
             ),
           ),
@@ -170,7 +180,7 @@ class _OverallScoreNewState extends State<OverallScoreNew> {
                 ),
               ],
             ),
-            SizedBox(height: rh(context: context, px: 11),),
+            SizedBox(height: rh(context: context, px: 11)),
             Flexible(
               child: Text(
                 formatDateTime(widget.testResultResponse.dateTime.toString()),
@@ -197,7 +207,7 @@ class _OverallScoreNewState extends State<OverallScoreNew> {
                 : rh(context: context, px: 34),
             fontWeight: FontWeight.w400,
             letterSpacing: -2.04,
-            height: 1.2
+            height: 1.2,
           ),
         ),
       ],
@@ -206,13 +216,19 @@ class _OverallScoreNewState extends State<OverallScoreNew> {
 
   Widget _buildMainContentSection(Size screenSize) {
     final bool isSmallScreen = screenSize.width < 360;
-    final double scoreFontSize =
-    isSmallScreen ? rh(context: context, px: 80.0) : rh(context: context, px: 100.0);
-    final double zoneFontSize =
-    isSmallScreen ? rh(context: context, px: 20.0) : rh(context: context, px: 25.0);
 
-    final dailyFocusTitle = widget.testResultResponse.respyrResponse.dayFocus?.title ?? "";
-    final dailyFocusNote = widget.testResultResponse.respyrResponse.dayFocus?.note ?? "";
+    final double scoreFontSize = isSmallScreen
+        ? rh(context: context, px: 80.0)
+        : rh(context: context, px: 100.0);
+
+    final double zoneFontSize = isSmallScreen
+        ? rh(context: context, px: 20.0)
+        : rh(context: context, px: 25.0);
+
+    final dailyFocusTitle =
+        widget.testResultResponse.respyrResponse.dayFocus?.title ?? "";
+    final dailyFocusNote =
+        widget.testResultResponse.respyrResponse.dayFocus?.note ?? "";
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -223,17 +239,23 @@ class _OverallScoreNewState extends State<OverallScoreNew> {
         RepaintBoundary(
           child: MetabolismScale(
             value: widget.testResultResponse.fatLossMetabolismScore,
-            //  value: 100,
+            // value: 100,
           ),
         ),
         SizedBox(height: rh(context: context, px: 37)),
         Padding(
-            padding: EdgeInsetsGeometry.symmetric(horizontal: rh(context: context, px: 28)),
+          padding: EdgeInsetsGeometry.symmetric(
+            horizontal: rh(context: context, px: 28),
+          ),
           child: Column(
             spacing: rh(context: context, px: 15),
             children: [
               Text(
-                widget.testResultResponse.respyrResponse.fatUsePatternTrend.clientInterpretation.title,
+                widget.testResultResponse
+                    .respyrResponse
+                    .fatUsePatternTrend
+                    .clientInterpretation
+                    .title,
                 style: GoogleFonts.poppins(
                   color: const Color(0xFF252525),
                   fontSize: rh(context: context, px: 20),
@@ -242,7 +264,11 @@ class _OverallScoreNewState extends State<OverallScoreNew> {
                 ),
               ),
               Text(
-                widget.testResultResponse.respyrResponse.fatUsePatternTrend.clientInterpretation.text,
+                widget.testResultResponse
+                    .respyrResponse
+                    .fatUsePatternTrend
+                    .clientInterpretation
+                    .text,
                 textAlign: TextAlign.center,
                 style: GoogleFonts.poppins(
                   color: const Color(0xFF535359),
@@ -294,7 +320,6 @@ class _OverallScoreNewState extends State<OverallScoreNew> {
             ],
           ),
         ),
-
       ],
     );
   }
@@ -306,8 +331,7 @@ class _OverallScoreNewState extends State<OverallScoreNew> {
       textBaseline: TextBaseline.alphabetic,
       children: [
         Text(
-          widget.testResultResponse.fatLossMetabolismScore
-              .toStringAsFixed(0),
+          widget.testResultResponse.fatLossMetabolismScore.toStringAsFixed(0),
           textHeightBehavior: const TextHeightBehavior(
             applyHeightToFirstAscent: false,
             applyHeightToLastDescent: false,
@@ -353,9 +377,10 @@ class _OverallScoreNewState extends State<OverallScoreNew> {
   }
 
   Widget _buildZoneText(double fontSize) {
-
-
-    final String isNeeds = widget.testResultResponse.respyrResponse.fatUsePatternTrend.zone == "Focus" ? "Needs to" : "is";
+    final String isNeeds =
+    widget.testResultResponse.respyrResponse.fatUsePatternTrend.zone == "Focus"
+        ? "Needs to"
+        : "is";
 
     return RichText(
       text: TextSpan(
@@ -371,7 +396,8 @@ class _OverallScoreNewState extends State<OverallScoreNew> {
             text: widget.testResultResponse.respyrResponse.fatUsePatternTrend.zone,
             style: GoogleFonts.poppins(
               color: getZoneColor(
-                  widget.testResultResponse.respyrResponse.fatUsePatternTrend.zone),
+                widget.testResultResponse.respyrResponse.fatUsePatternTrend.zone,
+              ),
               fontSize: rh(context: context, px: 18),
               fontWeight: FontWeight.w600,
               letterSpacing: -0.72,

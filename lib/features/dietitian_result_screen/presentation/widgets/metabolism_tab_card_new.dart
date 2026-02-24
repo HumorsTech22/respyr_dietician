@@ -42,14 +42,23 @@ class MetabolismTabCardNew extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bar = SegmentedScoreBar(
-      score: score,
-      isRange1: isRange1,
-    );
 
-    final zone = bar.zone;
-    final zoneText = SegmentedScoreBar.zoneText(zone);
-    final zoneColor = SegmentedScoreBar.zoneColor(zone);
+
+     Color zoneColor(String zone) {
+      final z = zone.trim().toLowerCase();
+
+      switch (z) {
+        case "optimal":
+          return const Color(0xFF3FAF58);
+        case "moderate":
+          return const Color(0xFFFFBF2D);
+        case "focus":
+          return const Color(0xFFE48326);
+        default:
+          return const Color(0xFF535359); // fallback (grey)
+      }
+    }
+
 
     return Container(
       width: double.infinity,
@@ -58,7 +67,7 @@ class MetabolismTabCardNew extends StatelessWidget {
         shape: RoundedRectangleBorder(
           side: BorderSide(
             width: rh(context: context, px: 0.5),
-            color: zoneColor,
+            color: zoneColor(scoreZone),
           ),
           borderRadius: BorderRadius.circular(
             rh(context: context, px: 15),
@@ -135,9 +144,9 @@ class MetabolismTabCardNew extends StatelessWidget {
               SizedBox(width: rh(context: context, px: 10)),
 
               Text(
-                zoneText,
+                scoreZone,
                 style: GoogleFonts.poppins(
-                  color: zoneColor,
+                  color: zoneColor(scoreZone),
                   fontSize: rh(context: context, px: 30),
                   fontWeight: FontWeight.w600,
                   letterSpacing: rh(context: context, px: -0.60),
@@ -148,7 +157,7 @@ class MetabolismTabCardNew extends StatelessWidget {
 
           SegmentedScoreBar(
             score: score.toDouble(),
-            isRange1: isRange1,
+            isRange1: isRange1, zone: scoreZone,
           ),
 
           SizedBox(height: rh(context: context, px: 10)),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../../../bluetooth_device_connectivity/data/repository/bluetooth_repository.dart';
 import '../../practice_test_home/bloc/practice_flow_bloc.dart';
 
 class PracticeFlowShell extends StatelessWidget {
@@ -9,7 +11,7 @@ class PracticeFlowShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => PracticeFlowBloc()..add(const PracticeFlowInit()),
+      create: (ctx) => PracticeFlowBloc(repo: ctx.read<BluetoothRepository>()),
       child: child,
     );
   }

@@ -59,4 +59,9 @@ abstract class AppRoutes {
   static const practiceTestConnectivity = 'practice-test-connectivity';
   static const practiceTestInhaleScreen= 'practice-test-inhale-screen';
 
+
+  // select clients
+  static const selectClient= '/select-clients';
+  static const whoIsUsing= '/who-is-using';
+
 }

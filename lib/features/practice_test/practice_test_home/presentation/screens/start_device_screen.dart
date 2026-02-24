@@ -5,11 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:respyr_dietitian/client-dashboard/data/model/client_profile_model.dart';
 import 'package:respyr_dietitian/routes/app_routes.dart';
 import '../../../../../core/size/get_height.dart';
 
 class StartDeviceScreen extends StatefulWidget {
-  const StartDeviceScreen({super.key});
+  final ClientProfileModel clientProfileModel;
+  const StartDeviceScreen({super.key, required this.clientProfileModel});
 
   @override
   State<StartDeviceScreen> createState() => _StartDeviceScreenState();
@@ -368,6 +370,7 @@ class _StartDeviceScreenState extends State<StartDeviceScreen> with WidgetsBindi
                         onPressed: (){
                           context.go(
                             '${AppRoutes.practiceFlowShell}/${AppRoutes.practiceTestConnectivity}',
+                            extra: widget.clientProfileModel
                           );
                         },
                         style: ElevatedButton.styleFrom(

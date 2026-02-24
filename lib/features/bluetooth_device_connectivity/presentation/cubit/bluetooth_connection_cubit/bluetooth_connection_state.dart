@@ -23,6 +23,10 @@ class BluetoothConnectionState extends Equatable {
   final bool isDeviceError;
   final bool deviceIsInhaleOrExhaleMode;
 
+  // ✅ NEW (for LINK_SUPERVISION_TIMEOUT UI)
+  final bool isReconnecting;
+  final String? linkMessage;
+
   const BluetoothConnectionState({
     this.status = BluetoothConnectionStatus.initial,
     this.devices = const [],
@@ -34,7 +38,11 @@ class BluetoothConnectionState extends Equatable {
     this.connectingDeviceId,
     this.deviceReady = false,
     this.isDeviceError = false,
-    this.deviceIsInhaleOrExhaleMode=false,
+    this.deviceIsInhaleOrExhaleMode = false,
+
+    // ✅ NEW
+    this.isReconnecting = false,
+    this.linkMessage,
   });
 
   BluetoothConnectionState copyWith({
@@ -45,7 +53,6 @@ class BluetoothConnectionState extends Equatable {
     bool? isConnecting,
     String? lastData,
 
-    // Special handling
     String? textError,
     bool clearTextError = false,
 
@@ -54,7 +61,12 @@ class BluetoothConnectionState extends Equatable {
 
     bool? deviceReady,
     bool? isDeviceError,
-    bool? deviceIsInhaleOrExhaleMode=false,
+    bool? deviceIsInhaleOrExhaleMode,
+
+    // ✅ NEW
+    bool? isReconnecting,
+    String? linkMessage,
+    bool clearLinkMessage = false,
   }) {
     return BluetoothConnectionState(
       status: status ?? this.status,
@@ -69,7 +81,12 @@ class BluetoothConnectionState extends Equatable {
           : (connectingDeviceId ?? this.connectingDeviceId),
       deviceReady: deviceReady ?? this.deviceReady,
       isDeviceError: isDeviceError ?? this.isDeviceError,
-      deviceIsInhaleOrExhaleMode: deviceIsInhaleOrExhaleMode ?? this.deviceIsInhaleOrExhaleMode,
+      deviceIsInhaleOrExhaleMode:
+      deviceIsInhaleOrExhaleMode ?? this.deviceIsInhaleOrExhaleMode,
+
+      // ✅ NEW
+      isReconnecting: isReconnecting ?? this.isReconnecting,
+      linkMessage: clearLinkMessage ? null : (linkMessage ?? this.linkMessage),
     );
   }
 
@@ -86,5 +103,9 @@ class BluetoothConnectionState extends Equatable {
     deviceReady,
     isDeviceError,
     deviceIsInhaleOrExhaleMode,
+
+    // ✅ NEW
+    isReconnecting,
+    linkMessage,
   ];
 }

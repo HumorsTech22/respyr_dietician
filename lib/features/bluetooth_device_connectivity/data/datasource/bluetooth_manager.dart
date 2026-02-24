@@ -1,7 +1,11 @@
 import 'dart:async';
 import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+
+/// ✅ Link status so UI can show "Reconnecting..." / "Disconnected" etc.
+enum BleLinkStatus { connecting, connected, reconnecting, disconnected }
 
 class UuidBluetoothManager {
   static final UuidBluetoothManager _instance = UuidBluetoothManager._internal();
@@ -33,12 +37,19 @@ class UuidBluetoothManager {
   final _dataCtrl = StreamController<String>.broadcast();
   final _readyCtrl = StreamController<bool>.broadcast();
 
+  /// ✅ NEW: for UI
+  final _linkCtrl = StreamController<BleLinkStatus>.broadcast();
+  Stream<BleLinkStatus> get linkStatusStream => _linkCtrl.stream;
+
   StreamSubscription<List<ScanResult>>? _scanSub;
   StreamSubscription<BluetoothConnectionState>? _connSub;
   StreamSubscription<List<int>>? _notifySub;
   StreamSubscription<BluetoothAdapterState>? _adapterStateSub;
 
   bool _isConnected = false;
+
+  // ✅ optional: prevent double-connect calls
+  bool _connecting = false;
 
   final Guid serviceUuid = Guid("6e400001-b5a3-f393-e0a9-e50e24dcca9e");
   final Guid notifyCharacteristicUuid =
@@ -51,10 +62,16 @@ class UuidBluetoothManager {
   Stream<String> get dataStream => _dataCtrl.stream;
   Stream<bool> get deviceReadyStream => _readyCtrl.stream;
 
+  void _emitLink(BleLinkStatus s) {
+    if (!_linkCtrl.isClosed) _linkCtrl.add(s);
+  }
+
   void _handleBluetoothOff() {
     _isConnected = false;
     if (!_connCtrl.isClosed) _connCtrl.add(false);
     if (!_readyCtrl.isClosed) _readyCtrl.add(false);
+
+    _emitLink(BleLinkStatus.disconnected);
     _teardown();
   }
 
@@ -73,13 +90,28 @@ class UuidBluetoothManager {
 
     await stopScan();
 
-    await FlutterBluePlus.startScan(timeout: timeout);
+    try {
+      await FlutterBluePlus.startScan(timeout: timeout);
+    } catch (e) {
+      if (kDebugMode) {
+        // ignore: avoid_print
+        print("⚠️ startScan error: $e");
+      }
+      return;
+    }
 
+    await _scanSub?.cancel();
     _scanSub = FlutterBluePlus.scanResults.listen((results) {
       final filtered = results.where((r) {
-        final adv = r.advertisementData;
-        final matchesName = r.device.platformName.contains("Respyr");
-        final matchesService = adv.serviceUuids.contains(serviceUuid.toString());
+        final name = (r.device.platformName).toLowerCase();
+        final matchesName = name.contains("respyr");
+
+        // serviceUuids may be Guid or String depending on plugin versions
+        final advUuids = r.advertisementData.serviceUuids
+            .map((e) => e.toString().toLowerCase())
+            .toList();
+        final matchesService = advUuids.contains(serviceUuid.toString().toLowerCase());
+
         return matchesName || matchesService;
       }).toList();
 
@@ -106,78 +138,105 @@ class UuidBluetoothManager {
   }
 
   Future<void> connect(BluetoothDevice device, {Function? onConnected}) async {
-    await stopScan();
-
-    if (_device != null && _device!.remoteId != device.remoteId) {
-      try {
-        await _device?.disconnect();
-      } catch (_) {}
+    if (_connecting) {
+      if (kDebugMode) {
+        // ignore: avoid_print
+        print("⚠️ connect() ignored — already connecting");
+      }
+      return;
     }
 
-    _device = device;
-
-    if (kDebugMode) {
-      // ignore: avoid_print
-      print("🔌 Connecting to ${device.remoteId.str}...");
-    }
+    _connecting = true;
+    _emitLink(BleLinkStatus.connecting);
 
     try {
-      await device.connect(autoConnect: false);
-    } catch (e) {
-      final msg = e.toString().toLowerCase();
-      if (!msg.contains("already connected")) {
-        if (kDebugMode) {
-          // ignore: avoid_print
-          print("⚠️ connect() threw: $e");
-        }
-      }
-    }
+      await stopScan();
 
-    await _connSub?.cancel();
-    _connSub = device.connectionState.listen((s) async {
-      final connected = s == BluetoothConnectionState.connected;
-      _isConnected = connected;
-      if (!_connCtrl.isClosed) _connCtrl.add(connected);
-
-      if (connected) {
+      if (_device != null && _device!.remoteId != device.remoteId) {
         try {
-          if (Platform.isAndroid) {
-            try {
-              await device.requestMtu(247);
-              if (kDebugMode) {
-                // ignore: avoid_print
-                print("✅ MTU requested");
-              }
-            } catch (e) {
-              if (kDebugMode) {
-                // ignore: avoid_print
-                print("⚠️ MTU request failed: $e");
-              }
-            }
-          }
+          await _device?.disconnect();
+        } catch (_) {}
+      }
 
-          await _discoverAndSubscribe();
+      _device = device;
 
-          if (!_readyCtrl.isClosed) _readyCtrl.add(true);
-          if (onConnected != null) onConnected();
-        } catch (e, st) {
+      if (kDebugMode) {
+        // ignore: avoid_print
+        print("🔌 Connecting to ${device.remoteId.str}...");
+      }
+
+      try {
+        await device.connect(autoConnect: false);
+      } catch (e) {
+        final msg = e.toString().toLowerCase();
+        if (!msg.contains("already connected")) {
           if (kDebugMode) {
             // ignore: avoid_print
-            print("❌ Discover/subscribe failed: $e\n$st");
+            print("⚠️ connect() threw: $e");
           }
+          // treat as failed connect
+          _emitLink(BleLinkStatus.disconnected);
+        }
+      }
+
+      await _connSub?.cancel();
+      _connSub = device.connectionState.listen((s) async {
+        final connected = s == BluetoothConnectionState.connected;
+        _isConnected = connected;
+
+        if (!_connCtrl.isClosed) _connCtrl.add(connected);
+
+        if (connected) {
+          _emitLink(BleLinkStatus.connected);
+
+          try {
+            if (Platform.isAndroid) {
+              try {
+                await device.requestMtu(247);
+                if (kDebugMode) {
+                  // ignore: avoid_print
+                  print("✅ MTU requested");
+                }
+              } catch (e) {
+                if (kDebugMode) {
+                  // ignore: avoid_print
+                  print("⚠️ MTU request failed: $e");
+                }
+              }
+            }
+
+            await _discoverAndSubscribe();
+
+            if (!_readyCtrl.isClosed) _readyCtrl.add(true);
+            if (onConnected != null) onConnected();
+          } catch (e, st) {
+            if (kDebugMode) {
+              // ignore: avoid_print
+              print("❌ Discover/subscribe failed: $e\n$st");
+            }
+            _emitLink(BleLinkStatus.disconnected);
+            _teardown();
+          }
+        } else {
+          // disconnected event (this covers LINK_SUPERVISION_TIMEOUT too)
+          _emitLink(BleLinkStatus.disconnected);
           _teardown();
         }
-      } else {
-        _teardown();
-      }
-    });
+      });
+    } finally {
+      _connecting = false;
+    }
   }
 
   Future<void> connectById(
       String id, {
         Duration scanTimeout = const Duration(seconds: 10),
       }) async {
-    final connected = await FlutterBluePlus.connectedDevices;
+    List<BluetoothDevice> connected = const [];
+    try {
+      connected = await FlutterBluePlus.connectedDevices;
+    } catch (_) {}
+
     final already = connected.where((d) => d.remoteId.str == id).toList();
     if (already.isNotEmpty) {
       return connect(already.first);
@@ -187,7 +246,16 @@ class UuidBluetoothManager {
     StreamSubscription<List<ScanResult>>? sub;
 
     await stopScan();
-    await FlutterBluePlus.startScan(timeout: scanTimeout);
+
+    try {
+      await FlutterBluePlus.startScan(timeout: scanTimeout);
+    } catch (e) {
+      if (kDebugMode) {
+        // ignore: avoid_print
+        print("⚠️ startScan(connectById) error: $e");
+      }
+      return;
+    }
 
     sub = FlutterBluePlus.scanResults.listen((results) async {
       for (final r in results) {
@@ -262,6 +330,11 @@ class UuidBluetoothManager {
         print('📨 Notification: $s');
       }
       if (!_dataCtrl.isClosed) _dataCtrl.add(s);
+    }, onError: (e) {
+      if (kDebugMode) {
+        // ignore: avoid_print
+        print("⚠️ notify stream error: $e");
+      }
     });
 
     if (kDebugMode) {
@@ -310,6 +383,7 @@ class UuidBluetoothManager {
   }
 
   Future<void> disconnect() async {
+    _emitLink(BleLinkStatus.disconnected);
     try {
       await _device?.disconnect();
     } catch (e) {
@@ -345,10 +419,17 @@ class UuidBluetoothManager {
   }
 
   Future<bool> getCurrentConnectionState() async {
-    final connected = await FlutterBluePlus.connectedDevices;
+    List<BluetoothDevice> connected = const [];
+    try {
+      connected = await FlutterBluePlus.connectedDevices;
+    } catch (_) {}
+
     if (_device != null) {
-      return connected.any((d) => d.remoteId == _device!.remoteId);
+      final ok = connected.any((d) => d.remoteId == _device!.remoteId);
+      _emitLink(ok ? BleLinkStatus.connected : BleLinkStatus.disconnected);
+      return ok;
     }
+    _emitLink(BleLinkStatus.disconnected);
     return false;
   }
 
@@ -388,6 +469,8 @@ class UuidBluetoothManager {
 
     if (!_connCtrl.isClosed) _connCtrl.add(false);
     if (!_readyCtrl.isClosed) _readyCtrl.add(false);
+
+    _emitLink(BleLinkStatus.disconnected);
   }
 
   void dispose() {
@@ -414,5 +497,7 @@ class UuidBluetoothManager {
     if (!_connCtrl.isClosed) _connCtrl.close();
     if (!_dataCtrl.isClosed) _dataCtrl.close();
     if (!_readyCtrl.isClosed) _readyCtrl.close();
+
+    if (!_linkCtrl.isClosed) _linkCtrl.close();
   }
 }

@@ -8,13 +8,11 @@ import 'package:respyr_dietitian/client-dashboard/data/model/diet_plan_strategy_
 import 'package:respyr_dietitian/common/dialogs/disconnection_dialog.dart';
 import 'package:respyr_dietitian/routes/app_routes.dart';
 
-import '../../data/datasource/bluetooth_manager.dart';
 import '../../data/repository/bluetooth_repository.dart';
 import '../../data/repository/generating_result_repository.dart';
 import '../../domain/params/result_screen_params.dart';
-import '../cubit/bluetooth_generating_result_cubit_new/bluetooth_generating_result_cubit.dart' show BluetoothGeneratingResultCubit;
-import '../cubit/bluetooth_generating_result_cubit_new/bluetooth_generating_result_state.dart' show BluetoothGeneratingResultState;
-
+import '../cubit/bluetooth_generating_result_cubit_new/bluetooth_generating_result_cubit.dart';
+import '../cubit/bluetooth_generating_result_cubit_new/bluetooth_generating_result_state.dart';
 
 class BluetoothGeneratingResultScreen extends StatefulWidget {
   final ClientProfileModel clientProfileModel;
@@ -56,7 +54,6 @@ class _BluetoothGeneratingResultScreenState
   void initState() {
     super.initState();
 
-    // Cache styles to avoid expensive re-calculations in the build method
     _titleStyle = GoogleFonts.poppins(
       color: const Color(0xFF252525),
       fontSize: 34,
@@ -92,17 +89,30 @@ class _BluetoothGeneratingResultScreenState
     super.dispose();
   }
 
-  void _handleNavigationLogic(BuildContext context, BluetoothGeneratingResultState state) {
+  void _handleNavigationLogic(
+      BuildContext context, BluetoothGeneratingResultState state) {
     if (state.isTimedOut) return;
 
-    if (state.isDialogShown && !_navigated) {
+    // 🔥 FIXED CONDITION
+    final waitingForDeviceData =
+        state.completedSteps < 2 &&
+            !state.navigateToResultScreen &&
+            !state.isTimedOut;
+
+    if (!state.isBluetoothConnected &&
+        !_navigated &&
+        waitingForDeviceData) {
       _navigated = true;
+
       showDeviceDisconnectedBox(
         context: context,
         onButtonPressed: () {
           if (!mounted) return;
           _cubit.dialogDismissed();
-          context.go(AppRoutes.clientDashboard, extra: widget.clientProfileModel);
+          context.go(
+            AppRoutes.clientDashboard,
+            extra: widget.clientProfileModel,
+          );
         },
       );
       return;
@@ -110,41 +120,34 @@ class _BluetoothGeneratingResultScreenState
 
     if (state.navigateToResultScreen && !_navigated) {
       _navigated = true;
-      _cubit.sendAbort();
 
-      // Trigger UI-only update for the bottom bar
-      setState(() => _showTurningOffBar = true);
 
-      _cubit.resetNavigationFlag();
-
-      Future.delayed(const Duration(seconds: 3), () {
+      Future.delayed(const Duration(seconds: 2), () {
         if (!mounted) return;
+        _cubit.sendAbort();
+        setState(() => _showTurningOffBar = true);
+        _cubit.resetNavigationFlag();
+
         context.go(
           AppRoutes.dietitianResultScreen,
           extra: ResultScreenParamsNew(
             clientProfileModel: widget.clientProfileModel,
-            result: state.dietitianResult!, // TestResultResponse
+            result: state.dietitianResult!,
           ),
         );
       });
     }
   }
 
-  void _closeAllOverlays() {
-    final nav = Navigator.of(context, rootNavigator: true);
-
-    while (nav.canPop()) {
-      nav.pop();
-    }
-  }
 
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider.value(
       value: _cubit,
-      child: BlocListener<BluetoothGeneratingResultCubit, BluetoothGeneratingResultState>(
-        // Only listen for navigation-related state changes
+      child: BlocListener<
+          BluetoothGeneratingResultCubit,
+          BluetoothGeneratingResultState>(
         listenWhen: (prev, next) =>
         prev.isTimedOut != next.isTimedOut ||
             prev.isDialogShown != next.isDialogShown ||
@@ -169,7 +172,8 @@ class _BluetoothGeneratingResultScreenState
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          padding:
+                          const EdgeInsets.symmetric(horizontal: 16),
                           child: Text(
                             "Generating result...",
                             textAlign: TextAlign.center,
@@ -177,8 +181,6 @@ class _BluetoothGeneratingResultScreenState
                           ),
                         ),
                         const SizedBox(height: 20),
-                        // RepaintBoundary prevents the text above from repainting
-                        // every time the GIF ticks a new frame.
                         RepaintBoundary(
                           child: Image.asset(
                             'assets/images/gif_images/gif_generating_result.gif',
@@ -189,10 +191,6 @@ class _BluetoothGeneratingResultScreenState
                       ],
                     ),
                   ),
-
-                  // Isolated the bottom bar into its own layer.
-                  // When the AnimatedSwitcher runs, it won't trigger a repaint
-                  // of the heavy GIF above it.
                   RepaintBoundary(
                     child: _TurningOffBar(
                       isVisible: _showTurningOffBar,
@@ -209,7 +207,6 @@ class _BluetoothGeneratingResultScreenState
   }
 }
 
-/// Extracted Widget to optimize the Build/Element tree
 class _TurningOffBar extends StatelessWidget {
   final bool isVisible;
   final TextStyle textStyle;

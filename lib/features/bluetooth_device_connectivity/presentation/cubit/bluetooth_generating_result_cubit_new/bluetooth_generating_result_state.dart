@@ -17,6 +17,7 @@ class BluetoothGeneratingResultState extends Equatable {
 
   final int remainingSeconds;
   final bool isTimedOut;
+  final bool dataReceivedFromDevice;
 
   const BluetoothGeneratingResultState({
     this.textError,
@@ -32,6 +33,7 @@ class BluetoothGeneratingResultState extends Equatable {
 
     this.remainingSeconds = 300,
     this.isTimedOut = false,
+    this.dataReceivedFromDevice = false,
   });
 
   BluetoothGeneratingResultState copyWith({
@@ -47,6 +49,7 @@ class BluetoothGeneratingResultState extends Equatable {
     TestResultResponse? dietitianResult,
     int? remainingSeconds,
     bool? isTimedOut,
+    bool? dataReceivedFromDevice,
   }) {
     return BluetoothGeneratingResultState(
       textError: textError ?? this.textError,
@@ -61,6 +64,7 @@ class BluetoothGeneratingResultState extends Equatable {
       dietitianResult: dietitianResult ?? this.dietitianResult,
       remainingSeconds: remainingSeconds ?? this.remainingSeconds,
       isTimedOut: isTimedOut ?? this.isTimedOut,
+      dataReceivedFromDevice: dataReceivedFromDevice ?? this.dataReceivedFromDevice,
     );
   }
 

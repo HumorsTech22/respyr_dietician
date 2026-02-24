@@ -8,7 +8,7 @@ import '../../../bluetooth_device_connectivity/data/model/test_result_data_model
 import 'metabolism_tab_card_new.dart';
 
 class SectionWidgetNew extends StatelessWidget {
-  final GlobalKey sectionKey;
+  // final GlobalKey sectionKey;
   final String metabolismType;
   final DietitianResultState state;
   final ClientProfileModel clientProfileModel;
@@ -17,7 +17,7 @@ class SectionWidgetNew extends StatelessWidget {
 
   const SectionWidgetNew({
     super.key,
-    required this.sectionKey,
+    // required this.sectionKey,
     required this.metabolismType,
     required this.state,
     required this.clientProfileModel,
@@ -34,14 +34,14 @@ class SectionWidgetNew extends StatelessWidget {
   static final Map<String, List<String>> _metabolismSubTypes = {
     "Gut": ["Nutrient Utilization Trend", "Digestive Activity"],
     "Fat": ["Fuel Utilization Trend", "Energy Source Trend"],
-    "Liver": [ "Metabolic Load Trend", "Recovery Activity Trend",],
+    "Liver": [  "Recovery Activity Trend","Metabolic Load Trend",],
   };
 
   // Range1: 80–100 optimal, 70–79.9 moderate, <70 focus
   static const Set<String> _range1Types = {
     "fuel utilization trend",
     "nutrient utilization trend",
-    "metabolic load trend",
+    "recovery activity trend",
   };
 
   bool _isRange1(String subtype) {
@@ -59,14 +59,14 @@ class SectionWidgetNew extends StatelessWidget {
     final metab1 = switch (metabolismType) {
       "Gut" => metabolism.nutrientUtilizationTrend,
       "Fat" => metabolism.fuelUtilizationTrend,
-      "Liver" => metabolism.metabolicLoadTrend,
+      "Liver" => metabolism.recoveryActivityTrend,
       _ => metabolism.nutrientUtilizationTrend,
     };
 
     final metab2 = switch (metabolismType) {
       "Gut" => metabolism.digestiveActivityTrend,
       "Fat" => metabolism.energySourceTrend,
-      "Liver" => metabolism.recoveryActivityTrend,
+      "Liver" => metabolism.metabolicLoadTrend,
 
       _ => metabolism.digestiveActivityTrend,
     };
@@ -80,7 +80,7 @@ class SectionWidgetNew extends StatelessWidget {
 
 
     return Container(
-      key: sectionKey,
+      // key: sectionKey,
       child: Stack(
         clipBehavior: Clip.none,
         children: [

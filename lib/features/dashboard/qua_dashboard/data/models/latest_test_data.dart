@@ -1,5 +1,6 @@
-import 'package:equatable/equatable.dart';
 import 'dart:convert';
+import 'package:equatable/equatable.dart';
+import 'package:flutter/foundation.dart';
 
 class LatestTestData extends Equatable {
   final String testId;
@@ -51,23 +52,57 @@ class LatestTestData extends Equatable {
   static double? _toDouble(dynamic v) {
     if (v == null) return null;
     if (v is num) return v.toDouble();
-    return double.tryParse(v.toString());
+    final s = v.toString().trim();
+    if (s.isEmpty) return null;
+    return double.tryParse(s);
+  }
+
+  static Map<String, dynamic>? _asMap(dynamic v) {
+    if (v is Map<String, dynamic>) return v;
+    if (v is Map) return v.map((k, val) => MapEntry(k.toString(), val));
+    return null;
+  }
+
+  static TestJsonData? _parseRespyrData(dynamic json) {
+    final m = _asMap(json);
+    if (m == null || m.isEmpty) return null;
+    return TestJsonData.fromJson(m);
+  }
+
+  static TestJsonData? _parseTestJson(dynamic testJsonRaw) {
+    if (testJsonRaw == null) return null;
+
+    // case 1: already map
+    final asMap = _asMap(testJsonRaw);
+    if (asMap != null && asMap.isNotEmpty) {
+      return TestJsonData.fromJson(asMap);
+    }
+
+    // case 2: string json
+    final s = testJsonRaw.toString().trim();
+    if (s.isEmpty) return null;
+
+    try {
+      final decoded = jsonDecode(s);
+      final map = _asMap(decoded);
+      if (map == null || map.isEmpty) return null;
+      return TestJsonData.fromJson(map);
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint("test_json parse failed: $e");
+      }
+      return null;
+    }
   }
 
   factory LatestTestData.fromJson(Map<String, dynamic> json) {
-    final rawTestJson = (json['test_json'] ?? '').toString().trim();
-    TestJsonData? testJsonData;
+    // ✅ prefer respyr_response if present
+    final respyrResponse = _parseRespyrData(json['respyr_response']);
 
-    if (rawTestJson.isNotEmpty) {
-      try {
-        final parsedJson = jsonDecode(rawTestJson) as Map<String, dynamic>;
-        testJsonData = TestJsonData.fromJson(parsedJson);
-      } catch (e) {
-        // keep null
-        // ignore: avoid_print
-        print('Error parsing test_json: $e');
-      }
-    }
+    // fallback to test_json
+    final testJsonData = respyrResponse ?? _parseTestJson(json['test_json']);
+
+    final rawTestJson = (json['test_json'] ?? '').toString().trim();
 
     return LatestTestData(
       testId: (json['test_id'] ?? '').toString(),
@@ -75,14 +110,11 @@ class LatestTestData extends Equatable {
       profileId: (json['profile_id'] ?? '').toString(),
       dietPlanId: (json['diet_plan_id'] ?? '').toString(),
       absorptiveMetabolismScore: _toDouble(json['absorptive_metabolism_score']),
-      fermentativeMetabolismScore:
-      _toDouble(json['fermentative_metabolism_score']),
+      fermentativeMetabolismScore: _toDouble(json['fermentative_metabolism_score']),
       fatMetabolismScore: _toDouble(json['fat_metabolism_score']),
       glucoseMetabolismScore: _toDouble(json['glucose_metabolism_score']),
-      hepaticStressMetabolismScore:
-      _toDouble(json['hepatic_stress_metabolism_score']),
-      detoxificationMetabolismScore:
-      _toDouble(json['detoxification_metabolism_score']),
+      hepaticStressMetabolismScore: _toDouble(json['hepatic_stress_metabolism_score']),
+      detoxificationMetabolismScore: _toDouble(json['detoxification_metabolism_score']),
       fatLossMetabolismScore: _toDouble(json['fat_loss_metabolism_score']),
       acetonePpm: _toDouble(json['acetone_ppm']),
       h2Ppm: _toDouble(json['h2_ppm']),
@@ -123,6 +155,7 @@ class TestJsonData extends Equatable {
   final MetabolismScoreAnalysis? metabolismScoreAnalysis;
   final BreathMarkerAnalysis? breathMarkerAnalysis;
   final FatLossMetabolismScore? fatLossMetabolismScore;
+
   final String? categoryClusters;
   final String? foodLevelEvaluation;
   final String? mode;
@@ -146,32 +179,31 @@ class TestJsonData extends Equatable {
     this.weeklyFoodPerformance,
   });
 
+  static Map<String, dynamic>? _map(dynamic v) {
+    if (v is Map<String, dynamic>) return v;
+    if (v is Map) return v.map((k, val) => MapEntry(k.toString(), val));
+    return null;
+  }
+
   factory TestJsonData.fromJson(Map<String, dynamic> json) {
+    final msa = _map(json['Metabolism_Score_Analysis']);
+    final bma = _map(json['breath_marker_analysis']);
+
+    // ✅ Your backend uses Fat_Use_Pattern_trend for fat-loss score
+    final fatUse = _map(json['Fat_Use_Pattern_trend']) ?? _map(json['fat_loss_metabolism_score']);
+
     return TestJsonData(
-      metabolismScoreAnalysis: json['Metabolism_Score_Analysis'] != null
-          ? MetabolismScoreAnalysis.fromJson(
-          json['Metabolism_Score_Analysis'] as Map<String, dynamic>)
-          : null,
-
-      breathMarkerAnalysis: json['breath_marker_analysis'] != null
-          ? BreathMarkerAnalysis.fromJson(
-          json['breath_marker_analysis'] as Map<String, dynamic>)
-          : null,
-
-      // ✅ UPDATED KEY HERE
-      fatLossMetabolismScore: json['Fat_Use_Pattern_trend'] != null
-          ? FatLossMetabolismScore.fromJson(
-          json['Fat_Use_Pattern_trend'] as Map<String, dynamic>)
-          : null,
-
-      categoryClusters: json['category_clusters'] as String?,
-      foodLevelEvaluation: json['food_level_evaluation'] as String?,
-      mode: json['mode'] as String?,
-      nonAdherenceWarning: json['non_adherence_warning'] as String?,
-      overallInterpretation: json['overall_interpretation'] as String?,
-      recommendedIntervention: json['recommended_intervention'] as String?,
-      systemStrainSummary: json['system_strain_summary'] as String?,
-      weeklyFoodPerformance: json['weekly_food_performance'] as String?,
+      metabolismScoreAnalysis: msa != null ? MetabolismScoreAnalysis.fromJson(msa) : null,
+      breathMarkerAnalysis: bma != null ? BreathMarkerAnalysis.fromJson(bma) : null,
+      fatLossMetabolismScore: fatUse != null ? FatLossMetabolismScore.fromJson(fatUse) : null,
+      categoryClusters: json['category_clusters']?.toString(),
+      foodLevelEvaluation: json['food_level_evaluation']?.toString(),
+      mode: json['mode']?.toString(),
+      nonAdherenceWarning: json['non_adherence_warning']?.toString(),
+      overallInterpretation: json['overall_interpretation']?.toString(),
+      recommendedIntervention: json['recommended_intervention']?.toString(),
+      systemStrainSummary: json['system_strain_summary']?.toString(),
+      weeklyFoodPerformance: json['weekly_food_performance']?.toString(),
     );
   }
 
@@ -191,9 +223,7 @@ class TestJsonData extends Equatable {
   ];
 }
 
-
 class MetabolismScoreAnalysis extends Equatable {
-  // ✅ Keep old field names (so UI doesn’t break)
   final MetabolismScore absorption;
   final MetabolismScore detoxification;
   final MetabolismScore fatMetabolism;
@@ -212,54 +242,40 @@ class MetabolismScoreAnalysis extends Equatable {
     this.metabolismScoreSummary,
   });
 
-  factory MetabolismScoreAnalysis.fromJson(Map<String, dynamic> json) {
-    Map<String, dynamic> _map(dynamic v) {
-      if (v is Map<String, dynamic>) return v;
-      return const <String, dynamic>{};
-    }
+  static Map<String, dynamic> _safeMap(dynamic v) {
+    if (v is Map<String, dynamic>) return v;
+    if (v is Map) return v.map((k, val) => MapEntry(k.toString(), val));
+    return const <String, dynamic>{};
+  }
 
-    // ✅ OLD FORMAT (absorption/fermentation/etc.)
-    if (json['absorption'] != null) {
+  factory MetabolismScoreAnalysis.fromJson(Map<String, dynamic> json) {
+    // Old format support (if ever returned)
+    final isOld = json['absorption'] != null;
+
+    if (isOld) {
       return MetabolismScoreAnalysis(
-        absorption: MetabolismScore.fromJson(_map(json['absorption'])),
-        detoxification: MetabolismScore.fromJson(_map(json['detoxification'])),
-        fatMetabolism: MetabolismScore.fromJson(_map(json['fat_metabolism'])),
-        fermentation: MetabolismScore.fromJson(_map(json['fermentation'])),
-        glucoseMetabolism:
-        MetabolismScore.fromJson(_map(json['glucose_metabolism'])),
-        hepaticStress: MetabolismScore.fromJson(_map(json['hepatic_stress'])),
+        absorption: MetabolismScore.fromJson(_safeMap(json['absorption'])),
+        detoxification: MetabolismScore.fromJson(_safeMap(json['detoxification'])),
+        fatMetabolism: MetabolismScore.fromJson(_safeMap(json['fat_metabolism'])),
+        fermentation: MetabolismScore.fromJson(_safeMap(json['fermentation'])),
+        glucoseMetabolism: MetabolismScore.fromJson(_safeMap(json['glucose_metabolism'])),
+        hepaticStress: MetabolismScore.fromJson(_safeMap(json['hepatic_stress'])),
         metabolismScoreSummary: json['metabolism_score_summary'] != null
-            ? MetabolismScoreSummary.fromJson(
-          json['metabolism_score_summary'] as Map<String, dynamic>,
-        )
+            ? MetabolismScoreSummary.fromJson(_safeMap(json['metabolism_score_summary']))
             : null,
       );
     }
 
-    // ✅ NEW FORMAT (*_Trend keys)
+    // ✅ New format mapping (*_Trend keys)
     return MetabolismScoreAnalysis(
-      // absorption -> Nutrient_Utilization_Trend
-      absorption: MetabolismScore.fromJson(_map(json['Nutrient_Utilization_Trend'])),
-
-      // fermentation -> Digestive_Activity_Trend
-      fermentation: MetabolismScore.fromJson(_map(json['Digestive_Activity_Trend'])),
-
-      // fat_metabolism -> Fuel_Utilization_Trend
-      fatMetabolism: MetabolismScore.fromJson(_map(json['Fuel_Utilization_Trend'])),
-
-      // glucose_metabolism -> Energy_Source_Trend
-      glucoseMetabolism: MetabolismScore.fromJson(_map(json['Energy_Source_Trend'])),
-
-      // hepatic_stress -> Metabolic_Load_Trend
-      hepaticStress: MetabolismScore.fromJson(_map(json['Metabolic_Load_Trend'])),
-
-      // detoxification -> Recovery_Activity_Trend
-      detoxification: MetabolismScore.fromJson(_map(json['Recovery_Activity_Trend'])),
-
+      absorption: MetabolismScore.fromJson(_safeMap(json['Nutrient_Utilization_Trend'])),
+      fermentation: MetabolismScore.fromJson(_safeMap(json['Digestive_Activity_Trend'])),
+      fatMetabolism: MetabolismScore.fromJson(_safeMap(json['Fuel_Utilization_Trend'])),
+      glucoseMetabolism: MetabolismScore.fromJson(_safeMap(json['Energy_Source_Trend'])),
+      hepaticStress: MetabolismScore.fromJson(_safeMap(json['Metabolic_Load_Trend'])),
+      detoxification: MetabolismScore.fromJson(_safeMap(json['Recovery_Activity_Trend'])),
       metabolismScoreSummary: json['metabolism_score_summary'] != null
-          ? MetabolismScoreSummary.fromJson(
-        json['metabolism_score_summary'] as Map<String, dynamic>,
-      )
+          ? MetabolismScoreSummary.fromJson(_safeMap(json['metabolism_score_summary']))
           : null,
     );
   }
@@ -295,11 +311,11 @@ class MetabolismScore extends Equatable {
     required this.zone,
   });
 
-  static double? _toDouble(dynamic v) {
-    if (v == null) return null;
+  static double _toDouble(dynamic v) {
+    if (v == null) return 0.0;
     if (v is num) return v.toDouble();
-    if (v is String) return double.tryParse(v);
-    return double.tryParse(v.toString());
+    final s = v.toString().trim();
+    return double.tryParse(s) ?? 0.0;
   }
 
   factory MetabolismScore.fromJson(Map<String, dynamic> json) {
@@ -308,7 +324,7 @@ class MetabolismScore extends Equatable {
       interpretation: (json['interpretation'] ?? '').toString(),
       intervention: (json['intervention'] ?? '').toString(),
       ppmNote: (json['ppm_note'] ?? '').toString(),
-      score: _toDouble(json['score']) ?? 0.0,
+      score: _toDouble(json['score']),
       whatIsThisScore: (json['what_is_this_score'] ?? '').toString(),
       zone: (json['zone'] ?? '').toString(),
     );
@@ -327,7 +343,6 @@ class MetabolismScore extends Equatable {
 }
 
 class MetabolismScoreSummary extends Equatable {
-  // ✅ Keep old field names to avoid refactor elsewhere
   final String absorptiveScore;
   final String detoxificationScore;
   final String fatMetabolismScore;
@@ -345,26 +360,21 @@ class MetabolismScoreSummary extends Equatable {
   });
 
   factory MetabolismScoreSummary.fromJson(Map<String, dynamic> json) {
-    // NEW summary keys from backend (plus fallback for old ones if present)
+    String pick(List<String> keys) {
+      for (final k in keys) {
+        final v = json[k];
+        if (v != null && v.toString().trim().isNotEmpty) return v.toString();
+      }
+      return '';
+    }
+
     return MetabolismScoreSummary(
-      absorptiveScore:
-      (json['Nutrient Utilization Trend'] ?? json['Absorptive Score'] ?? '')
-          .toString(),
-      fermentativeScore:
-      (json['Digestive Activity Trend'] ?? json['Fermentative Score'] ?? '')
-          .toString(),
-      fatMetabolismScore:
-      (json['Fuel Utilization Trend'] ?? json['Fat Metabolism Score'] ?? '')
-          .toString(),
-      glucoseMetabolismScore:
-      (json['Energy Source Trend'] ?? json['Glucose Metabolism Score'] ?? '')
-          .toString(),
-      hepaticStressScore:
-      (json['Metabolic Load Trend'] ?? json['Hepatic Stress Score'] ?? '')
-          .toString(),
-      detoxificationScore:
-      (json['Recovery Activity Trend'] ?? json['Detoxification Score'] ?? '')
-          .toString(),
+      absorptiveScore: pick(['Nutrient Utilization Trend', 'Absorptive Score']),
+      fermentativeScore: pick(['Digestive Activity Trend', 'Fermentative Score']),
+      fatMetabolismScore: pick(['Fuel Utilization Trend', 'Fat Metabolism Score']),
+      glucoseMetabolismScore: pick(['Energy Source Trend', 'Glucose Metabolism Score']),
+      hepaticStressScore: pick(['Metabolic Load Trend', 'Hepatic Stress Score']),
+      detoxificationScore: pick(['Recovery Activity Trend', 'Detoxification Score']),
     );
   }
 
@@ -390,16 +400,17 @@ class BreathMarkerAnalysis extends Equatable {
     required this.hydrogen,
   });
 
-  factory BreathMarkerAnalysis.fromJson(Map<String, dynamic> json) {
-    Map<String, dynamic> _map(dynamic v) {
-      if (v is Map<String, dynamic>) return v;
-      return const <String, dynamic>{};
-    }
+  static Map<String, dynamic> _safeMap(dynamic v) {
+    if (v is Map<String, dynamic>) return v;
+    if (v is Map) return v.map((k, val) => MapEntry(k.toString(), val));
+    return const <String, dynamic>{};
+  }
 
+  factory BreathMarkerAnalysis.fromJson(Map<String, dynamic> json) {
     return BreathMarkerAnalysis(
-      acetone: BreathMarker.fromJson(_map(json['acetone'])),
-      ethanol: BreathMarker.fromJson(_map(json['ethanol'])),
-      hydrogen: BreathMarker.fromJson(_map(json['hydrogen'])),
+      acetone: BreathMarker.fromJson(_safeMap(json['acetone'])),
+      ethanol: BreathMarker.fromJson(_safeMap(json['ethanol'])),
+      hydrogen: BreathMarker.fromJson(_safeMap(json['hydrogen'])),
     );
   }
 
@@ -434,28 +445,29 @@ class BreathMarker extends Equatable {
     required this.zone,
   });
 
-  static double? _toDouble(dynamic v) {
-    if (v == null) return null;
+  static double _toDouble(dynamic v) {
+    if (v == null) return 0.0;
     if (v is num) return v.toDouble();
-    return double.tryParse(v.toString());
+    return double.tryParse(v.toString()) ?? 0.0;
+  }
+
+  static Map<String, dynamic> _safeMap(dynamic v) {
+    if (v is Map<String, dynamic>) return v;
+    if (v is Map) return v.map((k, val) => MapEntry(k.toString(), val));
+    return const <String, dynamic>{};
   }
 
   factory BreathMarker.fromJson(Map<String, dynamic> json) {
-    Map<String, dynamic> _map(dynamic v) {
-      if (v is Map<String, dynamic>) return v;
-      return const <String, dynamic>{};
-    }
-
     return BreathMarker(
-      advice: MarkerAdvice.fromJson(_map(json['advice'])),
-      diabetic: (json['diabetic'] ?? false) as bool,
+      advice: MarkerAdvice.fromJson(_safeMap(json['advice'])),
+      diabetic: (json['diabetic'] ?? false) == true,
       dietitianFocus: (json['dietitian_focus'] ?? '').toString(),
       fatLossPossible: (json['fat_loss_possible'] ?? '').toString(),
       interpretation: (json['interpretation'] ?? '').toString(),
       intervention: (json['intervention'] ?? '').toString(),
       marker: (json['marker'] ?? '').toString(),
-      ppm: _toDouble(json['ppm']) ?? 0.0,
-      ratios: MarkerRatios.fromJson(_map(json['ratios'])),
+      ppm: _toDouble(json['ppm']),
+      ratios: MarkerRatios.fromJson(_safeMap(json['ratios'])),
       userGoal: (json['user_goal'] ?? '').toString(),
       zone: (json['zone'] ?? '').toString(),
     );
@@ -517,24 +529,19 @@ class MarkerRatios extends Equatable {
   static double? _toDouble(dynamic v) {
     if (v == null) return null;
     if (v is num) return v.toDouble();
-    return double.tryParse(v.toString());
+    final s = v.toString().trim();
+    if (s.isEmpty) return null;
+    return double.tryParse(s);
   }
 
   factory MarkerRatios.fromJson(Map<String, dynamic> json) {
-    // supports both old and new ratio labels
     return MarkerRatios(
-      fatMetabolismPercent:
-      _toDouble(json['Fat Metabolism %'] ?? json['Fuel Utilization %']),
-      glucoseMetabolismPercent: _toDouble(
-          json['Glucose Metabolism %'] ?? json['Energy Source %']),
-      hepaticStrainPercent:
-      _toDouble(json['Hepatic Strain %'] ?? json['Metabolic Load %']),
-      liverDetoxPercent:
-      _toDouble(json['Liver Detox %'] ?? json['Recovery Activity %']),
-      absorptivePercent:
-      _toDouble(json['Absorptive %'] ?? json['Nutrient Utilization %']),
-      fermentationPercent:
-      _toDouble(json['Fermentation %'] ?? json['Digestive Activity %']),
+      fatMetabolismPercent: _toDouble(json['Fat Metabolism %'] ?? json['Fuel Utilization %']),
+      glucoseMetabolismPercent: _toDouble(json['Glucose Metabolism %'] ?? json['Energy Source %']),
+      hepaticStrainPercent: _toDouble(json['Hepatic Strain %'] ?? json['Metabolic Load %']),
+      liverDetoxPercent: _toDouble(json['Liver Detox %'] ?? json['Recovery Activity %']),
+      absorptivePercent: _toDouble(json['Absorptive %'] ?? json['Nutrient Utilization %']),
+      fermentationPercent: _toDouble(json['Fermentation %'] ?? json['Digestive Activity %']),
     );
   }
 
@@ -562,24 +569,33 @@ class FatLossMetabolismScore extends Equatable {
     required this.zone,
   });
 
-  static double? _toDouble(dynamic v) {
-    if (v == null) return null;
+  static double _toDouble(dynamic v) {
+    if (v == null) return 0.0;
     if (v is num) return v.toDouble();
-    return double.tryParse(v.toString());
+    return double.tryParse(v.toString()) ?? 0.0;
+  }
+
+  static String _extract(dynamic v) {
+    if (v == null) return '';
+    if (v is Map<String, dynamic>) {
+      final text = v['text'];
+      if (text != null && text.toString().trim().isNotEmpty) return text.toString();
+      final title = v['title'];
+      if (title != null && title.toString().trim().isNotEmpty) return title.toString();
+      return '';
+    }
+    if (v is Map) {
+      final m = v.map((k, val) => MapEntry(k.toString(), val));
+      return _extract(m);
+    }
+    return v.toString();
   }
 
   factory FatLossMetabolismScore.fromJson(Map<String, dynamic> json) {
-    String _extract(dynamic v) {
-      if (v == null) return '';
-      // backend sometimes sends {title,text}
-      if (v is Map<String, dynamic>) return (v['text'] ?? v['title'] ?? '').toString();
-      return v.toString();
-    }
-
     return FatLossMetabolismScore(
       clientInterpretation: _extract(json['client_interpretation']),
       scientificInterpretation: _extract(json['scientific_interpretation']),
-      score: _toDouble(json['score']) ?? 0.0,
+      score: _toDouble(json['score']),
       zone: (json['zone'] ?? '').toString(),
     );
   }

@@ -26,13 +26,14 @@ class ResultOverviewCard extends StatelessWidget {
   static final Map<String, String> _metabolismSubTypeOne = {
     "Gut": "Nutrient\nUtilization Trend",
     "Fat": "Fuel\nUtilization Trend",
-    "Liver": "Metabolic\nLoad Trend",
+    "Liver": "Recovery\nActivity Trend",
+
   };
 
   static final Map<String, String> _metabolismSubTypeTwo = {
     "Gut": "Digestive\nActivity Trend",
     "Fat": "Energy\nSource Trend",
-    "Liver": "Recovery\nActivity Trend",
+    "Liver": "Metabolic\nLoad Trend",
   };
 
   Map<String, double> _getScores(TestResultResponse result) {
@@ -51,8 +52,8 @@ class ResultOverviewCard extends StatelessWidget {
         };
       case "Liver":
         return {
-          "one": metabolism.metabolicLoadTrend.score,
-          "two": metabolism.recoveryActivityTrend.score,
+          "one": metabolism.recoveryActivityTrend.score,
+          "two": metabolism.metabolicLoadTrend.score,
         };
       default:
         return {"one": 0.0, "two": 0.0};
@@ -76,8 +77,8 @@ class ResultOverviewCard extends StatelessWidget {
         };
       case "Liver":
         return {
-          "one": safe(metabolism.metabolicLoadTrend.zone),
-          "two": safe(metabolism.recoveryActivityTrend.zone),
+          "one": safe(metabolism.recoveryActivityTrend.zone),
+          "two": safe(metabolism.metabolicLoadTrend.zone),
         };
       default:
         return {"one": '', "two": ''};

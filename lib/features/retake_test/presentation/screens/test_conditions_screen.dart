@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:go_router/go_router.dart';
+import 'package:respyr_dietitian/common/dialogs/cancel_Test_dialog.dart';
+import 'package:respyr_dietitian/common/dialogs/disconnection_dialog.dart';
+import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/datasource/bluetooth_manager.dart';
 
 import '../../../../client-dashboard/data/model/client_profile_model.dart';
 import '../../../../client-dashboard/data/model/diet_plan_strategy_model.dart';
@@ -15,7 +19,9 @@ class TestConditionsScreen extends StatelessWidget {
   final double minRange;
   final double maxRange;
 
-  const TestConditionsScreen({
+  final ui = UuidBluetoothManager();
+
+  TestConditionsScreen({
     super.key,
     required this.clientProfileModel,
     required this.dietPlanStrategyModel,
@@ -25,46 +31,74 @@ class TestConditionsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: TestConditionsTokens.appBarBlue,
-        actions: [
-          Semantics(
-            button: true,
-            label: 'Close',
-            child: IconButton(
-              onPressed: () => _navigateToDashboard(context),
-              icon: const Icon(Icons.close, color: Colors.white),
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) async {
+        if (didPop) return;
+        cancelTest(context);
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: TestConditionsTokens.appBarBlue,
+          actions: [
+            Semantics(
+              button: true,
+              label: 'Close',
+              child: IconButton(
+                onPressed: () => cancelTest(context),
+                icon: const Icon(Icons.close, color: Colors.white),
+              ),
             ),
-          ),
-        ],
-      ),
-      body: SafeArea(
-        child: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: TestConditionsTokens.gradientColors,
-              stops: TestConditionsTokens.gradientStops,
+          ],
+        ),
+        body: SafeArea(
+          child: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: TestConditionsTokens.gradientColors,
+                stops: TestConditionsTokens.gradientStops,
+              ),
             ),
-          ),
-          child: const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TestConditionsHeader(),
-              Expanded(child: TestConditionsSheet()),
-            ],
+            child: const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TestConditionsHeader(),
+                Expanded(child: TestConditionsSheet()),
+              ],
+            ),
           ),
         ),
-      ),
-      bottomNavigationBar: TestConditionsBottomCta(
-        confirmedToNavigate: () => _navigateToBluetooth(context),
+        bottomNavigationBar: TestConditionsBottomCta(
+          confirmedToNavigate: () async {
+            final connected =  FlutterBluePlus.connectedDevices;
+
+            if (connected.isNotEmpty) {
+              _navigateToBluetooth(context);
+            } else {
+              showDeviceDisconnectedBox(
+                context: context,
+                onButtonPressed: () {
+                  ui.clearAllConnections();
+                  navigateToDashboard(context);
+                },
+              );
+            }
+          },
+        ),
       ),
     );
   }
 
-  void _navigateToDashboard(BuildContext context) {
+  void cancelTest(BuildContext context) {
+    showCancelTestDialog(context, () {
+      ui.clearAllConnections();
+      navigateToDashboard(context);
+    });
+  }
+
+  void navigateToDashboard(BuildContext context) {
     context.go(
       AppRoutes.clientDashboard,
       extra: clientProfileModel,
@@ -81,6 +115,5 @@ class TestConditionsScreen extends StatelessWidget {
         "max_range": maxRange,
       },
     );
-
   }
 }

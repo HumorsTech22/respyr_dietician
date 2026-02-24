@@ -268,19 +268,22 @@ class _StartDeviceScreenState extends State<StartDeviceTestScreen> with WidgetsB
               },
             ),
             actions: [
-              ElevatedButton(
-                onPressed: () async {
-                  await AppSettings.openAppSettings(type: AppSettingsType.bluetooth);
-                },
-                style: ElevatedButton.styleFrom(
-                  elevation: 0,
-                  backgroundColor: const Color(0xFF252525),
-                ),
-                child: Text(
-                  "Open Settings",
-                  style: GoogleFonts.poppins(
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
+              Visibility(
+                visible: Platform.isAndroid,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    await AppSettings.openAppSettings(type: AppSettingsType.bluetooth);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    elevation: 0,
+                    backgroundColor: const Color(0xFF252525),
+                  ),
+                  child: Text(
+                    "Open Settings",
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ),

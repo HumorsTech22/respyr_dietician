@@ -40,11 +40,9 @@ class _DetailedResultScreenState extends State<DetailedResultScreen>
 
   Timer? _scrollDebounce;
 
-  // Used to measure pinned tabs height
   final GlobalKey _tabsBarKey = GlobalKey();
   double _tabsBarHeight = 0;
 
-  // Reveal offsets (correct for slivers)
   double? _fatReveal;
   double? _gutReveal;
   double? _liverReveal;
@@ -61,7 +59,6 @@ class _DetailedResultScreenState extends State<DetailedResultScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     viewModel.scrollController.addListener(_onVerticalScroll);
-
     _scheduleComputeOffsets();
   }
 
@@ -93,21 +90,20 @@ class _DetailedResultScreenState extends State<DetailedResultScreen>
   void _computeOffsetsIfPossible() {
     if (!mounted) return;
 
-    // Measure pinned header height (may be 0 until tab header is laid out)
     final tabsCtx = _tabsBarKey.currentContext;
     if (tabsCtx != null) {
       final box = tabsCtx.findRenderObject() as RenderBox?;
       if (box != null && box.hasSize) {
         _tabsBarHeight = box.size.height;
+        viewModel.setPinnedHeaderHeight(_tabsBarHeight);
       }
     }
 
-    final fat = _revealOffsetForKey(viewModel.fatKey);
-    final gut = _revealOffsetForKey(viewModel.gutKey);
-    final liver = _revealOffsetForKey(viewModel.liverKey);
+    final fat = _revealOffsetForKey(viewModel.fatAnchorKey);
+    final gut = _revealOffsetForKey(viewModel.gutAnchorKey);
+    final liver = _revealOffsetForKey(viewModel.liverAnchorKey);
 
     if (fat == null || gut == null || liver == null) {
-      // Not laid out yet (common for offscreen slivers) -> retry later
       _scheduleComputeOffsets();
       return;
     }
@@ -126,7 +122,6 @@ class _DetailedResultScreenState extends State<DetailedResultScreen>
     if (renderObject == null) return null;
 
     final viewport = RenderAbstractViewport.of(renderObject);
-
     final reveal = viewport.getOffsetToReveal(renderObject, 0.0);
     return reveal.offset;
   }
@@ -143,11 +138,8 @@ class _DetailedResultScreenState extends State<DetailedResultScreen>
     final cubit = context.read<DietitianResultCubit>();
     final offset = viewModel.scrollController.offset;
 
-    final tabsH = (_tabsBarHeight > 0)
-        ? _tabsBarHeight
-        : rh(context: context, px: 52); // fallback if not measured yet
+    final tabsH = (_tabsBarHeight > 0) ? _tabsBarHeight : rh(context: context, px: 52);
 
-    // Adjust for pinned header so selection matches what user sees under tabs
     final adjusted = offset + tabsH + rh(context: context, px: 12);
 
     String? nextTab;
@@ -170,13 +162,11 @@ class _DetailedResultScreenState extends State<DetailedResultScreen>
     }
   }
 
-  /// Ensures that the section's render object exists by doing a small pre-scroll if required.
-  Future<void> _ensureSectionIsLaidOut(GlobalKey sectionKey) async {
+  Future<void> _ensureSectionIsLaidOut(GlobalKey sectionAnchorKey) async {
     if (!viewModel.scrollController.hasClients) return;
 
-    // Try 3 quick attempts
     for (int i = 0; i < 3; i++) {
-      final off = _revealOffsetForKey(sectionKey);
+      final off = _revealOffsetForKey(sectionAnchorKey);
       if (off != null) return;
 
       final current = viewModel.scrollController.offset;
@@ -185,10 +175,7 @@ class _DetailedResultScreenState extends State<DetailedResultScreen>
       _programmaticScroll = true;
       try {
         await viewModel.scrollController.animateTo(
-          min(
-            current + jump,
-            viewModel.scrollController.position.maxScrollExtent,
-          ),
+          min(current + jump, viewModel.scrollController.position.maxScrollExtent),
           duration: const Duration(milliseconds: 220),
           curve: Curves.easeInOut,
         );
@@ -196,14 +183,13 @@ class _DetailedResultScreenState extends State<DetailedResultScreen>
         _programmaticScroll = false;
       }
 
-      // allow layout
       await Future.delayed(const Duration(milliseconds: 16));
       _computeOffsetsIfPossible();
     }
   }
 
   Future<void> _scrollToSection(
-      GlobalKey sectionKey,
+      GlobalKey sectionAnchorKey,
       String tabName,
       GlobalKey tabKey,
       ) async {
@@ -211,33 +197,21 @@ class _DetailedResultScreenState extends State<DetailedResultScreen>
 
     final cubit = context.read<DietitianResultCubit>();
     cubit.changeTab(tabName);
-
-    // Center the tab immediately (UX)
     viewModel.tabScrollTo(tabKey);
 
-    // Ensure the tab bar height is measured/present and section is laid out
     _offsetsComputed = false;
     _scheduleComputeOffsets();
     await Future.delayed(const Duration(milliseconds: 16));
     _computeOffsetsIfPossible();
 
-    // If the section is not laid out yet, do a tiny pre-scroll to force layout
-    await _ensureSectionIsLaidOut(sectionKey);
+    await _ensureSectionIsLaidOut(sectionAnchorKey);
 
-    final targetReveal = _revealOffsetForKey(sectionKey);
+    final targetReveal = _revealOffsetForKey(sectionAnchorKey);
     if (targetReveal == null) return;
 
-    final tabsH = (_tabsBarHeight > 0)
-        ? _tabsBarHeight
-        : rh(context: context, px: 52);
+    final tabsH = (_tabsBarHeight > 0) ? _tabsBarHeight : rh(context: context, px: 52);
 
-    // Scroll such that:
-    // - tab header becomes pinned to top
-    // - section starts just below pinned header
-    final target = max(
-      0.0,
-      targetReveal - tabsH - rh(context: context, px: 12),
-    );
+    final target = max(0.0, targetReveal - tabsH - rh(context: context, px: 12));
 
     _programmaticScroll = true;
     try {
@@ -250,7 +224,6 @@ class _DetailedResultScreenState extends State<DetailedResultScreen>
       _programmaticScroll = false;
     }
 
-    // recompute after animation
     _offsetsComputed = false;
     _scheduleComputeOffsets();
   }
@@ -260,9 +233,7 @@ class _DetailedResultScreenState extends State<DetailedResultScreen>
     WidgetsBinding.instance.removeObserver(this);
     _scrollDebounce?.cancel();
     viewModel.scrollController.removeListener(_onVerticalScroll);
-
-    viewModel.scrollController.dispose();
-    viewModel.tabScrollController.dispose();
+    viewModel.dispose();
     super.dispose();
   }
 
@@ -292,6 +263,7 @@ class _DetailedResultScreenState extends State<DetailedResultScreen>
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: const Color(0xFF308BF9),
+        centerTitle: false,
         automaticallyImplyLeading: false,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -326,53 +298,25 @@ class _DetailedResultScreenState extends State<DetailedResultScreen>
         ],
       ),
       body: SafeArea(
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Positioned.fill(
-              child: BlocBuilder<DietitianResultCubit, DietitianResultState>(
-                builder: (context, state) {
-                  _scheduleComputeOffsets();
+        child: BlocBuilder<DietitianResultCubit, DietitianResultState>(
+          builder: (context, state) {
+            _scheduleComputeOffsets();
 
-                  return CustomScrollView(
-                    controller: viewModel.scrollController,
-
-                    cacheExtent: cache,
-
-                    slivers: [
-                      ResultOverViewScreen(
-                        state: state,
-                        clientProfileModel: widget.clientProfileModel,
-                        result: widget.testResultResponse,
-                      ),
-                      _buildStickyTabs(context, state),
-                      _buildSections(context, state),
-                      _buildDisclaimer(),
-                    ],
-                  );
-                },
-              ),
-            ),
-            Positioned(
-              bottom: rh(context: context, px: 12),
-              left: 0,
-              right: 0,
-              child: Center(
-                child: IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  style: IconButton.styleFrom(
-                    backgroundColor: const Color(0xFF308BF9),
-                    shape: RoundedRectangleBorder(
-                      borderRadius:
-                      BorderRadius.circular(rh(context: context, px: 50)),
-                    ),
-                    padding: EdgeInsets.all(rh(context: context, px: 16)),
-                  ),
-                  icon: const Icon(Icons.keyboard_arrow_left, color: Colors.white),
+            return CustomScrollView(
+              controller: viewModel.scrollController,
+              cacheExtent: cache,
+              slivers: [
+                ResultOverViewScreen(
+                  state: state,
+                  clientProfileModel: widget.clientProfileModel,
+                  result: widget.testResultResponse,
                 ),
-              ),
-            ),
-          ],
+                _buildStickyTabs(context, state),
+                _buildSections(context, state),
+                _buildDisclaimer(),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -402,7 +346,7 @@ class _DetailedResultScreenState extends State<DetailedResultScreen>
           text: "Fuel & Energy Trends",
           isActive: state.selectedTab == "Fat",
           onTap: () => _scrollToSection(
-            viewModel.fatKey,
+            viewModel.fatAnchorKey,
             "Fat",
             viewModel.tabFatKey,
           ),
@@ -413,7 +357,7 @@ class _DetailedResultScreenState extends State<DetailedResultScreen>
           text: "Digestive Balance Trends",
           isActive: state.selectedTab == "Gut",
           onTap: () => _scrollToSection(
-            viewModel.gutKey,
+            viewModel.gutAnchorKey,
             "Gut",
             viewModel.tabGutKey,
           ),
@@ -424,7 +368,7 @@ class _DetailedResultScreenState extends State<DetailedResultScreen>
           text: "Metabolic Recovery Trends",
           isActive: state.selectedTab == "Liver",
           onTap: () => _scrollToSection(
-            viewModel.liverKey,
+            viewModel.liverAnchorKey,
             "Liver",
             viewModel.tabLiverKey,
           ),
@@ -445,9 +389,8 @@ class _DetailedResultScreenState extends State<DetailedResultScreen>
         Padding(
           padding: EdgeInsets.all(rh(context: context, px: 16)),
           child: KeyedSubtree(
-            key: viewModel.fatKey,
+            key: viewModel.fatAnchorKey,
             child: SectionWidgetNew(
-              sectionKey: viewModel.fatKey,
               metabolismType: 'Fat',
               state: state,
               clientProfileModel: widget.clientProfileModel,
@@ -459,9 +402,8 @@ class _DetailedResultScreenState extends State<DetailedResultScreen>
         Padding(
           padding: EdgeInsets.all(rh(context: context, px: 16)),
           child: KeyedSubtree(
-            key: viewModel.gutKey,
+            key: viewModel.gutAnchorKey,
             child: SectionWidgetNew(
-              sectionKey: viewModel.gutKey,
               metabolismType: 'Gut',
               state: state,
               clientProfileModel: widget.clientProfileModel,
@@ -473,9 +415,8 @@ class _DetailedResultScreenState extends State<DetailedResultScreen>
         Padding(
           padding: EdgeInsets.all(rh(context: context, px: 16)),
           child: KeyedSubtree(
-            key: viewModel.liverKey,
+            key: viewModel.liverAnchorKey,
             child: SectionWidgetNew(
-              sectionKey: viewModel.liverKey,
               metabolismType: 'Liver',
               state: state,
               clientProfileModel: widget.clientProfileModel,

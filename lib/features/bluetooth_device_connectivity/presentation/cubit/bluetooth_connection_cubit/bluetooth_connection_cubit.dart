@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart' as fbp;
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/model/bluetooth_device_model.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/repository/bluetooth_repository.dart';
+
 import '../../../data/datasource/bluetooth_manager.dart';
 import 'bluetooth_connection_state.dart';
 
@@ -21,6 +22,9 @@ class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
   Timer? _scanRetryTimer;
   Timer? _pruneTimer;
   Timer? _scanKickTimer;
+
+  // ✅ NEW
+  StreamSubscription? _linkSub;
 
   static const Duration _readyTimeout = Duration(seconds: 5);
 
@@ -58,7 +62,8 @@ class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
       emit(s);
       _log(
         "EMIT => status=${s.status}, scan=${s.isScanning}, conn=${s.isConnected}, "
-            "connecting=${s.isConnecting}, id=${s.connectingDeviceId}, ready=${s.deviceReady}",
+            "connecting=${s.isConnecting}, id=${s.connectingDeviceId}, ready=${s.deviceReady}, "
+            "reconnecting=${s.isReconnecting}, linkMsg=${s.linkMessage}",
       );
     }
   }
@@ -75,6 +80,9 @@ class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
     _listenData();
     _listenDeviceReady();
 
+    // ✅ NEW: listen link status from manager
+    _listenLinkStatus();
+
     if (repo.isConnected) {
       _wasEverConnected = true;
       _handshakeCompleted = false;
@@ -88,7 +96,12 @@ class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
         isScanning: false,
         clearTextError: true,
         deviceIsInhaleOrExhaleMode: false,
+
+        // ✅ clear reconnect UI
+        isReconnecting: false,
+        clearLinkMessage: true,
       ));
+
       await _checkAppReadiness();
       return;
     }
@@ -103,10 +116,61 @@ class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
       isDeviceError: false,
       clearTextError: true,
       clearConnectingDeviceId: true,
+
+      // ✅ clear reconnect UI
+      isReconnecting: false,
+      clearLinkMessage: true,
     ));
 
     _scanRequested = true;
     await _startScanFlow();
+  }
+
+  // ✅ NEW: convert manager link status -> UI flags only
+  void _listenLinkStatus() {
+    _linkSub?.cancel();
+
+    _linkSub = UuidBluetoothManager().linkStatusStream.listen((s) {
+      _log("LINK_STATUS => $s");
+
+      switch (s) {
+        case BleLinkStatus.reconnecting:
+          safeEmit(state.copyWith(
+            isReconnecting: true,
+            linkMessage: "Connection lost. Reconnecting...",
+            status: BluetoothConnectionStatus.connecting,
+            deviceReady: false,
+            isDeviceError: false,
+            clearTextError: true,
+          ));
+          break;
+
+        case BleLinkStatus.connecting:
+          safeEmit(state.copyWith(
+            isReconnecting: false,
+            linkMessage: "Connecting...",
+          ));
+          break;
+
+        case BleLinkStatus.connected:
+          safeEmit(state.copyWith(
+            isReconnecting: false,
+            clearLinkMessage: true,
+          ));
+          break;
+
+        case BleLinkStatus.disconnected:
+        // Don’t force scan/stop here — your existing connection stream will do that.
+          safeEmit(state.copyWith(
+            isReconnecting: false,
+            linkMessage: "Disconnected",
+            deviceReady: false,
+          ));
+          break;
+      }
+    }, onError: (e) {
+      _log("LINK_STATUS ERROR => $e");
+    });
   }
 
   void _listenAdapter() {
@@ -139,6 +203,10 @@ class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
           status: BluetoothConnectionStatus.disconnected,
           isDeviceError: false,
           clearConnectingDeviceId: true,
+
+          // ✅ show bluetooth off message
+          isReconnecting: false,
+          linkMessage: "Bluetooth is off",
         ));
         return;
       }
@@ -180,6 +248,10 @@ class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
           status: BluetoothConnectionStatus.connected,
           isScanning: false,
           clearTextError: true,
+
+          // ✅ clear reconnect UI
+          isReconnecting: false,
+          clearLinkMessage: true,
         ));
 
         await _checkAppReadiness();
@@ -208,6 +280,7 @@ class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
         deviceReady: false,
         status: BluetoothConnectionStatus.disconnected,
         clearConnectingDeviceId: true,
+        // NOTE: reconnect banner handled by linkStatusStream if it’s reconnecting
       ));
 
       _scanRequested = true;
@@ -226,9 +299,7 @@ class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
 
     _log("_listenDeviceReady() subscribed");
     _readySub = repo.deviceReadyStream().listen((isGattReady) async {
-      _log(
-        "READY_STREAM => isGattReady=$isGattReady | state.isConnected=${state.isConnected}",
-      );
+      _log("READY_STREAM => $isGattReady | isConnected=${state.isConnected}");
       if (isGattReady && state.isConnected) {
         await _checkAppReadiness();
       }
@@ -267,7 +338,6 @@ class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
       }
 
       await repo.ensureScanPrerequisites();
-
       await Future.delayed(const Duration(milliseconds: 350));
 
       startScan(timeout: timeout);
@@ -284,16 +354,13 @@ class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
   }
 
   Future<void> _checkAppReadiness() async {
-    _log(
-      "_checkAppReadiness() called | completed=$_handshakeCompleted, inProgress=$_handshakeInProgress",
-    );
+    _log("_checkAppReadiness() completed=$_handshakeCompleted inProgress=$_handshakeInProgress");
 
     if (!state.isConnected) return;
     if (_handshakeCompleted) return;
     if (_handshakeInProgress) return;
 
     _handshakeInProgress = true;
-
     _readyTimeoutTimer?.cancel();
 
     await _sendHandshake();
@@ -362,7 +429,6 @@ class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
         for (final d in devices) {
           final name = d.name.trim().toLowerCase();
           if (!name.contains("respyr")) continue;
-
           _seen[d.id] = _SeenDevice(d, now);
         }
 
@@ -382,8 +448,12 @@ class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
     );
   }
 
-  void startScan({Duration timeout = const Duration(seconds: 15)}) {
-    UuidBluetoothManager().clearAllConnections();
+  void startScan({Duration timeout = const Duration(seconds: 15)}) async{
+
+    try {
+      await repo.stopScan();
+    } catch (_) {}
+
     if (state.isConnected || state.isConnecting) return;
 
     _scanSub?.cancel();
@@ -400,6 +470,10 @@ class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
       isDeviceError: false,
       clearTextError: true,
       clearConnectingDeviceId: true,
+
+      // ✅ scanning hides reconnect banner
+      isReconnecting: false,
+      clearLinkMessage: true,
     ));
 
     _attachRepoScan(timeout: timeout);
@@ -491,6 +565,9 @@ class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
       deviceReady: false,
       isDeviceError: false,
       clearTextError: true,
+
+      isReconnecting: false,
+      linkMessage: "Connecting...",
     ));
 
     try {
@@ -502,6 +579,7 @@ class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
         isConnecting: false,
         isConnected: false,
         clearConnectingDeviceId: true,
+        isReconnecting: false,
       ));
       _scanRequested = true;
       await _startScanFlow();
@@ -535,32 +613,24 @@ class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
     }
   }
 
-
   void _handleFullFrame(String frame) {
     final f = frame.trim();
 
-    // 🔴 Error handling first  (UNCHANGED)
     if (f.contains("ERROR")) {
       final errorMessage = f == "{ERROR:003}" ? "LOW_BATTERY" : "DEVICE_ERROR";
       safeEmit(state.copyWith(isDeviceError: true, textError: errorMessage));
       return;
     }
 
-    // ✅ Inhale/Exhale detection (ONLY these 2 patterns)
-    final bool isInhaleExhalePacket =
-        _slashNum.hasMatch(f) || _curlyNum.hasMatch(f);
-
+    final bool isInhaleExhalePacket = _slashNum.hasMatch(f) || _curlyNum.hasMatch(f);
     if (isInhaleExhalePacket) {
       _log("✅ INHALE/EXHALE DETECTED => $f");
-
       if (!deviceIsExhaleOrInhaleModeCalled) {
         deviceIsExhaleOrInhaleModeCalled = true;
         safeEmit(state.copyWith(deviceIsInhaleOrExhaleMode: true));
       }
     }
   }
-
-
 
   @override
   Future<void> close() async {
@@ -574,6 +644,8 @@ class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
     await _dataSub?.cancel();
     await _readySub?.cancel();
     await _scanSub?.cancel();
+    await _linkSub?.cancel();
+
     return super.close();
   }
 }

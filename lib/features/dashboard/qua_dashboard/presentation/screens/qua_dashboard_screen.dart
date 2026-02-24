@@ -96,8 +96,6 @@ class _QuaDashboardScreenState extends State<QuaDashboardScreen> {
     }
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     if (_updating) {

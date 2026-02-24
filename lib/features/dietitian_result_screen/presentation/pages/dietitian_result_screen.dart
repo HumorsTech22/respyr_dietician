@@ -97,33 +97,33 @@ class _DietitianResultScreenState extends State<DietitianResultScreen>
   }
 
   void _computeSectionOffsetsIfNeeded() {
-    if (!mounted) return;
-    if (_offsetsComputed) return;
-
-    try {
-      final gutCtx = viewModel.gutKey.currentContext;
-      final fatCtx = viewModel.fatKey.currentContext;
-      final liverCtx = viewModel.liverKey.currentContext;
-
-      if (gutCtx == null || fatCtx == null || liverCtx == null) {
-        WidgetsBinding.instance.addPostFrameCallback((_) => _computeSectionOffsetsIfNeeded());
-        return;
-      }
-
-      final scrollOffset = viewModel.scrollController.offset;
-
-      final gutBox = gutCtx.findRenderObject() as RenderBox;
-      final fatBox = fatCtx.findRenderObject() as RenderBox;
-      final liverBox = liverCtx.findRenderObject() as RenderBox;
-
-      _gutOffset = gutBox.localToGlobal(Offset.zero).dy + scrollOffset;
-      _fatOffset = fatBox.localToGlobal(Offset.zero).dy + scrollOffset;
-      _liverOffset = liverBox.localToGlobal(Offset.zero).dy + scrollOffset;
-
-      _offsetsComputed = true;
-    } catch (_) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _computeSectionOffsetsIfNeeded());
-    }
+    // if (!mounted) return;
+    // if (_offsetsComputed) return;
+    //
+    // try {
+    //   final gutCtx = viewModel.gutKey.currentContext;
+    //   final fatCtx = viewModel.fatKey.currentContext;
+    //   final liverCtx = viewModel.liverKey.currentContext;
+    //
+    //   if (gutCtx == null || fatCtx == null || liverCtx == null) {
+    //     WidgetsBinding.instance.addPostFrameCallback((_) => _computeSectionOffsetsIfNeeded());
+    //     return;
+    //   }
+    //
+    //   final scrollOffset = viewModel.scrollController.offset;
+    //
+    //   final gutBox = gutCtx.findRenderObject() as RenderBox;
+    //   final fatBox = fatCtx.findRenderObject() as RenderBox;
+    //   final liverBox = liverCtx.findRenderObject() as RenderBox;
+    //
+    //   _gutOffset = gutBox.localToGlobal(Offset.zero).dy + scrollOffset;
+    //   _fatOffset = fatBox.localToGlobal(Offset.zero).dy + scrollOffset;
+    //   _liverOffset = liverBox.localToGlobal(Offset.zero).dy + scrollOffset;
+    //
+    //   _offsetsComputed = true;
+    // } catch (_) {
+    //   WidgetsBinding.instance.addPostFrameCallback((_) => _computeSectionOffsetsIfNeeded());
+    // }
   }
 
   @override
@@ -514,40 +514,42 @@ class _DietitianResultScreenState extends State<DietitianResultScreen>
   }
 
   Widget _buildSections(BuildContext context, DietitianResultState state) {
-    return SliverList(
-      delegate: SliverChildListDelegate([
-        Padding(
-          padding: EdgeInsets.all(rh(context: context, px: 16)),
-          child: SectionWidget(
-            sectionKey: viewModel.gutKey,
-            metabolismType: 'Gut',
-            state: state,
-            clientProfileModel: widget.clientProfileModel,
-            result: widget.result,
-          ),
-        ),
-        Padding(
-          padding: EdgeInsets.all(rh(context: context, px: 16)),
-          child: SectionWidget(
-            sectionKey: viewModel.fatKey,
-            metabolismType: 'Fat',
-            state: state,
-            clientProfileModel: widget.clientProfileModel,
-            result: widget.result,
-          ),
-        ),
-        Padding(
-          padding: EdgeInsets.all(rh(context: context, px: 16)),
-          child: SectionWidget(
-            sectionKey: viewModel.liverKey,
-            metabolismType: 'Liver',
-            state: state,
-            clientProfileModel: widget.clientProfileModel,
-            result: widget.result,
-          ),
-        ),
-      ]),
-    );
+    // return SliverList(
+    //   delegate: SliverChildListDelegate([
+    //     Padding(
+    //       padding: EdgeInsets.all(rh(context: context, px: 16)),
+    //       child: SectionWidget(
+    //         sectionKey: viewModel.gutKey,
+    //         metabolismType: 'Gut',
+    //         state: state,
+    //         clientProfileModel: widget.clientProfileModel,
+    //         result: widget.result,
+    //       ),
+    //     ),
+    //     Padding(
+    //       padding: EdgeInsets.all(rh(context: context, px: 16)),
+    //       child: SectionWidget(
+    //         sectionKey: viewModel.fatKey,
+    //         metabolismType: 'Fat',
+    //         state: state,
+    //         clientProfileModel: widget.clientProfileModel,
+    //         result: widget.result,
+    //       ),
+    //     ),
+    //     Padding(
+    //       padding: EdgeInsets.all(rh(context: context, px: 16)),
+    //       child: SectionWidget(
+    //         sectionKey: viewModel.liverKey,
+    //         metabolismType: 'Liver',
+    //         state: state,
+    //         clientProfileModel: widget.clientProfileModel,
+    //         result: widget.result,
+    //       ),
+    //     ),
+    //   ]),
+    // );
+
+    return SizedBox();
   }
 
   Widget _buildDisclaimer() {
@@ -589,69 +591,71 @@ class _DietitianResultScreenState extends State<DietitianResultScreen>
 
   Widget _buildTabs(DietitianResultState state) {
     final cubit = context.read<DietitianResultCubit>();
-    return Row(
-      children: [
-        TabWidget(
-          key: viewModel.tabGutKey,
-          text: "Gut Fermentation Metabolism",
-          isActive: state.selectedTab == "Gut",
-          onTap: () async {
-            if (!mounted) return;
-            cubit.changeTab("Gut");
-            if (viewModel.gutKey.currentContext != null) {
-              await Scrollable.ensureVisible(
-                viewModel.gutKey.currentContext!,
-                duration: const Duration(milliseconds: 400),
-                curve: Curves.easeInOut,
-              );
-            }
-            viewModel.tabScrollTo(viewModel.tabGutKey);
-            _offsetsComputed = false;
-            WidgetsBinding.instance.addPostFrameCallback((_) => _computeSectionOffsetsIfNeeded());
-          },
-        ),
-        _divider(),
-        TabWidget(
-          key: viewModel.tabFatKey,
-          text: "Glucose vs Fat Metabolism",
-          isActive: state.selectedTab == "Fat",
-          onTap: () async {
-            if (!mounted) return;
-            cubit.changeTab("Fat");
-            if (viewModel.fatKey.currentContext != null) {
-              await Scrollable.ensureVisible(
-                viewModel.fatKey.currentContext!,
-                duration: const Duration(milliseconds: 400),
-                curve: Curves.easeInOut,
-              );
-            }
-            viewModel.tabScrollTo(viewModel.tabFatKey);
-            _offsetsComputed = false;
-            WidgetsBinding.instance.addPostFrameCallback((_) => _computeSectionOffsetsIfNeeded());
-          },
-        ),
-        _divider(),
-        TabWidget(
-          key: viewModel.tabLiverKey,
-          text: "Liver Hepatic Metabolism",
-          isActive: state.selectedTab == "Liver",
-          onTap: () async {
-            if (!mounted) return;
-            cubit.changeTab("Liver");
-            if (viewModel.liverKey.currentContext != null) {
-              await Scrollable.ensureVisible(
-                viewModel.liverKey.currentContext!,
-                duration: const Duration(milliseconds: 400),
-                curve: Curves.easeInOut,
-              );
-            }
-            viewModel.tabScrollTo(viewModel.tabLiverKey);
-            _offsetsComputed = false;
-            WidgetsBinding.instance.addPostFrameCallback((_) => _computeSectionOffsetsIfNeeded());
-          },
-        ),
-      ],
-    );
+    // return Row(
+    //   children: [
+    //     TabWidget(
+    //       key: viewModel.tabGutKey,
+    //       text: "Gut Fermentation Metabolism",
+    //       isActive: state.selectedTab == "Gut",
+    //       onTap: () async {
+    //         if (!mounted) return;
+    //         cubit.changeTab("Gut");
+    //         if (viewModel.gutKey.currentContext != null) {
+    //           await Scrollable.ensureVisible(
+    //             viewModel.gutKey.currentContext!,
+    //             duration: const Duration(milliseconds: 400),
+    //             curve: Curves.easeInOut,
+    //           );
+    //         }
+    //         viewModel.tabScrollTo(viewModel.tabGutKey);
+    //         _offsetsComputed = false;
+    //         WidgetsBinding.instance.addPostFrameCallback((_) => _computeSectionOffsetsIfNeeded());
+    //       },
+    //     ),
+    //     _divider(),
+    //     TabWidget(
+    //       key: viewModel.tabFatKey,
+    //       text: "Glucose vs Fat Metabolism",
+    //       isActive: state.selectedTab == "Fat",
+    //       onTap: () async {
+    //         if (!mounted) return;
+    //         cubit.changeTab("Fat");
+    //         if (viewModel.fatKey.currentContext != null) {
+    //           await Scrollable.ensureVisible(
+    //             viewModel.fatKey.currentContext!,
+    //             duration: const Duration(milliseconds: 400),
+    //             curve: Curves.easeInOut,
+    //           );
+    //         }
+    //         viewModel.tabScrollTo(viewModel.tabFatKey);
+    //         _offsetsComputed = false;
+    //         WidgetsBinding.instance.addPostFrameCallback((_) => _computeSectionOffsetsIfNeeded());
+    //       },
+    //     ),
+    //     _divider(),
+    //     TabWidget(
+    //       key: viewModel.tabLiverKey,
+    //       text: "Liver Hepatic Metabolism",
+    //       isActive: state.selectedTab == "Liver",
+    //       onTap: () async {
+    //         if (!mounted) return;
+    //         cubit.changeTab("Liver");
+    //         if (viewModel.liverKey.currentContext != null) {
+    //           await Scrollable.ensureVisible(
+    //             viewModel.liverKey.currentContext!,
+    //             duration: const Duration(milliseconds: 400),
+    //             curve: Curves.easeInOut,
+    //           );
+    //         }
+    //         viewModel.tabScrollTo(viewModel.tabLiverKey);
+    //         _offsetsComputed = false;
+    //         WidgetsBinding.instance.addPostFrameCallback((_) => _computeSectionOffsetsIfNeeded());
+    //       },
+    //     ),
+    //   ],
+    // );
+
+    return SizedBox();
   }
 
   Widget _divider() => Container(

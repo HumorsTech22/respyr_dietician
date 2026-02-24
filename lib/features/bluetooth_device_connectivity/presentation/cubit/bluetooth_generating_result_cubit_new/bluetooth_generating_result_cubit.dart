@@ -228,6 +228,9 @@ class BluetoothGeneratingResultCubit extends Cubit<BluetoothGeneratingResultStat
         print("✅ Final Test Data Ready for API: $replaced");
       }
 
+
+      emit(state.copyWith(dataReceivedFromDevice    : true));
+
       final apiResponse = await _callProcessRawDataApi(replaced);
 
       if (apiResponse != null) {

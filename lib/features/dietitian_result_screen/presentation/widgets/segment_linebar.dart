@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_gauges/gauges.dart';
 
@@ -6,48 +8,32 @@ enum ScoreZone { optimal, moderate, focus }
 class SegmentedScoreBar extends StatelessWidget {
   final double score;
   final bool isRange1;
+  final String zone;
 
   const SegmentedScoreBar({
     super.key,
     required this.score,
-    required this.isRange1,
+    required this.isRange1, required this.zone,
   });
 
-  ScoreZone get zone {
-    final v = score.clamp(0.0, 100.0);
 
-    if (isRange1) {
-      if (v >= 80.0) return ScoreZone.optimal;
-      if (v >= 70.0) return ScoreZone.moderate;
-      return ScoreZone.focus;
-    } else {
-      if (v <= 20.0) return ScoreZone.optimal;
-      if (v <= 30.0) return ScoreZone.moderate;
-      return ScoreZone.focus;
-    }
-  }
 
-  static String zoneText(ScoreZone z) {
+
+  static Color zoneColor(String zone) {
+    final z = zone.trim().toLowerCase();
+
     switch (z) {
-      case ScoreZone.optimal:
-        return "Optimal";
-      case ScoreZone.moderate:
-        return "Moderate";
-      case ScoreZone.focus:
-        return "Focus";
-    }
-  }
-
-  static Color zoneColor(ScoreZone z) {
-    switch (z) {
-      case ScoreZone.optimal:
+      case "optimal":
         return const Color(0xFF3FAF58);
-      case ScoreZone.moderate:
+      case "moderate":
         return const Color(0xFFFFBF2D);
-      case ScoreZone.focus:
+      case "focus":
         return const Color(0xFFE48326);
+      default:
+        return const Color(0xFF535359); // fallback (grey)
     }
   }
+
 
   double mapScoreToSegment(double s) {
     final v = s.clamp(0.0, 100.0);

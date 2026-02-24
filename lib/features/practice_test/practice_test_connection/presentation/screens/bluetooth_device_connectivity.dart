@@ -1,74 +1,49 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart' as fbp;
-import 'package:flutter_svg/svg.dart';
-import 'package:go_router/go_router.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:respyr_dietitian/client-dashboard/data/model/client_profile_model.dart';
-import 'package:respyr_dietitian/client-dashboard/data/model/diet_plan_strategy_model.dart';
 import 'package:respyr_dietitian/common/dialogs/bluetooth_enable_dialog.dart';
-import 'package:respyr_dietitian/common/dialogs/device_inhale_or_exhale_mode.dart';
 import 'package:respyr_dietitian/common/dialogs/device_low_battery.dart';
-import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/datasource/bluetooth_manager.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/repository/bluetooth_repository.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_connection_cubit/bluetooth_connection_cubit.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/cubit/bluetooth_connection_cubit/bluetooth_connection_state.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presentation/widgets/device_section.dart';
 import 'package:respyr_dietitian/features/practice_test/practice_test_home/bloc/practice_flow_bloc.dart';
 import 'package:respyr_dietitian/features/practice_test/practice_test_home/domain/enums/practice_test.dart';
-import 'package:respyr_dietitian/routes/app_routes.dart';
-
+import 'package:go_router/go_router.dart';
 
 class PracticeTestBluetoothDeviceConnectivity extends StatelessWidget {
-  // final ClientProfileModel clientProfileModel;
-  // final DietPlanStrategyModel dietPlanStrategyModel;
-  // final double minRange;
-  // final double maxRange;
-  // final bool isTestTaken;
+  final ClientProfileModel clientProfileModel;
 
   const PracticeTestBluetoothDeviceConnectivity({
     super.key,
-    // required this.clientProfileModel,
-    // required this.dietPlanStrategyModel,
-    // required this.minRange,
-    // required this.maxRange, required this.isTestTaken,
+    required this.clientProfileModel,
   });
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (ctx) => BluetoothConnectionCubit(ctx.read<BluetoothRepository>())
-        ..init(),
-      child: _BluetoothDeviceConnectivityView(
-        // clientProfileModel: clientProfileModel,
-        // dietPlanStrategyModel: dietPlanStrategyModel,
-        // minRange: minRange,
-        // maxRange: maxRange, isTestTaken: isTestTaken,
-      ),
+      create: (ctx) => BluetoothConnectionCubit(ctx.read<BluetoothRepository>())..init(),
+      child: _BluetoothDeviceConnectivityView(clientProfileModel: clientProfileModel),
     );
   }
 }
 
 class _BluetoothDeviceConnectivityView extends StatefulWidget {
-  // final ClientProfileModel clientProfileModel;
-  // final DietPlanStrategyModel dietPlanStrategyModel;
-  // final double minRange;
-  // final double maxRange;
-  // final bool isTestTaken;
+  final ClientProfileModel clientProfileModel;
 
-  const _BluetoothDeviceConnectivityView(
-    // required this.clientProfileModel,
-    // required this.dietPlanStrategyModel,
-    // required this.minRange,
-    // required this.maxRange, required this.isTestTaken,
-  );
+  const _BluetoothDeviceConnectivityView({
+    required this.clientProfileModel,
+  });
 
   @override
   State<_BluetoothDeviceConnectivityView> createState() =>
-      __BluetoothDeviceConnectivityViewState();
+      _BluetoothDeviceConnectivityViewState();
 }
 
-class __BluetoothDeviceConnectivityViewState
+class _BluetoothDeviceConnectivityViewState
     extends State<_BluetoothDeviceConnectivityView> {
   bool _dialogShown = false;
 
@@ -102,9 +77,8 @@ class __BluetoothDeviceConnectivityViewState
 
         if (adapterState == fbp.BluetoothAdapterState.on && _dialogShown) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (Navigator.of(context, rootNavigator: true).canPop()) {
-              Navigator.of(context, rootNavigator: true).pop();
-            }
+            final nav = Navigator.of(context, rootNavigator: true);
+            if (nav.canPop()) nav.pop();
             _dialogShown = false;
           });
         }
@@ -116,10 +90,9 @@ class __BluetoothDeviceConnectivityViewState
             automaticallyImplyLeading: false,
             actions: [
               IconButton(
-                onPressed: () async {
-                  final cubit = context.read<BluetoothConnectionCubit>();
-                  cubit.sendAbort();
-                  _navigateToDashboard();
+                onPressed: () {
+                  context.read<BluetoothConnectionCubit>().sendAbort();
+                  _navigateToDashboard(context);
                 },
                 icon: SvgPicture.asset("assets/images/common/closeicon.svg"),
               ),
@@ -130,27 +103,9 @@ class __BluetoothDeviceConnectivityViewState
             child: BlocListener<BluetoothConnectionCubit, BluetoothConnectionState>(
               listenWhen: (prev, curr) =>
               prev.isDeviceError != curr.isDeviceError ||
-                  prev.textError != curr.textError ||
-                  prev.deviceIsInhaleOrExhaleMode != curr.deviceIsInhaleOrExhaleMode,
+                  prev.textError != curr.textError,
               listener: (context, state) async {
-                // if(state.deviceIsInhaleOrExhaleMode){
-                //
-                //   await showDialog(
-                //     context: context,
-                //     barrierDismissible: false,
-                //     builder: (_) => WillPopScope(
-                //       onWillPop: () async => false,
-                //       child: DeviceInhaleOrExhaleMode(
-                //         onOk: (){
-                //           final cubit = context.read<BluetoothConnectionCubit>();
-                //           UuidBluetoothManager().clearAllConnections();
-                //           _navigateToDashboard();
-                //         },
-                //       ),
-                //     ),
-                //   );
-                // }
-                if (state.isDeviceError && state.textError=="LOW_BATTERY") {
+                if (state.isDeviceError && state.textError == "LOW_BATTERY") {
                   await showDialog(
                     context: context,
                     barrierDismissible: false,
@@ -158,10 +113,9 @@ class __BluetoothDeviceConnectivityViewState
                       onWillPop: () async => false,
                       child: DeviceLowBattery(
                         message: state.textError ?? '',
-                        onOk: (){
-                          final cubit = context.read<BluetoothConnectionCubit>();
-                          cubit.sendAbort();
-                          _navigateToDashboard();
+                        onOk: () {
+                          context.read<BluetoothConnectionCubit>().sendAbort();
+                          _navigateToDashboard(context);
                         },
                       ),
                     ),
@@ -190,17 +144,13 @@ class __BluetoothDeviceConnectivityViewState
       child: BlocBuilder<BluetoothConnectionCubit, BluetoothConnectionState>(
         builder: (context, state) {
           final isReady = state.deviceReady == true;
-
           final canStart = state.isConnected && isReady;
 
-          String buttonText;
-          if (!state.isConnected && state.isScanning) {
-            buttonText = "Start";
-          } else if (state.isConnected && !isReady) {
-            buttonText = "Checking device...";
-          } else {
-            buttonText = "Start";
-          }
+          final buttonText = (!state.isConnected && state.isScanning)
+              ? "Start"
+              : (state.isConnected && !isReady)
+              ? "Checking device..."
+              : "Start";
 
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -209,20 +159,17 @@ class __BluetoothDeviceConnectivityViewState
               child: ElevatedButton(
                 onPressed: canStart
                     ? () {
-
                   context.read<PracticeFlowBloc>().add(
                     PracticeFlowMarkCompleted(PracticeTestSteps.connect),
                   );
-
                   context.pop();
                 }
                     : null,
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   elevation: 0,
-                  backgroundColor: canStart
-                      ? const Color(0xFF308BF9)
-                      : const Color(0xFFD9D9D9),
+                  backgroundColor:
+                  canStart ? const Color(0xFF308BF9) : const Color(0xFFD9D9D9),
                 ),
                 child: Text(
                   buttonText,
@@ -268,11 +215,8 @@ class __BluetoothDeviceConnectivityViewState
     );
   }
 
-  void _navigateToDashboard() {
-
-  //   context.go(
-  //     AppRoutes.clientDashboard,
-  //     extra: widget.clientProfileModel,
-  //   );
+  void _navigateToDashboard(BuildContext context) {
+    // if needed:
+    // context.go(AppRoutes.clientDashboard, extra: widget.clientProfileModel);
   }
 }

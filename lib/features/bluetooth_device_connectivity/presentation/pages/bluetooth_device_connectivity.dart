@@ -72,113 +72,124 @@ class __BluetoothDeviceConnectivityViewState
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<fbp.BluetoothAdapterState>(
-      stream: fbp.FlutterBluePlus.adapterState,
-      initialData: fbp.BluetoothAdapterState.unknown,
-      builder: (context, snapshot) {
-        final adapterState = snapshot.data;
-
-        if (adapterState == fbp.BluetoothAdapterState.unknown) {
-          return const Scaffold(
-            body: Center(
-              child: CircularProgressIndicator(color: Color(0xFF308BF9)),
-            ),
-          );
-        }
-
-        if (adapterState != fbp.BluetoothAdapterState.on && !_dialogShown) {
-          _dialogShown = true;
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            showBluetoothEnableDialog(
-              context: context,
-              onButtonPressed: () {
-                fbp.FlutterBluePlus.turnOn();
-              },
-            ).then((_) => _dialogShown = false);
-          });
-        }
-
-        if (adapterState == fbp.BluetoothAdapterState.on && _dialogShown) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (Navigator.of(context, rootNavigator: true).canPop()) {
-              Navigator.of(context, rootNavigator: true).pop();
-            }
-            _dialogShown = false;
-          });
-        }
-
-        return Scaffold(
-          appBar: AppBar(
-            backgroundColor: Colors.white,
-            surfaceTintColor: Colors.white,
-            automaticallyImplyLeading: false,
-            actions: [
-              IconButton(
-                onPressed: () async {
-                  final cubit = context.read<BluetoothConnectionCubit>();
-                  cubit.sendAbort();
-                  _navigateToDashboard();
-                },
-                icon: SvgPicture.asset("assets/images/common/closeicon.svg"),
-              ),
-            ],
-          ),
-          backgroundColor: Colors.white,
-          body: SafeArea(
-            child: BlocListener<BluetoothConnectionCubit, BluetoothConnectionState>(
-              listenWhen: (prev, curr) =>
-              prev.isDeviceError != curr.isDeviceError ||
-                  prev.textError != curr.textError ||
-                  prev.deviceIsInhaleOrExhaleMode != curr.deviceIsInhaleOrExhaleMode,
-              listener: (context, state) async {
-                // if(state.deviceIsInhaleOrExhaleMode){
-                //
-                //   await showDialog(
-                //     context: context,
-                //     barrierDismissible: false,
-                //     builder: (_) => WillPopScope(
-                //       onWillPop: () async => false,
-                //       child: DeviceInhaleOrExhaleMode(
-                //         onOk: (){
-                //           final cubit = context.read<BluetoothConnectionCubit>();
-                //           UuidBluetoothManager().clearAllConnections();
-                //           _navigateToDashboard();
-                //         },
-                //       ),
-                //     ),
-                //   );
-                // }
-                if (state.isDeviceError && state.textError=="LOW_BATTERY") {
-                  await showDialog(
-                    context: context,
-                    barrierDismissible: false,
-                    builder: (_) => WillPopScope(
-                      onWillPop: () async => false,
-                      child: DeviceLowBattery(
-                        message: state.textError ?? '',
-                        onOk: (){
-                          final cubit = context.read<BluetoothConnectionCubit>();
-                          cubit.sendAbort();
-                          _navigateToDashboard();
-                        },
-                      ),
-                    ),
-                  );
-                }
-              },
-              child: BlocBuilder<BluetoothConnectionCubit, BluetoothConnectionState>(
-                builder: (context, state) {
-                  if (adapterState != fbp.BluetoothAdapterState.on) {
-                    return _bluetoothOffUI();
-                  }
-                  return DeviceSection(state: state);
-                },
-              ),
-            ),
-          ),
-          bottomNavigationBar: _bottomButton(),
-        );
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop){
+        final cubit = context.read<BluetoothConnectionCubit>();
+        cubit.sendAbort();
+        _navigateToDashboard();
       },
+      child: StreamBuilder<fbp.BluetoothAdapterState>(
+        stream: fbp.FlutterBluePlus.adapterState,
+        initialData: fbp.BluetoothAdapterState.unknown,
+        builder: (context, snapshot) {
+          final adapterState = snapshot.data;
+
+          if (adapterState == fbp.BluetoothAdapterState.unknown) {
+            return const Scaffold(
+              body: Center(
+                child: CircularProgressIndicator(color: Color(0xFF308BF9)),
+              ),
+            );
+          }
+
+          if (adapterState != fbp.BluetoothAdapterState.on && !_dialogShown) {
+            _dialogShown = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              showBluetoothEnableDialog(
+                context: context,
+                onButtonPressed: () {
+                  fbp.FlutterBluePlus.turnOn();
+                },
+              ).then((_) => _dialogShown = false);
+            });
+          }
+
+          if (adapterState == fbp.BluetoothAdapterState.on && _dialogShown) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (Navigator.of(context, rootNavigator: true).canPop()) {
+                Navigator.of(context, rootNavigator: true).pop();
+              }
+              _dialogShown = false;
+            });
+          }
+
+          return Scaffold(
+            appBar: AppBar(
+              backgroundColor: Colors.white,
+              surfaceTintColor: Colors.white,
+              automaticallyImplyLeading: false,
+              actions: [
+                IconButton(
+                  onPressed: () async {
+                    final cubit = context.read<BluetoothConnectionCubit>();
+                    cubit.sendAbort();
+                    _navigateToDashboard();
+                  },
+                  icon: SvgPicture.asset("assets/images/common/closeicon.svg"),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.white,
+            body: SafeArea(
+              child: BlocListener<BluetoothConnectionCubit, BluetoothConnectionState>(
+                listenWhen: (prev, curr) =>
+                prev.isDeviceError != curr.isDeviceError ||
+                    prev.textError != curr.textError ||
+                    prev.deviceIsInhaleOrExhaleMode != curr.deviceIsInhaleOrExhaleMode ||
+                    prev.isReconnecting != curr.isReconnecting ||
+                    prev.linkMessage != curr.linkMessage,
+
+                listener: (context, state) async {
+                  if(state.deviceIsInhaleOrExhaleMode){
+
+                    await showDialog(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (_) => WillPopScope(
+                        onWillPop: () async => false,
+                        child: DeviceInhaleOrExhaleMode(
+                          onOk: (){
+                            final cubit = context.read<BluetoothConnectionCubit>();
+                            UuidBluetoothManager().clearAllConnections();
+                            _navigateToDashboard();
+                          },
+                        ),
+                      ),
+                    );
+                  }
+                  if (state.isDeviceError && state.textError=="LOW_BATTERY") {
+                    await showDialog(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (_) => WillPopScope(
+                        onWillPop: () async => false,
+                        child: DeviceLowBattery(
+                          message: state.textError ?? '',
+                          onOk: (){
+                            final cubit = context.read<BluetoothConnectionCubit>();
+                            cubit.sendAbort();
+                            _navigateToDashboard();
+                          },
+                        ),
+                      ),
+                    );
+                  }
+                },
+                child: BlocBuilder<BluetoothConnectionCubit, BluetoothConnectionState>(
+                  builder: (context, state) {
+                    if (adapterState != fbp.BluetoothAdapterState.on) {
+                      return _bluetoothOffUI();
+                    }
+                    return DeviceSection(state: state);
+                  },
+                ),
+              ),
+            ),
+            bottomNavigationBar: _bottomButton(),
+          );
+        },
+      ),
     );
   }
 

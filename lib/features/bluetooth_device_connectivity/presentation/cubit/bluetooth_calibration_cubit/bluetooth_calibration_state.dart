@@ -1,5 +1,4 @@
 import 'package:equatable/equatable.dart';
-
 import '../../../data/model/breath_setting_model.dart' show BreathingSettings;
 
 class BluetoothCalibrationState extends Equatable {
@@ -20,6 +19,10 @@ class BluetoothCalibrationState extends Equatable {
   final bool isTimeOver;
   final BreathingSettings breathingSettings;
 
+  // ✅ NEW (for LINK_SUPERVISION_TIMEOUT / reconnect UI)
+  final bool isReconnecting;
+  final String? linkMessage;
+
   const BluetoothCalibrationState({
     this.textError,
     this.hasInternet = false,
@@ -35,7 +38,11 @@ class BluetoothCalibrationState extends Equatable {
     this.remainingSeconds = 100,
     this.isTimeOver = false,
     required this.breathingSettings,
-    this.startCalibrationTime=false,
+    this.startCalibrationTime = false,
+
+    // ✅ NEW
+    this.isReconnecting = false,
+    this.linkMessage,
   });
 
   factory BluetoothCalibrationState.initial() {
@@ -60,26 +67,32 @@ class BluetoothCalibrationState extends Equatable {
     bool? isTimeOver,
     BreathingSettings? breathingSettings,
     bool? startCalibrationTime,
+
+    // ✅ NEW
+    bool? isReconnecting,
+    String? linkMessage,
+    bool clearLinkMessage = false,
   }) {
     return BluetoothCalibrationState(
       textError: textError ?? this.textError,
       hasInternet: hasInternet ?? this.hasInternet,
-      isBluetoothConnected:
-      isBluetoothConnected ?? this.isBluetoothConnected,
+      isBluetoothConnected: isBluetoothConnected ?? this.isBluetoothConnected,
       isDialogShown: isDialogShown ?? this.isDialogShown,
-      navigateToInhaleScreen:
-      navigateToInhaleScreen ?? this.navigateToInhaleScreen,
+      navigateToInhaleScreen: navigateToInhaleScreen ?? this.navigateToInhaleScreen,
       isMuted: isMuted ?? this.isMuted,
       completedSteps: completedSteps ?? this.completedSteps,
       waitForInhaleCmd: waitForInhaleCmd ?? this.waitForInhaleCmd,
-      showPleaseWaitMessage:
-      showPleaseWaitMessage ?? this.showPleaseWaitMessage,
+      showPleaseWaitMessage: showPleaseWaitMessage ?? this.showPleaseWaitMessage,
       allSignalSent: allSignalSent ?? this.allSignalSent,
       isTimeStarted: isTimeStarted ?? this.isTimeStarted,
       remainingSeconds: remainingSeconds ?? this.remainingSeconds,
       isTimeOver: isTimeOver ?? this.isTimeOver,
       breathingSettings: breathingSettings ?? this.breathingSettings,
       startCalibrationTime: startCalibrationTime ?? this.startCalibrationTime,
+
+      // ✅ NEW
+      isReconnecting: isReconnecting ?? this.isReconnecting,
+      linkMessage: clearLinkMessage ? null : (linkMessage ?? this.linkMessage),
     );
   }
 
@@ -100,5 +113,9 @@ class BluetoothCalibrationState extends Equatable {
     isTimeOver,
     breathingSettings,
     startCalibrationTime,
+
+    // ✅ NEW
+    isReconnecting,
+    linkMessage,
   ];
 }
