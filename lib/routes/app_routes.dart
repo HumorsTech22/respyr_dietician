@@ -18,6 +18,9 @@ abstract class AppRoutes {
   static const signInWithEmail = '/sign-in-with-email';
   static const dietitianDetailScreen = '/dietician-detail-screen';
   static const chatScreen = '/chat';
+  static const foodType = '/food-type';
+  static const activityLevelScreen = '/activity-level-screen';
+  static const goalScreen = '/goal-screen';
 
 
 
@@ -25,6 +28,7 @@ abstract class AppRoutes {
   static const bluetoothDeviceConnectivity = '/bluetooth-device-connectivity';
   static const bluetoothBreatheTube = '/bluetooth-breathe-tube';
   static const bluetoothCalibrationScreen = '/bluetooth-calibration-screen';
+  static const bluetoothCalibrationScreenNew = '/bluetooth-calibration-screen-new';
   static const bluetoothInhaleScreen = '/bluetooth-inhale-screen';
   static const bluetoothExhaleScreen = '/bluetooth-exhale-screen';
   static const bluetoothGeneratingResultScreen = '/bluetooth-generating-result-screen';
@@ -58,10 +62,29 @@ abstract class AppRoutes {
   static const practiceTestScreen = 'practice-test-screen';
   static const practiceTestConnectivity = 'practice-test-connectivity';
   static const practiceTestInhaleScreen= 'practice-test-inhale-screen';
+  static const practiceTestExhaleScreen = 'practice-test-exhale-screen';
+  static const practiceFullTestScreen = 'practice-full-test-screen';
 
 
   // select clients
   static const selectClient= '/select-clients';
   static const whoIsUsing= '/who-is-using';
+  static const searchClients= '/search-clients';
+
+  static const coachDashboardMain= '/coach-dashboard-main';
+
+  // account subscription
+  static const freeTrainExpired= '/free-trail-expired';
+  static const activationCodeScree= '/activation-code-screen';
+  static const subscriptionScreen= '/subscription-screen';
+
+  static const profileCreationGreeting= '/profile-creation-greeting';
+
+  static const clientDietPlan= '/client-diet-plan';
+  static const habitMasterScreen= '/habit-master-screen';
+  static const selectHabitLevelScreen= '/select-habit-level-screen';
+
+  static const habitAnalysisScreen= '/habit-analysis-screen';
+
 
 }

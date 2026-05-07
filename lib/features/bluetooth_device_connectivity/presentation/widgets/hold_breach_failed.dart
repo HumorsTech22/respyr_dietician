@@ -43,25 +43,27 @@ class HoldBreachFailed extends StatelessWidget {
           ),
           SizedBox(height: rh(context: context, px: 37)),
           Expanded(child:  Image.asset("assets/images/device_connection/hold_failed.png"),),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: onStartAgain,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF308BF9),
-                padding: EdgeInsets.symmetric(
-                  vertical: rh(context: context, px: 16),
+          SafeArea(
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: onStartAgain,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF308BF9),
+                  padding: EdgeInsets.symmetric(
+                    vertical: rh(context: context, px: 16),
+                  ),
+                  elevation: 0,
                 ),
-                elevation: 0,
-              ),
-              child: Text(
-                "Start Again",
-                style: GoogleFonts.poppins(
-                  fontSize: rh(context: context, px: 15),
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                  height: rh(context: context, px: 1.10),
-                  letterSpacing: rh(context: context, px: 0.30),
+                child: Text(
+                  "Start Again",
+                  style: GoogleFonts.poppins(
+                    fontSize: rh(context: context, px: 15),
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    height: rh(context: context, px: 1.10),
+                    letterSpacing: rh(context: context, px: 0.30),
+                  ),
                 ),
               ),
             ),

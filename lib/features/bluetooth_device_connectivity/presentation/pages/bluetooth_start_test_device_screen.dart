@@ -5,18 +5,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../../../core/size/get_height.dart';
-import '../../../../client-dashboard/data/model/client_profile_model.dart';
-import '../../../../client-dashboard/data/model/diet_plan_strategy_model.dart';
-import '../../../../routes/app_routes.dart';
+import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/params/device_connectivity_params.dart';
+import 'package:respyr_dietitian/routes/app_routes.dart';
+import '../widgets/new_start_test_counter_screen.dart';
+
+
 
 class StartDeviceTestScreen extends StatefulWidget {
-  final ClientProfileModel clientProfileModel;
-  final DietPlanStrategyModel dietPlanStrategyModel;
-  final double minRange;
-  final double maxRange;
-  final bool isTakenTest;
-  const StartDeviceTestScreen({super.key, required this.clientProfileModel, required this.dietPlanStrategyModel, required this.minRange, required this.maxRange, required this.isTakenTest});
+
+  final DeviceConnectivityParams deviceConnectivityParams;
+  const StartDeviceTestScreen({super.key, required this.deviceConnectivityParams, });
 
   @override
   State<StartDeviceTestScreen> createState() => _StartDeviceScreenState();
@@ -307,20 +305,14 @@ class _StartDeviceScreenState extends State<StartDeviceTestScreen> with WidgetsB
   void _goNext() async{
       await context.push(
         AppRoutes.bluetoothDeviceConnectivity,
-        extra: {
-          "client": widget.clientProfileModel,
-          "strategy": widget.dietPlanStrategyModel,
-          "min_range": widget.minRange,
-          "max_range": widget.maxRange,
-          "is_test_taken": widget.isTakenTest,
-        },
+        extra: widget.deviceConnectivityParams,
       );
   }
 
   void _navigateToDashboard() {
     context.go(
       AppRoutes.clientDashboard,
-      extra: widget.clientProfileModel,
+      extra: widget.deviceConnectivityParams.clientProfileModel,
     );
   }
 

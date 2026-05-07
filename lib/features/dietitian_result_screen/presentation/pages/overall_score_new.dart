@@ -1,25 +1,27 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:respyr_dietitian/client-dashboard/data/model/client_profile_model.dart';
+import 'package:respyr_dietitian/common/features_allow/data/model/features_allow_model.dart';
+import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/model/respyr_unified_response.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/params/result_screen_params.dart';
 
 import '../../../../core/size/get_height.dart';
 import '../../../../routes/app_routes.dart';
-import '../../../bluetooth_device_connectivity/data/model/test_result_data_model_v2.dart';
 import '../../../bluetooth_device_connectivity/presentation/widgets/metabolism_scale.dart';
 
 class OverallScoreNew extends StatefulWidget {
-  final TestResultResponse testResultResponse;
+  final RespyrUnifiedResponse respyrUnifiedResponse;
   final ClientProfileModel clientProfileModel;
+  final FeaturesAllowData featuresAllowData;
 
   const OverallScoreNew({
     super.key,
-    required this.testResultResponse,
+    required this.respyrUnifiedResponse,
     required this.clientProfileModel,
+    required this.featuresAllowData,
   });
 
   @override
@@ -27,21 +29,24 @@ class OverallScoreNew extends StatefulWidget {
 }
 
 class _OverallScoreNewState extends State<OverallScoreNew> {
-  @override
-  void initState() {
-    super.initState();
-  }
-
   String formatDateTime(String? dateTime) {
     if (dateTime == null || dateTime.trim().isEmpty) return '';
 
     try {
-      final dt = DateTime.parse(dateTime);
-      final local = dt.toLocal();
+      final ist = DateFormat("yyyy-MM-dd HH:mm:ss").parse(dateTime, true);
+      final utc = ist.subtract(const Duration(hours: 5, minutes: 30));
+      final local = utc.toLocal();
       return DateFormat('d MMM yyyy, h:mma').format(local);
     } catch (_) {
       return dateTime;
     }
+  }
+
+  Future<bool> navToDashboard(BuildContext context) async {
+    if (context.mounted) {
+      context.go(AppRoutes.clientDashboard, extra: widget.clientProfileModel);
+    }
+    return false;
   }
 
   @override
@@ -71,7 +76,7 @@ class _OverallScoreNewState extends State<OverallScoreNew> {
                 navToDashboard(context);
               },
               icon: const Icon(Icons.close),
-            )
+            ),
           ],
         ),
         body: SafeArea(
@@ -89,7 +94,6 @@ class _OverallScoreNewState extends State<OverallScoreNew> {
             ),
             child: Stack(
               children: [
-                // ✅ Scroll content
                 Positioned.fill(
                   child: SingleChildScrollView(
                     padding: EdgeInsets.only(
@@ -100,41 +104,51 @@ class _OverallScoreNewState extends State<OverallScoreNew> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        RepaintBoundary(child: _buildHeaderSection(isSmallScreen)),
-                        RepaintBoundary(child: _buildMainContentSection(screenSize)),
+                        SizedBox(height: rh(context: context, px: 20)),
+                        RepaintBoundary(
+                          child: _buildHeaderSection(isSmallScreen),
+                        ),
+                        RepaintBoundary(
+                          child: _buildMainContentSection(screenSize),
+                        ),
                       ],
                     ),
                   ),
                 ),
-
-                // ✅ Bottom CTA button
                 Positioned(
                   bottom: rh(context: context, px: 12),
                   left: 0,
                   right: 0,
-                  child: Center(
-                    child: IconButton(
-                      onPressed: () {
-                        context.push(
-                          AppRoutes.overallResultScreen,
-                          extra: ResultScreenParamsNew(
-                            result: widget.testResultResponse,
-                            clientProfileModel: widget.clientProfileModel,
+                  child: Visibility(
+                    visible: widget.featuresAllowData.detailedScores,
+                    child: Center(
+                      child: IconButton(
+                        onPressed: () {
+                          context.push(
+                            AppRoutes.overallResultScreen,
+                            extra: ResultScreenParamsNew(
+                              respyrUnifiedResponse:
+                              widget.respyrUnifiedResponse,
+                              clientProfileModel: widget.clientProfileModel,
+                              featuresAllowData: widget.featuresAllowData,
+                            ),
+                          );
+                        },
+                        style: IconButton.styleFrom(
+                          backgroundColor: const Color(0xFF308BF9),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                              rh(context: context, px: 50),
+                            ),
                           ),
-                        );
-                      },
-                      style: IconButton.styleFrom(
-                        backgroundColor: const Color(0xFF308BF9),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(
-                            rh(context: context, px: 50),
+                          padding: EdgeInsets.all(
+                            rh(context: context, px: 16),
                           ),
                         ),
-                        padding: EdgeInsets.all(rh(context: context, px: 16)),
-                      ),
-                      icon: const Icon(
-                        Icons.keyboard_arrow_right,
-                        color: Colors.white,
+                        icon: const Icon(
+                          Icons.keyboard_arrow_right,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ),
@@ -145,14 +159,6 @@ class _OverallScoreNewState extends State<OverallScoreNew> {
         ),
       ),
     );
-  }
-
-  Future<bool> navToDashboard(BuildContext context) async {
-    bool didCancel = false;
-    if (context.mounted) {
-      context.go(AppRoutes.clientDashboard, extra: widget.clientProfileModel);
-    }
-    return didCancel;
   }
 
   Widget _buildHeaderSection(bool isSmallScreen) {
@@ -183,7 +189,7 @@ class _OverallScoreNewState extends State<OverallScoreNew> {
             SizedBox(height: rh(context: context, px: 11)),
             Flexible(
               child: Text(
-                formatDateTime(widget.testResultResponse.dateTime.toString()),
+                formatDateTime(widget.respyrUnifiedResponse.dateTime),
                 style: GoogleFonts.poppins(
                   color: const Color(0xFF535359),
                   fontSize: isSmallScreen
@@ -198,13 +204,14 @@ class _OverallScoreNewState extends State<OverallScoreNew> {
             ),
           ],
         ),
+        SizedBox(height: rh(context: context, px: 11)),
         Text(
-          "Fat-Use\nPattern Trend",
+          widget.respyrUnifiedResponse.primaryTrend.screenTitle,
           style: GoogleFonts.poppins(
             color: const Color(0xFF252525),
             fontSize: isSmallScreen
                 ? rh(context: context, px: 28)
-                : rh(context: context, px: 34),
+                : rh(context: context, px: 32),
             fontWeight: FontWeight.w400,
             letterSpacing: -2.04,
             height: 1.2,
@@ -221,41 +228,30 @@ class _OverallScoreNewState extends State<OverallScoreNew> {
         ? rh(context: context, px: 80.0)
         : rh(context: context, px: 100.0);
 
-    final double zoneFontSize = isSmallScreen
-        ? rh(context: context, px: 20.0)
-        : rh(context: context, px: 25.0);
-
-    final dailyFocusTitle =
-        widget.testResultResponse.respyrResponse.dayFocus?.title ?? "";
-    final dailyFocusNote =
-        widget.testResultResponse.respyrResponse.dayFocus?.note ?? "";
+    final dailyFocusTitle = widget.respyrUnifiedResponse.dayFocus.title;
+    final dailyFocusNote = widget.respyrUnifiedResponse.dayFocus.note;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         _buildScoreDisplay(scoreFontSize),
-        _buildZoneText(zoneFontSize),
+        _buildZoneText(),
         SizedBox(height: rh(context: context, px: 48)),
         RepaintBoundary(
           child: MetabolismScale(
-            value: widget.testResultResponse.fatLossMetabolismScore,
-            // value: 100,
+            value: widget.respyrUnifiedResponse.primaryTrend.score,
           ),
         ),
         SizedBox(height: rh(context: context, px: 37)),
         Padding(
-          padding: EdgeInsetsGeometry.symmetric(
-            horizontal: rh(context: context, px: 28),
+          padding: EdgeInsets.symmetric(
+            horizontal: rh(context: context, px: 0),
           ),
           child: Column(
-            spacing: rh(context: context, px: 15),
             children: [
               Text(
-                widget.testResultResponse
-                    .respyrResponse
-                    .fatUsePatternTrend
-                    .clientInterpretation
-                    .title,
+                widget.respyrUnifiedResponse.primaryTrend.clientInterpretation.title,
+                textAlign: TextAlign.center,
                 style: GoogleFonts.poppins(
                   color: const Color(0xFF252525),
                   fontSize: rh(context: context, px: 20),
@@ -263,12 +259,9 @@ class _OverallScoreNewState extends State<OverallScoreNew> {
                   letterSpacing: rh(context: context, px: -1),
                 ),
               ),
+              SizedBox(height: rh(context: context, px: 15)),
               Text(
-                widget.testResultResponse
-                    .respyrResponse
-                    .fatUsePatternTrend
-                    .clientInterpretation
-                    .text,
+                widget.respyrUnifiedResponse.primaryTrend.clientInterpretation.text,
                 textAlign: TextAlign.center,
                 style: GoogleFonts.poppins(
                   color: const Color(0xFF535359),
@@ -281,13 +274,15 @@ class _OverallScoreNewState extends State<OverallScoreNew> {
             ],
           ),
         ),
-        SizedBox(height: rh(context: context, px: 40)),
+        SizedBox(height: rh(context: context, px: 24)),
         Container(
           width: double.infinity,
           decoration: ShapeDecoration(
             color: const Color(0xFFF5F7FA),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(rh(context: context, px: 10)),
+              borderRadius: BorderRadius.circular(
+                rh(context: context, px: 10),
+              ),
             ),
           ),
           padding: EdgeInsets.all(rh(context: context, px: 15)),
@@ -331,7 +326,7 @@ class _OverallScoreNewState extends State<OverallScoreNew> {
       textBaseline: TextBaseline.alphabetic,
       children: [
         Text(
-          widget.testResultResponse.fatLossMetabolismScore.toStringAsFixed(0),
+          widget.respyrUnifiedResponse.primaryTrend.score.toStringAsFixed(0),
           textHeightBehavior: const TextHeightBehavior(
             applyHeightToFirstAscent: false,
             applyHeightToLastDescent: false,
@@ -376,13 +371,12 @@ class _OverallScoreNewState extends State<OverallScoreNew> {
     }
   }
 
-  Widget _buildZoneText(double fontSize) {
-    final String isNeeds =
-    widget.testResultResponse.respyrResponse.fatUsePatternTrend.zone == "Focus"
-        ? "Needs to"
-        : "is";
+  Widget _buildZoneText() {
+    final String zone = widget.respyrUnifiedResponse.primaryTrend.zone;
+    final String isNeeds = zone.toLowerCase() == "focus" ? "Needs to" : "is";
 
     return RichText(
+      textAlign: TextAlign.center,
       text: TextSpan(
         text: "You're Trend $isNeeds ",
         style: GoogleFonts.poppins(
@@ -393,11 +387,9 @@ class _OverallScoreNewState extends State<OverallScoreNew> {
         ),
         children: [
           TextSpan(
-            text: widget.testResultResponse.respyrResponse.fatUsePatternTrend.zone,
+            text: zone,
             style: GoogleFonts.poppins(
-              color: getZoneColor(
-                widget.testResultResponse.respyrResponse.fatUsePatternTrend.zone,
-              ),
+              color: getZoneColor(zone),
               fontSize: rh(context: context, px: 18),
               fontWeight: FontWeight.w600,
               letterSpacing: -0.72,

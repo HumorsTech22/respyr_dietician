@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:respyr_dietitian/features/profile_info/data/model/country_model.dart';
 import 'package:respyr_dietitian/features/profile_info/data/repository/dietician_repository.dart';
 import 'package:respyr_dietitian/features/profile_info/domain/usecases/height_unit.dart';
 import 'package:respyr_dietitian/features/profile_info/domain/usecases/weight_unit.dart';
@@ -29,9 +30,11 @@ class ProfileCubit extends Cubit<ProfileState> {
 
   void updateName(String name) => emit(state.copyWith(name: name));
   void updateEmail(String email) => emit(state.copyWith(email: email));
+  void updatePhoneNo(String phone) => emit(state.copyWith(phoneNo: phone));
   void updateLocation(String location) => emit(state.copyWith(location: location));
   void updateGender(String gender) => emit(state.copyWith(gender: gender));
   void updateAge(int age) => emit(state.copyWith(age: age));
+  void updateDob(String dateOfBirth) => emit(state.copyWith(dateOfBirth: dateOfBirth));
 
   void updateHeight(double heightCm) => emit(state.copyWith(height: heightCm));
   void updateHeightFromFeet(int feet, int inches) {
@@ -40,6 +43,8 @@ class ProfileCubit extends Cubit<ProfileState> {
   }
 
   void updateHeightUnit(HeightUnit unit) => emit(state.copyWith(heightUnit: unit));
+
+  void updateCountry(CountryModel countryModel) => emit(state.copyWith(country: countryModel));
 
   void updateWeight(double weightKg) => emit(state.copyWith(weight: weightKg));
   void updateWeightFromLbs(double lbs) {

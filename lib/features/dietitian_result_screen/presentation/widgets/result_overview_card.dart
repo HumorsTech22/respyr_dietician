@@ -2,19 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/size/get_height.dart';
-import '../../../bluetooth_device_connectivity/data/model/test_result_data_model_v2.dart';
+import '../../../bluetooth_device_connectivity/data/model/respyr_unified_response.dart';
 import '../cubit/dietitian_result_state.dart';
 
 class ResultOverviewCard extends StatelessWidget {
   final String metabolismType;
   final DietitianResultState state;
-  final TestResultResponse result;
+  final RespyrUnifiedResponse respyrUnifiedResponse;
 
   const ResultOverviewCard({
     super.key,
     required this.metabolismType,
     required this.state,
-    required this.result,
+    required this.respyrUnifiedResponse,
   });
 
   static final Map<String, String> _metabolismTitle = {
@@ -27,7 +27,6 @@ class ResultOverviewCard extends StatelessWidget {
     "Gut": "Nutrient\nUtilization Trend",
     "Fat": "Fuel\nUtilization Trend",
     "Liver": "Recovery\nActivity Trend",
-
   };
 
   static final Map<String, String> _metabolismSubTypeTwo = {
@@ -36,8 +35,8 @@ class ResultOverviewCard extends StatelessWidget {
     "Liver": "Metabolic\nLoad Trend",
   };
 
-  Map<String, double> _getScores(TestResultResponse result) {
-    final metabolism = result.respyrResponse.metabolismScoreAnalysis;
+  Map<String, double> _getScores(RespyrUnifiedResponse respyrUnifiedResponse) {
+    final metabolism = respyrUnifiedResponse.metabolismScoreAnalysis;
 
     switch (metabolismType) {
       case "Gut":
@@ -60,25 +59,24 @@ class ResultOverviewCard extends StatelessWidget {
     }
   }
 
-  Map<String, String> _getZones(TestResultResponse result) {
-    final metabolism = result.respyrResponse.metabolismScoreAnalysis;
-    String safe(String? v) => v ?? '';
+  Map<String, String> _getZones(RespyrUnifiedResponse respyrUnifiedResponse) {
+    final metabolism = respyrUnifiedResponse.metabolismScoreAnalysis;
 
     switch (metabolismType) {
       case "Gut":
         return {
-          "one": safe(metabolism.nutrientUtilizationTrend.zone),
-          "two": safe(metabolism.digestiveActivityTrend.zone),
+          "one": metabolism.nutrientUtilizationTrend.zone,
+          "two": metabolism.digestiveActivityTrend.zone,
         };
       case "Fat":
         return {
-          "one": safe(metabolism.fuelUtilizationTrend.zone),
-          "two": safe(metabolism.energySourceTrend.zone),
+          "one": metabolism.fuelUtilizationTrend.zone,
+          "two": metabolism.energySourceTrend.zone,
         };
       case "Liver":
         return {
-          "one": safe(metabolism.recoveryActivityTrend.zone),
-          "two": safe(metabolism.metabolicLoadTrend.zone),
+          "one": metabolism.recoveryActivityTrend.zone,
+          "two": metabolism.metabolicLoadTrend.zone,
         };
       default:
         return {"one": '', "two": ''};
@@ -100,17 +98,17 @@ class ResultOverviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scores = _getScores(result);
-    final zones = _getZones(result);
+    final scores = _getScores(respyrUnifiedResponse);
+    final zones = _getZones(respyrUnifiedResponse);
 
     final double score1 = scores["one"] ?? 0.0;
     final double score2 = scores["two"] ?? 0.0;
 
-    final zone1 = zones["one"] ?? '';
-    final zone2 = zones["two"] ?? '';
+    final String zone1 = zones["one"] ?? '';
+    final String zone2 = zones["two"] ?? '';
 
-    final zoneColor1 = _zoneColor(zone1);
-    final zoneColor2 = _zoneColor(zone2);
+    final Color zoneColor1 = _zoneColor(zone1);
+    final Color zoneColor2 = _zoneColor(zone2);
 
     return Container(
       width: MediaQuery.of(context).size.width * 0.66,
@@ -185,7 +183,7 @@ class ResultOverviewCard extends StatelessWidget {
         required String zone,
         required Color zoneColor,
       }) {
-    final scoreText = score.toStringAsFixed(0);
+    final String scoreText = score.toStringAsFixed(0);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

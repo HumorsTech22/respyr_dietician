@@ -1,16 +1,16 @@
 import 'dart:async';
 import 'dart:math';
+
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart' show RenderAbstractViewport;
+import 'package:flutter/rendering.dart' ;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/params/result_screen_params.dart';
 
-import '../../../../client-dashboard/data/model/client_profile_model.dart';
 import '../../../../core/size/get_height.dart';
 import '../../../../routes/app_routes.dart';
-import '../../../bluetooth_device_connectivity/data/model/test_result_data_model_v2.dart';
 import '../../domain/dietitian_result_view_model.dart';
 import 'package:respyr_dietitian/features/dietitian_result_screen/presentation/cubit/dietitian_result_cubit.dart';
 
@@ -21,13 +21,11 @@ import '../widgets/tab_widget.dart';
 import '../widgets/section_widget_2.dart';
 
 class DetailedResultScreen extends StatefulWidget {
-  final TestResultResponse testResultResponse;
-  final ClientProfileModel clientProfileModel;
+  final ResultScreenParamsNew resultScreenParamsNew;
 
   const DetailedResultScreen({
     super.key,
-    required this.testResultResponse,
-    required this.clientProfileModel,
+    required this.resultScreenParamsNew,
   });
 
   @override
@@ -49,7 +47,6 @@ class _DetailedResultScreenState extends State<DetailedResultScreen>
 
   bool _offsetsComputed = false;
   bool _computeScheduled = false;
-
   bool _programmaticScroll = false;
 
   static const Duration _tabAnimDuration = Duration(milliseconds: 420);
@@ -81,6 +78,7 @@ class _DetailedResultScreenState extends State<DetailedResultScreen>
   void _scheduleComputeOffsets() {
     if (_computeScheduled) return;
     _computeScheduled = true;
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _computeScheduled = false;
       _computeOffsetsIfPossible();
@@ -122,6 +120,7 @@ class _DetailedResultScreenState extends State<DetailedResultScreen>
     if (renderObject == null) return null;
 
     final viewport = RenderAbstractViewport.of(renderObject);
+
     final reveal = viewport.getOffsetToReveal(renderObject, 0.0);
     return reveal.offset;
   }
@@ -133,12 +132,16 @@ class _DetailedResultScreenState extends State<DetailedResultScreen>
       _scheduleComputeOffsets();
       return;
     }
-    if (_fatReveal == null || _gutReveal == null || _liverReveal == null) return;
+
+    if (_fatReveal == null || _gutReveal == null || _liverReveal == null) {
+      return;
+    }
 
     final cubit = context.read<DietitianResultCubit>();
     final offset = viewModel.scrollController.offset;
 
-    final tabsH = (_tabsBarHeight > 0) ? _tabsBarHeight : rh(context: context, px: 52);
+    final tabsH =
+    (_tabsBarHeight > 0) ? _tabsBarHeight : rh(context: context, px: 52);
 
     final adjusted = offset + tabsH + rh(context: context, px: 12);
 
@@ -158,7 +161,9 @@ class _DetailedResultScreenState extends State<DetailedResultScreen>
 
     if (nextTab != null && cubit.state.selectedTab != nextTab) {
       cubit.changeTab(nextTab);
-      if (nextTabKey != null) viewModel.tabScrollTo(nextTabKey);
+      if (nextTabKey != null) {
+        viewModel.tabScrollTo(nextTabKey);
+      }
     }
   }
 
@@ -175,7 +180,10 @@ class _DetailedResultScreenState extends State<DetailedResultScreen>
       _programmaticScroll = true;
       try {
         await viewModel.scrollController.animateTo(
-          min(current + jump, viewModel.scrollController.position.maxScrollExtent),
+          min(
+            current + jump,
+            viewModel.scrollController.position.maxScrollExtent,
+          ),
           duration: const Duration(milliseconds: 220),
           curve: Curves.easeInOut,
         );
@@ -209,7 +217,8 @@ class _DetailedResultScreenState extends State<DetailedResultScreen>
     final targetReveal = _revealOffsetForKey(sectionAnchorKey);
     if (targetReveal == null) return;
 
-    final tabsH = (_tabsBarHeight > 0) ? _tabsBarHeight : rh(context: context, px: 52);
+    final tabsH =
+    (_tabsBarHeight > 0) ? _tabsBarHeight : rh(context: context, px: 52);
 
     final target = max(0.0, targetReveal - tabsH - rh(context: context, px: 12));
 
@@ -239,17 +248,19 @@ class _DetailedResultScreenState extends State<DetailedResultScreen>
 
   Future<bool> navToDashboard(BuildContext context) async {
     if (context.mounted) {
-      context.go(AppRoutes.clientDashboard, extra: widget.clientProfileModel);
+      if (context.mounted) {
+        context.go(AppRoutes.clientDashboard, extra: widget.resultScreenParamsNew.clientProfileModel);
+      }
     }
     return false;
   }
 
   String formatDateTime(String? dateTime) {
     if (dateTime == null || dateTime.trim().isEmpty) return '';
+
     try {
-      final dt = DateTime.parse(dateTime);
-      final local = dt.toLocal();
-      return DateFormat('d MMM yyyy, h:mma').format(local);
+      final dt = DateFormat("yyyy-MM-dd HH:mm:ss").parse(dateTime);
+      return DateFormat('d MMM yyyy, h:mma').format(dt);
     } catch (_) {
       return dateTime;
     }
@@ -259,64 +270,76 @@ class _DetailedResultScreenState extends State<DetailedResultScreen>
   Widget build(BuildContext context) {
     final double cache = MediaQuery.of(context).size.height * 6;
 
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF308BF9),
-        centerTitle: false,
-        automaticallyImplyLeading: false,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              widget.clientProfileModel.profileName,
-              style: GoogleFonts.poppins(
-                color: Colors.white,
-                fontSize: rh(context: context, px: 18),
-                fontWeight: FontWeight.w600,
-                height: 1.1,
-                letterSpacing: rh(context: context, px: -0.72),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (!didPop) {
+          await navToDashboard(context);
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          backgroundColor: const Color(0xFF308BF9),
+          centerTitle: false,
+          automaticallyImplyLeading: false,
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                widget.resultScreenParamsNew.clientProfileModel.profileName,
+                style: GoogleFonts.poppins(
+                  color: Colors.white,
+                  fontSize: rh(context: context, px: 18),
+                  fontWeight: FontWeight.w600,
+                  height: 1.1,
+                  letterSpacing: rh(context: context, px: -0.72),
+                ),
               ),
-            ),
-            Text(
-              formatDateTime(widget.testResultResponse.dateTime),
-              style: GoogleFonts.poppins(
-                color: Colors.white,
-                fontSize: rh(context: context, px: 10),
-                fontWeight: FontWeight.w400,
-                height: 1.1,
-                letterSpacing: rh(context: context, px: -0.2),
+              Text(
+                formatDateTime(
+                  widget.resultScreenParamsNew.respyrUnifiedResponse.dateTime,
+                ),
+                style: GoogleFonts.poppins(
+                  color: Colors.white,
+                  fontSize: rh(context: context, px: 10),
+                  fontWeight: FontWeight.w400,
+                  height: 1.1,
+                  letterSpacing: rh(context: context, px: -0.2),
+                ),
               ),
+            ],
+          ),
+          actions: [
+            IconButton(
+              onPressed: () => navToDashboard(context),
+              icon: const Icon(Icons.close, color: Colors.white),
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            onPressed: () => navToDashboard(context),
-            icon: const Icon(Icons.close, color: Colors.white),
-          )
-        ],
-      ),
-      body: SafeArea(
-        child: BlocBuilder<DietitianResultCubit, DietitianResultState>(
-          builder: (context, state) {
-            _scheduleComputeOffsets();
+        body: SafeArea(
+          child: BlocBuilder<DietitianResultCubit, DietitianResultState>(
+            builder: (context, state) {
+              _scheduleComputeOffsets();
 
-            return CustomScrollView(
-              controller: viewModel.scrollController,
-              cacheExtent: cache,
-              slivers: [
-                ResultOverViewScreen(
-                  state: state,
-                  clientProfileModel: widget.clientProfileModel,
-                  result: widget.testResultResponse,
-                ),
-                _buildStickyTabs(context, state),
-                _buildSections(context, state),
-                _buildDisclaimer(),
-              ],
-            );
-          },
+              return CustomScrollView(
+                controller: viewModel.scrollController,
+                cacheExtent: cache,
+                slivers: [
+                  ResultOverViewScreen(
+                    state: state,
+                    clientProfileModel:
+                    widget.resultScreenParamsNew.clientProfileModel,
+                    respyrUnifiedResponse:
+                    widget.resultScreenParamsNew.respyrUnifiedResponse,
+                  ),
+                  _buildStickyTabs(context, state),
+                  _buildSections(context, state),
+                  _buildDisclaimer(),
+                ],
+              );
+            },
+          ),
         ),
       ),
     );
@@ -385,47 +408,55 @@ class _DetailedResultScreenState extends State<DetailedResultScreen>
 
   Widget _buildSections(BuildContext context, DietitianResultState state) {
     return SliverList(
-      delegate: SliverChildListDelegate([
-        Padding(
-          padding: EdgeInsets.all(rh(context: context, px: 16)),
-          child: KeyedSubtree(
-            key: viewModel.fatAnchorKey,
-            child: SectionWidgetNew(
-              metabolismType: 'Fat',
-              state: state,
-              clientProfileModel: widget.clientProfileModel,
-              result: widget.testResultResponse,
-              context: context,
+      delegate: SliverChildListDelegate(
+        [
+          Padding(
+            padding: EdgeInsets.all(rh(context: context, px: 16)),
+            child: KeyedSubtree(
+              key: viewModel.fatAnchorKey,
+              child: SectionWidgetNew(
+                metabolismType: 'Fat',
+                state: state,
+                clientProfileModel:
+                widget.resultScreenParamsNew.clientProfileModel,
+                respyrUnifiedResponse:
+                widget.resultScreenParamsNew.respyrUnifiedResponse,
+                context: context,
+              ),
             ),
           ),
-        ),
-        Padding(
-          padding: EdgeInsets.all(rh(context: context, px: 16)),
-          child: KeyedSubtree(
-            key: viewModel.gutAnchorKey,
-            child: SectionWidgetNew(
-              metabolismType: 'Gut',
-              state: state,
-              clientProfileModel: widget.clientProfileModel,
-              result: widget.testResultResponse,
-              context: context,
+          Padding(
+            padding: EdgeInsets.all(rh(context: context, px: 16)),
+            child: KeyedSubtree(
+              key: viewModel.gutAnchorKey,
+              child: SectionWidgetNew(
+                metabolismType: 'Gut',
+                state: state,
+                clientProfileModel:
+                widget.resultScreenParamsNew.clientProfileModel,
+                respyrUnifiedResponse:
+                widget.resultScreenParamsNew.respyrUnifiedResponse,
+                context: context,
+              ),
             ),
           ),
-        ),
-        Padding(
-          padding: EdgeInsets.all(rh(context: context, px: 16)),
-          child: KeyedSubtree(
-            key: viewModel.liverAnchorKey,
-            child: SectionWidgetNew(
-              metabolismType: 'Liver',
-              state: state,
-              clientProfileModel: widget.clientProfileModel,
-              result: widget.testResultResponse,
-              context: context,
+          Padding(
+            padding: EdgeInsets.all(rh(context: context, px: 16)),
+            child: KeyedSubtree(
+              key: viewModel.liverAnchorKey,
+              child: SectionWidgetNew(
+                metabolismType: 'Liver',
+                state: state,
+                clientProfileModel:
+                widget.resultScreenParamsNew.clientProfileModel,
+                respyrUnifiedResponse:
+                widget.resultScreenParamsNew.respyrUnifiedResponse,
+                context: context,
+              ),
             ),
           ),
-        ),
-      ]),
+        ],
+      ),
     );
   }
 

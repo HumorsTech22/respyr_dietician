@@ -1,4 +1,6 @@
 class BluetoothInhaleCubitNewState {
+  final bool isReady; // ✅ NEW
+
   final bool isConnected;
   final String receivedData;
   final String? error;
@@ -36,10 +38,10 @@ class BluetoothInhaleCubitNewState {
 
   final String holdBreathViolation;
 
-  // ✅ NEW
   final bool navigateToDashboard;
 
   const BluetoothInhaleCubitNewState({
+    this.isReady = false, // ✅ NEW default false
     this.isConnected = false,
     this.receivedData = "",
     this.error,
@@ -71,6 +73,7 @@ class BluetoothInhaleCubitNewState {
   });
 
   BluetoothInhaleCubitNewState copyWith({
+    bool? isReady, // ✅ NEW
     bool? isConnected,
     String? receivedData,
     String? error,
@@ -101,6 +104,7 @@ class BluetoothInhaleCubitNewState {
     bool? navigateToDashboard,
   }) {
     return BluetoothInhaleCubitNewState(
+      isReady: isReady ?? this.isReady, // ✅ NEW
       isConnected: isConnected ?? this.isConnected,
       receivedData: receivedData ?? this.receivedData,
       error: error,

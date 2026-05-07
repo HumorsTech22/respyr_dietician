@@ -19,6 +19,7 @@ class SignInBloc extends Bloc<SignInEvent, SignInState> {
     on<EmailChanged>(_onEmailChanged);
     on<DomainSelected>(_onDomainSelected);
     on<ValidateAndSendOtp>(_onValidateAndSendOtp);
+    on<ResetSignInState>(_onResetSignInState);
   }
 
   void _onEmailChanged(EmailChanged event, Emitter<SignInState> emit) {
@@ -40,13 +41,12 @@ class SignInBloc extends Bloc<SignInEvent, SignInState> {
       }
     }
 
-    debugPrint("📧 Filtered domains: $filtered");
-
     emit(state.copyWith(
       email: event.email,
       filteredDomains: filtered,
-      errorText: null,
+      clearErrorText: true,
       isSuccess: false,
+      clearOtp: true,
     ));
   }
 
@@ -58,12 +58,21 @@ class SignInBloc extends Bloc<SignInEvent, SignInState> {
     String newEmail =
     (atIndex == -1) ? current + event.domain : current.substring(0, atIndex) + event.domain;
 
-    debugPrint("📧 Updated email: $newEmail");
-
     emit(state.copyWith(
       email: newEmail,
       filteredDomains: [],
-      errorText: null,
+      clearErrorText: true,
+      isSuccess: false,
+      clearOtp: true,
+    ));
+  }
+
+  void _onResetSignInState(ResetSignInState event, Emitter<SignInState> emit) {
+    emit(state.copyWith(
+      isSuccess: false,
+      isOtpSending: false,
+      clearErrorText: true,
+      clearOtp: true,
     ));
   }
 
@@ -73,7 +82,6 @@ class SignInBloc extends Bloc<SignInEvent, SignInState> {
       ) async {
     debugPrint("➡️ ValidateAndSendOtp clicked");
 
-    // Throttling
     final now = DateTime.now();
     if (_lastClickTime != null &&
         now.difference(_lastClickTime!) < const Duration(seconds: 1)) {
@@ -88,18 +96,24 @@ class SignInBloc extends Bloc<SignInEvent, SignInState> {
     if (email.isEmpty ||
         !RegExp(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
             .hasMatch(email)) {
-      debugPrint("❌ Invalid email");
-      emit(state.copyWith(errorText: "Please enter a valid email"));
+      emit(state.copyWith(
+        errorText: "Please enter a valid email",
+        isSuccess: false,
+        clearOtp: true,
+      ));
       return;
     }
 
-    emit(state.copyWith(isOtpSending: true, errorText: null));
-    debugPrint("📨 Sending OTP...");
+    emit(state.copyWith(
+      isOtpSending: true,
+      clearErrorText: true,
+      isSuccess: false,
+      clearOtp: true,
+    ));
 
     try {
       final generatedOtp =
       (1111 + Random.secure().nextInt(8889)).toString();
-      debugPrint("🔐 Generated OTP (client): $generatedOtp");
 
       final result = await sendOtpToEmail(email, generatedOtp);
       debugPrint("📩 API response: $result");
@@ -109,22 +123,20 @@ class SignInBloc extends Bloc<SignInEvent, SignInState> {
             int.tryParse(result['otp']?.toString() ?? '') ??
                 int.parse(generatedOtp);
 
-        debugPrint("✅ OTP sent successfully: $finalOtp");
-
         emit(state.copyWith(
           isOtpSending: false,
           isSuccess: true,
           otp: finalOtp,
+          clearErrorText: true,
         ));
       } else {
-        final msg =
-            result['message']?.toString() ?? "Failed to send OTP";
-
-        debugPrint("❌ OTP failed: $msg");
+        final msg = result['message']?.toString() ?? "Failed to send OTP";
 
         emit(state.copyWith(
           isOtpSending: false,
+          isSuccess: false,
           errorText: msg,
+          clearOtp: true,
         ));
       }
     } catch (e, stack) {
@@ -133,7 +145,9 @@ class SignInBloc extends Bloc<SignInEvent, SignInState> {
 
       emit(state.copyWith(
         isOtpSending: false,
+        isSuccess: false,
         errorText: "Connection error. Please try again.",
+        clearOtp: true,
       ));
     }
   }

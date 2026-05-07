@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_inner_shadow/flutter_inner_shadow.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class SwipeButtonWidget extends StatefulWidget {
@@ -22,7 +23,7 @@ class _SwipeButtonWidgetState extends State<SwipeButtonWidget> {
   // ⛔ Timer disabled
   // Timer? _timer;
 
-  String _statusText = "Swipe to continue";
+  String _statusText = "Slide to start test";
 
   // ⛔ Time restriction disabled
   // bool _timeOver = false;
@@ -78,95 +79,105 @@ class _SwipeButtonWidgetState extends State<SwipeButtonWidget> {
   @override
   Widget build(BuildContext context) {
     const double height = 65.0;
-    const double width = 220.0;
+    const double width = 206.0;
     const double padding = 7.0;
     const double knobSize = height - 8;
     const double dragThreshold = 0.50;
 
     final maxDrag = width - height - (padding * 1.5);
 
-    return Container(
-      width: width,
-      height: height,
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(60),
-      ),
-      child: Stack(
-        children: [
-          // BACKGROUND
-          Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(60),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Colors.white54, Colors.grey.shade300],
-              ),
-            ),
-          ),
-
-          // TEXT
-          Center(
-            child: Padding(
-              padding: EdgeInsets.only(left: knobSize + 15, right: 15),
-              child: Text(
-                _statusText,
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                style: GoogleFonts.poppins(
-                  color: const Color(0xFF535359),
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: -0.30,
+    return InnerShadow(
+     shadows: [
+       Shadow(
+         color: Color(0x40000000),
+         blurRadius: 7,
+         offset: Offset(0, 0),
+       ),
+     ],
+      child: Container(
+        width: width,
+        height: height,
+        decoration: BoxDecoration(
+          color: Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(60),
+        ),
+        child: Stack(
+          children: [
+            // BACKGROUND
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(60),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Colors.white54, Colors.grey.shade300],
                 ),
               ),
             ),
-          ),
 
-          // DRAG KNOB
-          Positioned(
-            left: padding + _dragPosition,
-            top: (height - knobSize) / 2,
-            child: GestureDetector(
-              onHorizontalDragUpdate: (details) {
-                if (!mounted) return;
-                setState(() {
-                  _dragPosition += details.delta.dx;
-                  _dragPosition = _dragPosition.clamp(0.0, maxDrag);
-                });
-              },
-              onHorizontalDragEnd: (_) {
-                final passed = _dragPosition > (maxDrag * dragThreshold);
-                if (passed) {
-                  widget.onSwiped?.call();
-                }
+            // TEXT
+            Center(
+              child: Padding(
+                padding: EdgeInsets.only(left: knobSize + 0, right: 5),
+                child: Text(
+                  _statusText,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  style: GoogleFonts.poppins(
+                    color: const Color(0xFF535359),
+                    fontSize: 15,
+                    fontWeight: FontWeight.w400,
+                    height: 1.10,
+                    letterSpacing: -0.30,
+                  ),
+                ),
+              ),
+            ),
 
-                Future.delayed(Duration.zero, () {
-                  if (!_isDisposed && mounted) {
-                    setState(() => _dragPosition = 0.0);
+            // DRAG KNOB
+            Positioned(
+              left: padding + _dragPosition,
+              top: (height - knobSize) / 2,
+              child: GestureDetector(
+                onHorizontalDragUpdate: (details) {
+                  if (!mounted) return;
+                  setState(() {
+                    _dragPosition += details.delta.dx;
+                    _dragPosition = _dragPosition.clamp(0.0, maxDrag);
+                  });
+                },
+                onHorizontalDragEnd: (_) {
+                  final passed = _dragPosition > (maxDrag * dragThreshold);
+                  if (passed) {
+                    widget.onSwiped?.call();
                   }
-                });
-              },
-              child: Container(
-                width: knobSize,
-                height: knobSize,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF308BF9),
-                  shape: BoxShape.circle,
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x3F000000),
-                      blurRadius: 8.4,
-                      offset: Offset(0, 0),
-                    )
-                  ],
+
+                  Future.delayed(Duration.zero, () {
+                    if (!_isDisposed && mounted) {
+                      setState(() => _dragPosition = 0.0);
+                    }
+                  });
+                },
+                child: Container(
+                  width: knobSize,
+                  height: knobSize,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF308BF9),
+                    shape: BoxShape.circle,
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x3F000000),
+                        blurRadius: 8.4,
+                        offset: Offset(0, 0),
+                      )
+                    ],
+                  ),
+                  child: const Icon(Icons.arrow_forward, color: Colors.white),
                 ),
-                child: const Icon(Icons.arrow_forward, color: Colors.white),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

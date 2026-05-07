@@ -10,7 +10,12 @@ import 'breathing_graph.dart';
 class NewExhaleScreen2 extends StatefulWidget {
   final BluetoothExhaleState state;
   final BreathingSettings breathingSettings;
-  const NewExhaleScreen2({super.key, required this.state, required this.breathingSettings});
+
+  const NewExhaleScreen2({
+    super.key,
+    required this.state,
+    required this.breathingSettings,
+  });
 
   @override
   State<NewExhaleScreen2> createState() => _NewExhaleScreen2State();
@@ -18,6 +23,8 @@ class NewExhaleScreen2 extends StatefulWidget {
 
 class _NewExhaleScreen2State extends State<NewExhaleScreen2> {
   final ValueNotifier<double> _reading = ValueNotifier<double>(0);
+
+  static const double _minVisualDelta = 0.10;
 
   @override
   void initState() {
@@ -29,8 +36,13 @@ class _NewExhaleScreen2State extends State<NewExhaleScreen2> {
   void didUpdateWidget(covariant NewExhaleScreen2 oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    if (oldWidget.state.progress != widget.state.progress) {
-      _reading.value = widget.state.progress;
+    final oldProgress = oldWidget.state.progress;
+    final newProgress = widget.state.progress;
+
+    if ((oldProgress - newProgress).abs() >= _minVisualDelta) {
+      _reading.value = newProgress;
+    } else if (newProgress == 0 && oldProgress != 0) {
+      _reading.value = newProgress;
     }
   }
 
@@ -43,22 +55,24 @@ class _NewExhaleScreen2State extends State<NewExhaleScreen2> {
   @override
   Widget build(BuildContext context) {
     final state = widget.state;
+
     final bool isHolding = state.exhaleStarted;
+
+    final bool showStartTimeout =
+        !state.exhaleStarted && state.startTimeoutRunning == true;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
           width: double.infinity,
-          child: _buildMainTitle(context, state),
+          child: _buildMainTitle(context, state, showStartTimeout),
         ),
         SizedBox(height: rh(context: context, px: 20)),
         SizedBox(
           width: double.infinity,
           child: Text(
-            isHolding
-                ? "Exhale until timer ends"
-                : "Exhale through your Respyr device",
+            _buildSubTitle(state, isHolding, showStartTimeout),
             textAlign: TextAlign.center,
             style: GoogleFonts.poppins(
               color: const Color(0xFF535359),
@@ -83,8 +97,10 @@ class _NewExhaleScreen2State extends State<NewExhaleScreen2> {
                   child: BreathingTargetGraph(
                     reading: _reading,
                     height: safeH,
-                    targetMin: widget.breathingSettings.exhale.minBand.toDouble(),
-                    targetMax: widget.breathingSettings.exhale.maxBand.toDouble(),
+                    targetMin:
+                    widget.breathingSettings.exhale.minBand.toDouble(),
+                    targetMax:
+                    widget.breathingSettings.exhale.maxBand.toDouble(),
                     hold: false,
                     holdCounter: 0,
                   ),
@@ -98,7 +114,27 @@ class _NewExhaleScreen2State extends State<NewExhaleScreen2> {
     );
   }
 
-  Widget _buildMainTitle(BuildContext context, BluetoothExhaleState state) {
+  String _buildSubTitle(
+      BluetoothExhaleState state,
+      bool isHolding,
+      bool showStartTimeout,
+      ) {
+    if (showStartTimeout) {
+      return "Start exhaling through your Respyr device";
+    }
+
+    if (isHolding) {
+      return "Exhale until timer ends";
+    }
+
+    return "Exhale through your Respyr device";
+  }
+
+  Widget _buildMainTitle(
+      BuildContext context,
+      BluetoothExhaleState state,
+      bool showStartTimeout,
+      ) {
     final baseStyle = GoogleFonts.poppins(
       color: const Color(0xFF252525),
       fontSize: rh(context: context, px: 25),

@@ -13,20 +13,28 @@ pluginManagement {
         google()
         mavenCentral()
         gradlePluginPortal()
+        maven(url = "https://storage.googleapis.com/download.flutter.io")
+        maven(url = "https://jitpack.io")
     }
 }
 
 plugins {
     id("dev.flutter.flutter-plugin-loader") version "1.0.0"
-
-    // 🔼 Force Android Gradle Plugin 8.9.1 for both app & library modules
     id("com.android.application") version "8.9.1" apply false
     id("com.android.library") version "8.9.1" apply false
-
-    // 🔼 Kotlin 2.1.0 as Flutter is asking
     id("org.jetbrains.kotlin.android") version "2.1.0" apply false
-
     id("com.google.gms.google-services") version "4.4.2" apply false
+}
+
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+        maven(url = "https://storage.googleapis.com/download.flutter.io")
+        maven(url = "https://jitpack.io")
+    }
 }
 
 include(":app")

@@ -143,7 +143,7 @@ class _HeroCalenderWidgetState extends State<HeroCalenderWidget> {
                     day,
                     style: GoogleFonts.poppins(
                       color: isFutureDate ? Colors.white.withOpacity(0.5) : Colors.white,
-                      fontSize: 14,
+                      fontSize: 15,
                       fontWeight: FontWeight.w600,
                     ),
                   ),

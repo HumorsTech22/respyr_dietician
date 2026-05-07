@@ -1,7 +1,7 @@
 name: respyr_dietitian
 description: "A new Flutter project."
 publish_to: 'none'
-version: 1.0.2+8
+version: 1.0.10+28x
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
@@ -48,6 +48,9 @@ dependencies:
   fl_chart: 0.69.0
   flutter_local_notifications: ^19.4.0
   app_settings: ^5.1.1
+  smooth_sheets: ^1.0.2
+
+
 
 
 
@@ -69,15 +72,15 @@ dependencies:
   android_intent_plus: ^6.0.0
   wakelock_plus: ^1.2.5
   cupertino_battery_indicator: ^1.2.1
-  flutter_blue_plus: ^1.32.4
+  flutter_blue_plus: ^2.2.1
   webview_flutter: ^4.7.0
+  flutter_inset_shadow: ^2.0.3
 
   # Utilities
   intl: ^0.19.0
   intl_phone_field: ^3.2.0
   country_code_picker: ^3.3.0
   uuid: ^4.5.1
-  path_provider: ^2.1.5
   path: ^1.9.0
   shared_preferences: ^2.5.3
   fluttertoast: ^8.2.8
@@ -86,8 +89,12 @@ dependencies:
   pinput: ^5.0.1
   in_app_update: ^4.2.5
   new_version_plus: ^1.0.1
+  flag: ^7.0.2
 
   sqflite: ^2.3.3
+
+  share_plus: ^10.1.4
+  path_provider: ^2.1.5
 
 dev_dependencies:
   flutter_test:
@@ -96,6 +103,9 @@ dev_dependencies:
   bloc_test: ^10.0.0
   mocktail: ^1.0.4
   flutter_launcher_icons: ^0.13.1
+  integration_test:
+    sdk: flutter
+
 
 
 dependency_overrides:
@@ -116,3 +126,6 @@ flutter:
     - assets/images/result_history/
     - assets/images/gif_images/
     - assets/images/walk_through/
+    - assets/images/calibration/
+    - assets/firmware/
+    - assets/images/food/

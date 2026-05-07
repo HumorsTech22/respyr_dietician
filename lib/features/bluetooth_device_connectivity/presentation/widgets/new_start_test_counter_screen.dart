@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../cubit/bluetooth_inhale_cubit_new/bluetooth_inhale_new_state.dart';
 import '../../../diet_plan/presentation/pages/log_meal_screen.dart';
+import '../cubit/bluetooth_inhale_cubit_new/bluetooth_inhale_new_state.dart';
 
 double rh({required BuildContext context, required double px}) {
   return MediaQuery.of(context).size.height * (px / 812);
@@ -17,11 +17,17 @@ class NewStartTestCounterScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // // ✅ If not ready, show frozen 5s (no animation)
+    // if (!state.isReady) {
+    //   return _layout(context, remainingMs: 5000, percent: 100);
+    // }
+
     final endsAt = state.startCounterEndsAtEpochMs;
     final totalMs = state.startCounterTotalMillis;
 
     if (endsAt <= 0 || totalMs <= 0) {
-      return _layout(context, remainingMs: 0, percent: 0);
+      // ✅ if ready but counter not initialized yet, still show 5
+      return _layout(context, remainingMs: 5000, percent: 100);
     }
 
     final now = DateTime.now().millisecondsSinceEpoch;
@@ -32,14 +38,8 @@ class NewStartTestCounterScreen extends StatelessWidget {
       tween: IntTween(begin: startRemainingMs, end: 0),
       duration: Duration(milliseconds: startRemainingMs),
       builder: (context, remainingMs, _) {
-        final percent =
-            (remainingMs / totalMs).clamp(0.0, 1.0) * 100;
-
-        return _layout(
-          context,
-          remainingMs: remainingMs,
-          percent: percent,
-        );
+        final percent = ((remainingMs / totalMs).clamp(0.0, 1.0) * 100);
+        return _layout(context, remainingMs: remainingMs, percent: percent);
       },
     );
   }
@@ -79,7 +79,7 @@ class NewStartTestCounterScreen extends StatelessWidget {
               children: [
                 Positioned.fill(
                   child: CircularPercent(
-                    percent: percent,
+                    percent: percent, // 0..100
                     stroke: rw(context: context, px: 4),
                     color: const Color(0xFF308BF9),
                   ),

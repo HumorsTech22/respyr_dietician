@@ -6,7 +6,7 @@ class StatusBar extends StatelessWidget {
   final Color color;                              // Status bar background
   final Brightness iconBrightness;                // ANDROID icons (light=white, dark=black)
   final Brightness iosBrightness;                 // iOS text (dark => light text)
-  final Color? navBarColor;                       // Android nav bar (optional)
+  final Color? navBarColor;                    // Android nav bar (optional)
   final Brightness? navIconBrightness;            // Android nav icons (optional)
   final Widget child;
 

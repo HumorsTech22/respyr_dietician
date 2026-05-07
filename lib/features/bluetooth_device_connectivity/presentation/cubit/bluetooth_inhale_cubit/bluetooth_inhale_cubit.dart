@@ -20,7 +20,6 @@ class BluetoothInhaleCubit extends Cubit<BluetoothInhaleState> {
 
   bool _isDispose = false;
 
-  // ✅ stop everything once blownow received
   bool _sessionStopped = false;
 
   // inhale base (also used as exhale base value storage)

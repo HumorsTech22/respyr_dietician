@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:respyr_dietitian/client-dashboard/data/model/client_profile_model.dart';
 import 'package:respyr_dietitian/client-dashboard/data/model/diet_plan_strategy_model.dart';
 import 'package:respyr_dietitian/common/dialogs/disconnection_dialog.dart';
+import 'package:respyr_dietitian/common/features_allow/data/model/features_allow_model.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/repository/bluetooth_repository.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/repository/generating_result_repository.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/params/result_screen_params.dart';
@@ -22,6 +23,7 @@ class BluetoothGeneratingResultScreen extends StatefulWidget {
   final List<double> blowValuesList;
   final double minRange;
   final double maxRange;
+  final FeaturesAllowData featuresAllowData;
 
   const BluetoothGeneratingResultScreen({
     super.key,
@@ -32,7 +34,7 @@ class BluetoothGeneratingResultScreen extends StatefulWidget {
     required this.clientProfileModel,
     required this.dietPlanStrategyModel,
     required this.minRange,
-    required this.maxRange,
+    required this.maxRange, required this.featuresAllowData,
   });
 
   @override

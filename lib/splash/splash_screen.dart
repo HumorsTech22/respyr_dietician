@@ -16,55 +16,103 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+  Timer? _timer;
+
   @override
   void initState() {
     super.initState();
+    debugPrint("🚀 SplashScreen initState called");
     _startSplashTimer();
   }
 
   void _startSplashTimer() {
-    Timer(const Duration(seconds: 3), _handleNavigation);
+    debugPrint("⏳ Starting splash timer (3 seconds)");
+    _timer?.cancel();
+
+    _timer = Timer(const Duration(seconds: 3), () {
+      debugPrint("⏰ Splash timer finished → calling navigation");
+      _handleNavigation();
+    });
   }
 
   Future<void> _handleNavigation() async {
-    if (!mounted) return;
+    debugPrint("➡️ _handleNavigation started");
+
+    if (!mounted) {
+      debugPrint("⚠️ Widget not mounted, stopping navigation");
+      return;
+    }
 
     try {
+      debugPrint("📦 Loading SharedPreferences...");
       final prefs = await SharedPreferences.getInstance();
+
       final bool hasSeenWalkthrough =
           prefs.getBool('has_seen_walkthrough') ?? false;
 
-      if (!mounted) return;
+      debugPrint("📊 has_seen_walkthrough value: $hasSeenWalkthrough");
+
+      if (!mounted) {
+        debugPrint("⚠️ Widget not mounted after prefs load");
+        return;
+      }
 
       if (!hasSeenWalkthrough) {
+        debugPrint("➡️ Navigating to Walkthrough Screen");
         context.go(AppRoutes.walThroughScreen);
         return;
       }
 
+      debugPrint("👤 Loading saved client profile...");
       final ClientProfileModel? loadedProfile =
       await ClientLoginManager().loadClientProfile();
 
-      if (!mounted) return;
+      debugPrint("📄 Loaded Profile: $loadedProfile");
+
+      if (!mounted) {
+        debugPrint("⚠️ Widget not mounted after profile load");
+        return;
+      }
 
       if (loadedProfile != null) {
+        debugPrint("➡️ Profile found → Navigating to Dashboard");
         context.go(AppRoutes.clientDashboard, extra: loadedProfile);
       } else {
+        debugPrint("➡️ No profile found → Navigating to SignIn Options");
         context.go(AppRoutes.signInOptions);
       }
     } catch (e, stacktrace) {
-      debugPrint('Error in splash navigation: $e\n$stacktrace');
+      debugPrint("❌ Error in splash navigation");
+      debugPrint("Error: $e");
+      debugPrint("Stacktrace: $stacktrace");
+
       if (mounted) {
+        debugPrint("➡️ Navigating to SignIn Options due to error");
         context.go(AppRoutes.signInOptions);
       }
     }
   }
 
   @override
+  void dispose() {
+    debugPrint("🧹 SplashScreen dispose called");
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    debugPrint("🎨 SplashScreen build called");
+
     return Scaffold(
+      key: const ValueKey("splash_screen"),
       backgroundColor: const Color(0xFF308BF9),
       body: Center(
-        child: SvgPicture.asset("assets/images/icons/ic_logo_splash.svg"),
+        key: const ValueKey("splash_center"),
+        child: SvgPicture.asset(
+          "assets/images/icons/ic_logo_splash.svg",
+          semanticsLabel: "Respyr Splash Logo",
+        ),
       ),
     );
   }

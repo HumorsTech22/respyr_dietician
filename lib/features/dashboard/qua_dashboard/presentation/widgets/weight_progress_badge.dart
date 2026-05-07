@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:respyr_dietitian/core/size/get_height.dart';
 import 'package:respyr_dietitian/features/dashboard/qua_dashboard/presentation/widgets/weight_pogress_bar.dart';
 
 class WeightProgressBadgeCurrent extends StatelessWidget {
@@ -37,8 +38,7 @@ class WeightProgressBadgeCurrent extends StatelessWidget {
 
     final String verb = isGainGoal ? "Gain" : "Lose";
 
-    // ✅ Extracted milestone steps from your badge list
-    // These are cumulative steps: 0.5, 1, 2, 5, 10, and final goal.
+    // ✅ Extracted milestone steps
     final List<_WeightBadgeModel> badges = _buildStepBadges(
       verb: verb,
       totalGoal: totalGoal,
@@ -79,7 +79,7 @@ class WeightProgressBadgeCurrent extends StatelessWidget {
       ];
     }
 
-    // Base steps from your description
+    // Base steps
     final List<_WeightBadgeModel> base = [
       _WeightBadgeModel(
         title: "Kickoff King",
@@ -122,7 +122,6 @@ class WeightProgressBadgeCurrent extends StatelessWidget {
         filtered.isNotEmpty && (filtered.last.stepKg == totalGoal);
 
     if (hasGoalStep) {
-      // Replace last step title/desc with mission accomplished
       final last = filtered.removeLast();
       filtered.add(
         _WeightBadgeModel(
@@ -177,11 +176,16 @@ class _WeightProgressCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+      padding: EdgeInsets.symmetric(
+        vertical: rh(context: context, px: 20),
+        horizontal: rh(context: context, px: 16),
+      ),
       decoration: ShapeDecoration(
         color: const Color(0xFFCAD2DD),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(
+            rh(context: context, px: 10),
+          ),
         ),
       ),
       child: Column(
@@ -189,28 +193,31 @@ class _WeightProgressCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              SvgPicture.asset("assets/images/icons/ic_badge.svg"),
-              const SizedBox(width: 6),
+              SvgPicture.asset(
+                "assets/images/icons/ic_badge.svg",
+                width: rh(context: context, px: 20),
+                height: rh(context: context, px: 20),
+              ),
+              SizedBox(width: rh(context: context, px: 6)),
               Text(
                 title,
                 style: GoogleFonts.poppins(
-                  fontSize: 15,
+                  fontSize: rh(context: context, px: 15),
                   fontWeight: FontWeight.w600,
                   color: const Color(0xFF252525),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: rh(context: context, px: 10)),
           Text(
             description,
             style: GoogleFonts.poppins(
-              fontSize: 12,
+              fontSize: rh(context: context, px: 12),
               color: const Color(0xFF535359),
             ),
           ),
-          const SizedBox(height: 18),
-
+          SizedBox(height: rh(context: context, px: 18)),
           ExactProgressBar(
             currentValueKg: currentValueKg,
             rangeStartKg: rangeStartKg,

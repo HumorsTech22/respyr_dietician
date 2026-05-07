@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart'; // ✅ cache clear
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:respyr_dietitian/routes/app_routes.dart';
 
 import '../../client_login_manager/client_login_manager.dart';
-import '../../routes/app_routes.dart';
+import '../../features/client_login/presentation/screens/sign_in_options.dart';
 
 class Logout {
   Future<void> show(
@@ -25,7 +25,9 @@ class Logout {
           cancelText: 'Cancel',
           confirmText: 'Logout',
           onCancel: () => Navigator.pop(ctx, false),
-          onConfirm: () => Navigator.pop(ctx, true),
+          onConfirm: () {
+            context.pushReplacement(AppRoutes.signInOptions);
+          },
         ),
       ),
     );
@@ -33,14 +35,15 @@ class Logout {
     if (confirm != true) return;
 
     isLoggingOut(true);
+
     bool isCleared = false;
 
     try {
       debugPrint("🍏 Logout: Start logging out...");
 
-      // ✅ Google Sign-Out (if signed in)
       final GoogleSignIn googleSignIn = GoogleSignIn();
       final bool signedIn = await googleSignIn.isSignedIn();
+
       if (signedIn) {
         debugPrint("🍏 Logout: Google Sign-in found, signing out...");
         await googleSignIn.signOut();
@@ -49,18 +52,24 @@ class Logout {
         debugPrint("🍏 Logout: Google Sign-in not found.");
       }
 
-      // ✅ Clear Flutter image MEMORY cache
       debugPrint("🧹 Logout: Clearing Flutter image memory cache...");
       PaintingBinding.instance.imageCache.clear();
       PaintingBinding.instance.imageCache.clearLiveImages();
 
-      // ✅ Clear DISK cache (cached_network_image / flutter_cache_manager)
       debugPrint("🧹 Logout: Clearing disk cache...");
       await DefaultCacheManager().emptyCache();
 
-      // ✅ Clear your app session/profile storage
-      isCleared = await ClientLoginManager().clearClientProfile();
+      final loginManager = ClientLoginManager();
+
+      isCleared = await loginManager.clearClientProfile();
       debugPrint("🍏 Logout: Profile cleared status: $isCleared");
+
+      final stillLoggedIn = await loginManager.isClientLoggedIn();
+      debugPrint("🍏 Logout: Still logged in after clear? $stillLoggedIn");
+
+      if (stillLoggedIn) {
+        isCleared = false;
+      }
     } catch (e) {
       isCleared = false;
       debugPrint("🍏 Logout: Error occurred during logout -> $e");
@@ -72,9 +81,15 @@ class Logout {
 
     if (isCleared) {
       debugPrint("🍏 Logout: Successful logout, navigating to Sign In Options.");
-      context.go(AppRoutes.signInOptions);
+
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const SignInOptions()),
+            (Route<dynamic> route) => false,
+      );
     } else {
       debugPrint("🍏 Logout: Logout failed.");
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -88,7 +103,6 @@ class Logout {
   }
 }
 
-/// A reusable custom "container" dialog card
 class _ConfirmCard extends StatelessWidget {
   const _ConfirmCard({
     required this.title,

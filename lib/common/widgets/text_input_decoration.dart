@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 InputDecoration buildInputDecoration({
   required String hintText,
   String? prefixIcon,
+  Color? prefixIconColor,
   bool obscure = true,
   VoidCallback? onSuffixTap,
   String? errorText,
@@ -24,26 +25,28 @@ InputDecoration buildInputDecoration({
   return InputDecoration(
     hintText: hintText,
     hintStyle: GoogleFonts.poppins(
+      color: const Color(0xFF535359),
       fontSize: 15,
       fontWeight: FontWeight.w300,
-      color: const Color(0xFF737373),
+      height: 1.10,
+      letterSpacing: -0.30,
     ),
 
     filled: true,
     fillColor: const Color(0xFFF8F8F8),
     prefixIcon:
-        prefixIcon != null
-            ? Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: SvgPicture.asset(
-                prefixIcon,
-                colorFilter: const ColorFilter.mode(
-                  Colors.black,
-                  BlendMode.srcIn,
-                ),
-              ),
-            )
-            : null,
+    prefixIcon != null
+        ? Padding(
+      padding: const EdgeInsets.all(12.0),
+      child: SvgPicture.asset(
+        prefixIcon,
+        colorFilter:  ColorFilter.mode(
+          prefixIconColor ?? Colors.black,
+          BlendMode.srcIn,
+        ),
+      ),
+    )
+        : null,
     suffixIcon: suffixIcon,
 
     enabledBorder: readOnly ? noBorder : border,
@@ -51,6 +54,7 @@ InputDecoration buildInputDecoration({
     border: readOnly ? noBorder : border,
     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
     errorText: errorText,
+    counterText: "",
     errorStyle: GoogleFonts.mulish(
       fontSize: 12,
       fontWeight: FontWeight.w400,

@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:respyr_dietitian/client-dashboard/data/model/client_profile_model.dart';
 import 'package:respyr_dietitian/client-dashboard/data/model/diet_plan_strategy_model.dart';
+import 'package:respyr_dietitian/common/features_allow/data/model/features_allow_model.dart';
 import 'package:respyr_dietitian/common/widgets/audio_helper.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/model/breath_setting_model.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/params/exhale_screen_params.dart';
@@ -25,13 +26,14 @@ class BluetoothInhaleScreen extends StatelessWidget {
   final double minRange;
   final double maxRange;
   final BreathingSettings breathingSettings;
+  final FeaturesAllowData featuresAllowData;
 
   const BluetoothInhaleScreen({
     super.key,
     required this.clientProfileModel,
     required this.dietPlanStrategyModel,
     required this.minRange,
-    required this.maxRange, required this.breathingSettings,
+    required this.maxRange, required this.breathingSettings, required this.featuresAllowData,
   });
 
   @override
@@ -47,7 +49,7 @@ class BluetoothInhaleScreen extends StatelessWidget {
         dietPlanStrategyModel: dietPlanStrategyModel,
         minRange: minRange,
         maxRange: maxRange,
-        breathingSettings: breathingSettings,
+        breathingSettings: breathingSettings, featuresAllowData: featuresAllowData,
       ),
     );
   }
@@ -60,12 +62,13 @@ class _BluetoothInhaleView extends StatelessWidget {
   final double minRange;
   final double maxRange;
   final BreathingSettings breathingSettings;
+  final FeaturesAllowData featuresAllowData;
 
   const _BluetoothInhaleView({
     required this.clientProfileModel,
     required this.dietPlanStrategyModel,
     required this.minRange,
-    required this.maxRange, required this.breathingSettings,
+    required this.maxRange, required this.breathingSettings, required this.featuresAllowData,
   });
 
   Future<bool> showCancelTestDialogBox(BuildContext context, bool hold) async {
@@ -150,19 +153,19 @@ class _BluetoothInhaleView extends StatelessWidget {
             }
 
             // 3️⃣ Navigate to exhale screen
-            if (state.navigateToExhaleScreen) {
-              context.push(
-                AppRoutes.bluetoothExhaleScreen,
-                extra: ExhaleScreenParams(
-                  clientProfileModel: clientProfileModel,
-                  baseValue: state.blowExhaleBaseValue ?? "",
-                  dietPlanStrategyModel: dietPlanStrategyModel,
-                  minRange: minRange,
-                  maxRange: maxRange,
-                  breathingSettings: breathingSettings,
-                ),
-              );
-            }
+            // if (state.navigateToExhaleScreen) {
+            //   context.push(
+            //     AppRoutes.bluetoothExhaleScreen,
+            //     extra: ExhaleScreenParams(
+            //       clientProfileModel: clientProfileModel,
+            //       baseValue: state.blowExhaleBaseValue ?? "",
+            //       dietPlanStrategyModel: dietPlanStrategyModel,
+            //       minRange: minRange,
+            //       maxRange: maxRange,
+            //       breathingSettings: breathingSettings, featuresAllowData: featuresAllowData,
+            //     ),
+            //   );
+            // }
           },
           buildWhen: (prev, curr) =>
           prev.startCounter != curr.startCounter ||

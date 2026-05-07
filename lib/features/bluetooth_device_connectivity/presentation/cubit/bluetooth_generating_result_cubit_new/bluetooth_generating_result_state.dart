@@ -1,5 +1,8 @@
 import 'package:equatable/equatable.dart';
+import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/model/respyr_unified_response.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/model/test_result_data_model_v2.dart';
+
+const Object _unset = Object();
 
 class BluetoothGeneratingResultState extends Equatable {
   final String? textError;
@@ -13,7 +16,7 @@ class BluetoothGeneratingResultState extends Equatable {
   final double? hydrogen;
 
   final int completedSteps;
-  final TestResultResponse? dietitianResult;
+  final RespyrUnifiedResponse? dietitianResult;
 
   final int remainingSeconds;
   final bool isTimedOut;
@@ -30,38 +33,39 @@ class BluetoothGeneratingResultState extends Equatable {
     this.hydrogen,
     this.completedSteps = 0,
     this.dietitianResult,
-
     this.remainingSeconds = 300,
     this.isTimedOut = false,
     this.dataReceivedFromDevice = false,
   });
 
   BluetoothGeneratingResultState copyWith({
-    String? textError,
+    Object? textError = _unset,
     bool? hasInternet,
     bool? isBluetoothConnected,
     bool? isDialogShown,
     bool? navigateToResultScreen,
-    double? acetone,
-    double? ethanol,
-    double? hydrogen,
+    Object? acetone = _unset,
+    Object? ethanol = _unset,
+    Object? hydrogen = _unset,
     int? completedSteps,
-    TestResultResponse? dietitianResult,
+    Object? dietitianResult = _unset,
     int? remainingSeconds,
     bool? isTimedOut,
     bool? dataReceivedFromDevice,
   }) {
     return BluetoothGeneratingResultState(
-      textError: textError ?? this.textError,
+      textError: identical(textError, _unset) ? this.textError : textError as String?,
       hasInternet: hasInternet ?? this.hasInternet,
       isBluetoothConnected: isBluetoothConnected ?? this.isBluetoothConnected,
       isDialogShown: isDialogShown ?? this.isDialogShown,
       navigateToResultScreen: navigateToResultScreen ?? this.navigateToResultScreen,
-      acetone: acetone ?? this.acetone,
-      ethanol: ethanol ?? this.ethanol,
-      hydrogen: hydrogen ?? this.hydrogen,
+      acetone: identical(acetone, _unset) ? this.acetone : acetone as double?,
+      ethanol: identical(ethanol, _unset) ? this.ethanol : ethanol as double?,
+      hydrogen: identical(hydrogen, _unset) ? this.hydrogen : hydrogen as double?,
       completedSteps: completedSteps ?? this.completedSteps,
-      dietitianResult: dietitianResult ?? this.dietitianResult,
+      dietitianResult: identical(dietitianResult, _unset)
+          ? this.dietitianResult
+          : dietitianResult as RespyrUnifiedResponse?,
       remainingSeconds: remainingSeconds ?? this.remainingSeconds,
       isTimedOut: isTimedOut ?? this.isTimedOut,
       dataReceivedFromDevice: dataReceivedFromDevice ?? this.dataReceivedFromDevice,
@@ -82,5 +86,6 @@ class BluetoothGeneratingResultState extends Equatable {
     dietitianResult,
     remainingSeconds,
     isTimedOut,
+    dataReceivedFromDevice,
   ];
 }

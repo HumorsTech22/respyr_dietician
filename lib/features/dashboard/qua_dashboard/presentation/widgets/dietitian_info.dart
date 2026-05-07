@@ -33,7 +33,7 @@ class DietitianInfo extends StatelessWidget {
     final String email = (model?.email.trim().isNotEmpty ?? false) ? model!.email.trim() : "-";
 
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: rh(context: context, px: 10)),
+      padding: EdgeInsets.symmetric(horizontal: rh(context: context, px: 20)),
       child: Container(
         width: double.infinity,
         padding: EdgeInsets.fromLTRB(

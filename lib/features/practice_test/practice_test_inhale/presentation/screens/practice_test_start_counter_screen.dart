@@ -4,8 +4,6 @@ import 'package:respyr_dietitian/core/size/get_height.dart';
 import '../../../../bluetooth_device_connectivity/presentation/widgets/circular_percent.dart';
 import '../../bloc/practice_test_inhale_state.dart';
 
-
-
 class PracticeTestStartCounterScreen extends StatelessWidget {
   final PracticeTestInhaleState state;
   const PracticeTestStartCounterScreen({super.key, required this.state});
@@ -27,8 +25,7 @@ class PracticeTestStartCounterScreen extends StatelessWidget {
       tween: IntTween(begin: startRemainingMs, end: 0),
       duration: Duration(milliseconds: startRemainingMs),
       builder: (context, remainingMs, _) {
-        final percent =
-            (remainingMs / totalMs).clamp(0.0, 1.0) * 100;
+        final percent = (remainingMs / totalMs).clamp(0.0, 1.0) * 100;
 
         return _layout(
           context,

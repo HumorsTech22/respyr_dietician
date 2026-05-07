@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:respyr_dietitian/common/ble_logging/ble_logger_http.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/model/breath_setting_model.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/processor/bluetooth_blow_processor.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/repository/bluetooth_repository.dart';
@@ -21,6 +22,7 @@ class BluetoothExhaleCubit extends Cubit<BluetoothExhaleState> {
     }
   }
 
+  // Bluetooth connection and data streams
   StreamSubscription<bool>? _connSub;
   StreamSubscription<String>? _dataSub;
 
@@ -28,15 +30,16 @@ class BluetoothExhaleCubit extends Cubit<BluetoothExhaleState> {
   bool _startSent = false;
   bool _exhaleSucceeded = false;
 
-  final RegExp _curlyNum = RegExp(r'^\s*\{\s*(\d+(?:\.\d+)?)\s*\}\s*$');
-  final RegExp _slashNum = RegExp(r'^\s*/\s*(\d+(?:\.\d+)?)\s*/\s*$');
+  // final RegExp _curlyNum = RegExp(r'^\s*\{\s*(\d+(?:\.\d+)?)\s*\}\s*$');
+  // final RegExp _slashNum = RegExp(r'^\s*/\s*(\d+(?:\.\d+)?)\s*/\s*$');
 
   double get _minRange => breathingSettings.exhale.minBand.toDouble();
   double get _maxRange => breathingSettings.exhale.maxBand.toDouble();
 
   Duration get _holdTotalMs =>
       Duration(milliseconds: breathingSettings.exhale.timeMs);
-  Duration get _holdAcceptMs => _holdTotalMs - const Duration(milliseconds: 500);
+  Duration get _holdAcceptMs =>
+      _holdTotalMs - const Duration(milliseconds: 500);
 
   static const double _stopProgressThreshold = 0.0;
   static const double _inhaleDrop = 1;
@@ -61,15 +64,43 @@ class BluetoothExhaleCubit extends Cubit<BluetoothExhaleState> {
 
   bool _exhaleDetected = false;
 
+  // 🚨 NEW: Track the last emitted progress to stop UI stuttering!
+  double _lastEmittedProgress = -1.0;
+
+  // 🚨 NEW: Track the smoothed value for the low-pass filter
+  double _smoothedProgress = 0.0;
+
+  // 🚨 FIX 1: Bulletproof parsing for the passed-in baseValue
   double get _baseDouble {
-    final normal = double.tryParse(baseValue.trim());
-    if (normal != null) return normal;
-
-    final m = _slashNum.firstMatch(baseValue.trim());
-    if (m != null) return double.tryParse(m.group(1)!) ?? 0.0;
-
+    String cleanBase = baseValue.replaceAll(RegExp(r'[^0-9.]'), '');
+    if (cleanBase.isNotEmpty) {
+      return double.tryParse(cleanBase) ?? 0.0;
+    }
     return 0.0;
   }
+
+
+  void _bleLog(String type, String msg, [String? payload]) {
+    String direction = "ble";
+    if (type == "ui") direction = "ui";
+    else if (type == "ble_tx") direction = "tx";
+    else if (type == "ble_rx") direction = "rx";
+    else if (type == "parse") direction = "parse";
+    else if (type == "timeout") direction = "timeout";
+    else if (type == "error") direction = "error";
+    else if (type == "fail") direction = "fail";
+
+    BleLoggerHttp.I.logEvent(
+      screen: "Exhale",
+      direction: direction,
+      eventType: type,
+      message: msg,
+      payloadText: _cap(payload ?? "", 240),
+    );
+  }
+
+  String _cap(String s, int n) => (s.length <= n) ? s : s.substring(0, n);
+
 
   BluetoothExhaleCubit({
     required this.processor,
@@ -85,7 +116,8 @@ class BluetoothExhaleCubit extends Cubit<BluetoothExhaleState> {
     processor.processBlowData(
       baseValue,
           (val) => Thresholds.calculateThresholdPercentage(val),
-          (baseVal, blowVal) => Thresholds.calculateBlowPercentage1(baseVal, blowVal, breathingSettings.exhale.threshold.toDouble()),
+          (baseVal, blowVal) => Thresholds.calculateBlowPercentage1(
+          baseVal, blowVal, breathingSettings.exhale.threshold.toDouble()),
     );
 
     _holdRemainingMs = _holdTotalMs.inMilliseconds;
@@ -100,6 +132,8 @@ class BluetoothExhaleCubit extends Cubit<BluetoothExhaleState> {
     _failed = false;
     _abortSent = false;
     _exhaleDetected = false;
+    _lastEmittedProgress = -1.0; // Reset throttle
+    _smoothedProgress = 0.0; // Reset smoothed value
 
     _cancelStartTimeoutTimers();
 
@@ -124,6 +158,9 @@ class BluetoothExhaleCubit extends Cubit<BluetoothExhaleState> {
     _connSub = repo.connectionStatusStream().listen((connected) {
       if (_disposed) return;
 
+      d("Connection status changed -> $connected");
+      _bleLog("ble", "Connection status changed", "connected=$connected");
+
       emit(state.copyWith(isConnected: connected));
 
       if (!connected) {
@@ -146,16 +183,19 @@ class BluetoothExhaleCubit extends Cubit<BluetoothExhaleState> {
 
     if (!repo.isConnected) {
       d("cannot send 3, not connected");
+      _bleLog("fail", "Cannot send start exhale", "not connected");
       return;
     }
 
     try {
       d("SEND '3'");
+      _bleLog("ble_tx", "SEND '3'", "Exhale start command sent");
       repo.sendData("3");
       _startSent = true;
       _startStartTimeoutTimers();
     } catch (e) {
       emit(state.copyWith(error: e.toString()));
+      _bleLog("error", "SEND '3' failed", e.toString());
     }
   }
 
@@ -193,7 +233,9 @@ class BluetoothExhaleCubit extends Cubit<BluetoothExhaleState> {
           state.exhaleFailed) return;
 
       _failed = true;
-      _fail(reason: "Timeout: No exhale detected within $_startTimeoutSec seconds.");
+      _fail(
+          reason:
+          "Timeout: No exhale detected within $_startTimeoutSec seconds.");
     });
   }
 
@@ -215,20 +257,24 @@ class BluetoothExhaleCubit extends Cubit<BluetoothExhaleState> {
   void _sendAbortOnce({required String why}) {
     if (_abortSent) {
       d("Skip '&' (already sent) | $why");
+      _bleLog("info", "Abort already sent", why);
       return;
     }
     _abortSent = true;
 
     if (!repo.isConnected) {
       d("Skip '&' (not connected) | $why");
+      _bleLog("info", "Abort skipped, not connected", why);
       return;
     }
 
     try {
       d("SEND '&' | $why");
+      _bleLog("ble_tx", "SEND abort", "Abort command sent: $why");
       repo.sendData("&");
     } catch (_) {
       d("Error sending '&' | $why");
+      _bleLog("error", "Abort failed", "Error sending abort command: $why");
     }
   }
 
@@ -237,38 +283,46 @@ class BluetoothExhaleCubit extends Cubit<BluetoothExhaleState> {
     if (_failed) return;
 
     final clean = data.trim();
-    emit(state.copyWith(receivedData: clean, error: null));
+    _bleLog("ble_rx", "Data received", clean);
 
     if (_exhaleSucceeded) {
-      if (clean.toLowerCase() == "analize") {
+      if (clean.toLowerCase().contains("analize") ||
+          clean.toLowerCase().contains("analyze")) {
         emit(state.copyWith(analysisReady: true));
       }
       return;
     }
 
-    final m = _curlyNum.firstMatch(clean);
-    if (m == null) return;
+    bool isCurly = clean.contains('{') || clean.contains('}');
+    if (!isCurly) return;
 
-    final blowVal = double.tryParse(m.group(1) ?? "");
-    if (blowVal == null) return;
+    String numberString = clean.replaceAll(RegExp(r'[^0-9.]'), '');
+    if (numberString.isEmpty) return;
+
+    double blowVal = 0.0;
+    try {
+      blowVal = double.parse(numberString);
+    } catch (e) {
+      return;
+    }
+
+    if (blowVal < 700 || blowVal > 1150) return;
 
     final base = _baseDouble;
 
-    // exhale detection: value > base
-    if (!_exhaleDetected && blowVal > base+0.5) {
+    if (!_exhaleDetected && blowVal > base + 0.5) {
       _exhaleDetected = true;
       d("Exhale detected: $blowVal > $base");
+      _bleLog("ble_rx", "Exhale detected", "blowVal=$blowVal base=$base");
       _cancelStartTimeoutTimers();
     }
 
-    // once detected, if <= base => stopped exhaling => FAIL
     if (_exhaleDetected && blowVal <= base + 0.5) {
       _failed = true;
       _fail(reason: "Exhale stopped too early.");
       return;
     }
 
-    // inhale detected anytime
     if (blowVal < (base - _inhaleDrop)) {
       _failed = true;
       _fail(reason: "Oops! You inhaled instead of exhaling.");
@@ -276,36 +330,56 @@ class BluetoothExhaleCubit extends Cubit<BluetoothExhaleState> {
     }
 
     _blowValues.add(blowVal);
-    emit(state.copyWith(blowValues: List<double>.unmodifiable(_blowValues)));
+
     double progress = 0;
     if (blowVal > base) {
-      progress = Thresholds.calculateBlowPercentage1(base, blowVal, breathingSettings.exhale.threshold.toDouble());
+      progress = Thresholds.calculateBlowPercentage1(
+          base, blowVal, breathingSettings.exhale.threshold.toDouble());
     }
 
-    _handleProgress(progress);
+    if (!_exhaleDetected) {
+      progress = 0.0;
+    }
+
+    _handleProgress(progress, clean);
   }
 
-  void _handleProgress(double progress) {
+  void _handleProgress(double rawProgress, String cleanData) {
     if (_disposed || _finalized) return;
     if (_failed) return;
     if (state.exhaleFailed || state.exhaleSuccess) return;
 
-    final nowInRange = (progress >= _minRange && progress <= _maxRange);
+    const double alpha = 0.80;
+    if (_lastEmittedProgress < 0) {
+      _smoothedProgress = rawProgress;
+    } else {
+      _smoothedProgress =
+          (rawProgress * alpha) + (_smoothedProgress * (1.0 - alpha));
+    }
+
+    final nowInRange =
+    (_smoothedProgress >= _minRange && _smoothedProgress <= _maxRange);
+    final newlyStarted = !state.exhaleStarted && nowInRange;
+
+    _lastEmittedProgress = _smoothedProgress;
 
     emit(state.copyWith(
-      progress: progress,
+      progress: _smoothedProgress,
       inRange: nowInRange,
       inRangeDurationMs: _inRangeAccumMs,
+      blowValues: List<double>.unmodifiable(_blowValues),
+      receivedData: cleanData,
+      error: null,
+      exhaleStarted: newlyStarted ? true : state.exhaleStarted,
     ));
 
-    if (!state.exhaleStarted && nowInRange) {
-      emit(state.copyWith(exhaleStarted: true));
+    if (newlyStarted) {
       _cancelStartTimeoutTimers();
       _resumeHoldCountdown();
       return;
     }
 
-    if (state.exhaleStarted && progress <= _stopProgressThreshold) {
+    if (state.exhaleStarted && _smoothedProgress <= _stopProgressThreshold) {
       _failed = true;
       _fail(reason: "Exhale failed: you stopped exhaling.");
       return;
@@ -381,6 +455,7 @@ class BluetoothExhaleCubit extends Cubit<BluetoothExhaleState> {
     if (repo.isConnected) {
       try {
         d("SEND '/' (success)");
+        _bleLog("ble_tx", "SEND '/'", "Success command sent");
         repo.sendData("/");
       } catch (_) {}
     }

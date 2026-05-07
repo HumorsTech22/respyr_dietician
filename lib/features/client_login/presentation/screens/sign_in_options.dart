@@ -44,6 +44,8 @@ class _SignInOptionsState extends State<SignInOptions> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
+
+      ClientLoginManager().clearClientProfile();
       context.read<ProfileCubit>().clearProfileData();
       await _resetAllSessionsOnce();
     });
@@ -78,7 +80,12 @@ class _SignInOptionsState extends State<SignInOptions> {
     } catch (_) {}
   }
 
+  Future<void> _exitApp() async {
+    await SystemNavigator.pop();
+  }
+
   Future<void> _handleEmailSignIn() async {
+    FocusManager.instance.primaryFocus?.unfocus();
     if (_isAnyTaskLoading) return;
     await _resetAllSessions();
     if (!mounted) return;
@@ -121,16 +128,12 @@ class _SignInOptionsState extends State<SignInOptions> {
           );
         }
       } else {
-        String localPath = await downloadAndCacheImage(
-          user.photoUrl ?? "assets/images/icons/default2.png",
-        );
-
         if (mounted) {
           context.push(
             AppRoutes.dietitianScreen,
             extra: {
               "enteredEmail": user.email,
-              "profileImage": localPath,
+              "profileImage": "assets/images/icons/default2.png",
               "profileName": user.displayName,
             },
           );
@@ -174,11 +177,7 @@ class _SignInOptionsState extends State<SignInOptions> {
         ],
       );
 
-      if (!mounted) return;
-
       final email = credential.email;
-      final id = credential.userIdentifier;
-      print(id);
       final fullName = [
         credential.givenName,
         credential.familyName,
@@ -191,7 +190,6 @@ class _SignInOptionsState extends State<SignInOptions> {
       };
 
       final response = await storeAppleUserData(nonNullableUserData);
-
       if (!mounted) return;
 
       if (response.isNotEmpty && response["status"] == "success") {
@@ -200,11 +198,20 @@ class _SignInOptionsState extends State<SignInOptions> {
             userEmail: response["data"]["email"],
           );
 
-          if (clientProfile != null && mounted) {
+          if (clientProfile != null) {
             bool isSaved = await ClientLoginManager().saveClientProfile(clientProfile);
             if (isSaved) {
               context.push(AppRoutes.clientDashboard, extra: clientProfile);
             }
+          } else if (clientProfile == null) {
+            context.push(
+              AppRoutes.dietitianScreen,
+              extra: {
+                "enteredEmail": response["data"]["email"],
+                "profileImage": "assets/images/icons/default2.png",
+                "profileName": fullName,
+              },
+            );
           }
         } else {
           context.push(
@@ -334,90 +341,97 @@ class _SignInOptionsState extends State<SignInOptions> {
       ),
     );
 
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: rh(context: context, px: 17),
-            vertical: rh(context: context, px: 25),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SvgPicture.asset("assets/images/icons/ic_logo_blue.svg"),
-              SizedBox(height: rh(context: context, px: 18)),
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: rh(context: context, px: 4)),
-                child: Text(
-                  "Sign in",
-                  style: GoogleFonts.poppins(
-                    color: _titleColor,
-                    fontSize: rh(context: context, px: 34),
-                    fontWeight: FontWeight.w400,
-                    letterSpacing: -2.04,
-                  ),
-                ),
-              ),
-              SizedBox(height: rh(context: context, px: 30)),
-              _buildCustomButton(
-                context: context,
-                text: "Continue with Email",
-                onPressed: _isAnyTaskLoading ? null : _handleEmailSignIn,
-                backgroundColor: Colors.white,
-                textColor: _titleColor,
-                borderSide: const BorderSide(width: 1, color: _emailBorderColor),
-              ),
-              SizedBox(height: rh(context: context, px: 20)),
-              _buildCustomButton(
-                context: context,
-                text: "Continue with Google",
-                isLoading: _isGoogleLoading,
-                onPressed: _isAnyTaskLoading ? null : _handleGoogleSignInPressed,
-                backgroundColor: _googleButtonColor,
-                textColor: Colors.white,
-                leading: Image.asset(
-                  "assets/images/icons/ic_google.png",
-                  width: rh(context: context, px: 24),
-                ),
-              ),
-              SizedBox(height: rh(context: context, px: 25)),
-              Visibility(
-                visible: Platform.isIOS,
-                child: _buildCustomButton(
-                  context: context,
-                  text: "Continue with Apple",
-                  isLoading: _isAppleLoading,
-                  onPressed: _isAnyTaskLoading ? null : _handleAppleSignInPressed,
-                  backgroundColor: _googleButtonColor,
-                  textColor: Colors.white,
-                  leading: SvgPicture.asset(
-                    "assets/images/icons/ic_apple1.svg",
-                    colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
-                    width: 26,
-                  ),
-                ),
-              ),
-              SizedBox(height: rh(context: context, px: 25)),
-              TermsPolicyWidgets().termsPolicyFooter(context),
-              Spacer(),
-              SizedBox(
-                width: double.infinity,
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        await _exitApp();
+      },
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: rh(context: context, px: 17),
+              vertical: rh(context: context, px: 25),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SvgPicture.asset("assets/images/icons/ic_logo_blue.svg"),
+                SizedBox(height: rh(context: context, px: 18)),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: rh(context: context, px: 4)),
                   child: Text(
-                    "For lifestyle tracking only.\nNot for medical use or diagnosis.",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey,
+                    "Sign in",
+                    style: GoogleFonts.poppins(
+                      color: _titleColor,
+                      fontSize: rh(context: context, px: 34),
                       fontWeight: FontWeight.w400,
+                      letterSpacing: -2.04,
                     ),
                   ),
                 ),
-              ),
-              SizedBox(height: rh(context: context, px: 25)),
-            ],
+                SizedBox(height: rh(context: context, px: 30)),
+                _buildCustomButton(
+                  context: context,
+                  text: "Continue with Email",
+                  onPressed: _isAnyTaskLoading ? null : _handleEmailSignIn,
+                  backgroundColor: Colors.white,
+                  textColor: _titleColor,
+                  borderSide: const BorderSide(width: 1, color: _emailBorderColor),
+                ),
+                SizedBox(height: rh(context: context, px: 20)),
+                _buildCustomButton(
+                  context: context,
+                  text: "Continue with Google",
+                  isLoading: _isGoogleLoading,
+                  onPressed: _isAnyTaskLoading ? null : _handleGoogleSignInPressed,
+                  backgroundColor: _googleButtonColor,
+                  textColor: Colors.white,
+                  leading: Image.asset(
+                    "assets/images/icons/ic_google.png",
+                    width: rh(context: context, px: 24),
+                  ),
+                ),
+                SizedBox(height: rh(context: context, px: 25)),
+                Visibility(
+                  visible: Platform.isIOS,
+                  child: _buildCustomButton(
+                    context: context,
+                    text: "Continue with Apple",
+                    isLoading: _isAppleLoading,
+                    onPressed: _isAnyTaskLoading ? null : _handleAppleSignInPressed,
+                    backgroundColor: _googleButtonColor,
+                    textColor: Colors.white,
+                    leading: SvgPicture.asset(
+                      "assets/images/icons/ic_apple1.svg",
+                      colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+                      width: 26,
+                    ),
+                  ),
+                ),
+                SizedBox(height: rh(context: context, px: 25)),
+                TermsPolicyWidgets().termsPolicyFooter(context),
+                const Spacer(),
+                const SizedBox(
+                  width: double.infinity,
+                  child: Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: Text(
+                      "For lifestyle tracking only.\nNot for medical use or diagnosis.",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(height: rh(context: context, px: 25)),
+              ],
+            ),
           ),
         ),
       ),

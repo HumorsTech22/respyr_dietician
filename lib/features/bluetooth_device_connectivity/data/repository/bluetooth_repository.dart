@@ -19,4 +19,6 @@ abstract class BluetoothRepository {
 
   // ✅ NEW: must be called before scanning (Android permissions + iOS readiness)
   Future<void> ensureScanPrerequisites();
+
+  String get connectedDeviceName;
 }

@@ -3,10 +3,7 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:go_router/go_router.dart';
 import 'package:respyr_dietitian/common/dialogs/cancel_Test_dialog.dart';
 import 'package:respyr_dietitian/common/dialogs/disconnection_dialog.dart';
-import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/datasource/bluetooth_manager.dart';
-
-import '../../../../client-dashboard/data/model/client_profile_model.dart';
-import '../../../../client-dashboard/data/model/diet_plan_strategy_model.dart';
+import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/params/calibration_params.dart';
 import '../../../../routes/app_routes.dart';
 import '../theme/test_conditions_tokens.dart';
 import '../widgets/test_conditions_bottom_cta.dart';
@@ -14,20 +11,8 @@ import '../widgets/test_conditions_header.dart';
 import '../widgets/test_conditions_sheet.dart';
 
 class TestConditionsScreen extends StatelessWidget {
-  final ClientProfileModel clientProfileModel;
-  final DietPlanStrategyModel dietPlanStrategyModel;
-  final double minRange;
-  final double maxRange;
-
-  final ui = UuidBluetoothManager();
-
-  TestConditionsScreen({
-    super.key,
-    required this.clientProfileModel,
-    required this.dietPlanStrategyModel,
-    required this.minRange,
-    required this.maxRange,
-  });
+  final CalibrationParams calibrationParams;
+  const TestConditionsScreen({super.key, required this.calibrationParams,});
 
   @override
   Widget build(BuildContext context) {
@@ -80,7 +65,6 @@ class TestConditionsScreen extends StatelessWidget {
               showDeviceDisconnectedBox(
                 context: context,
                 onButtonPressed: () {
-                  ui.clearAllConnections();
                   navigateToDashboard(context);
                 },
               );
@@ -93,7 +77,6 @@ class TestConditionsScreen extends StatelessWidget {
 
   void cancelTest(BuildContext context) {
     showCancelTestDialog(context, () {
-      ui.clearAllConnections();
       navigateToDashboard(context);
     });
   }
@@ -101,19 +84,22 @@ class TestConditionsScreen extends StatelessWidget {
   void navigateToDashboard(BuildContext context) {
     context.go(
       AppRoutes.clientDashboard,
-      extra: clientProfileModel,
+      extra: calibrationParams.clientProfileModel,
     );
   }
 
   void _navigateToBluetooth(BuildContext context) {
+     final params = CalibrationParams(
+         clientProfileModel: calibrationParams.clientProfileModel,
+         dietPlanStrategyModel: calibrationParams.dietPlanStrategyModel,
+         minRange: calibrationParams.minRange,
+         maxRange: calibrationParams.maxRange,
+         featuresAllowData: calibrationParams.featuresAllowData,
+         userHabitsModel: calibrationParams.userHabitsModel
+     );
     context.push(
       AppRoutes.bluetoothCalibrationScreen,
-      extra: {
-        "client": clientProfileModel,
-        "strategy": dietPlanStrategyModel,
-        "min_range": minRange,
-        "max_range": maxRange,
-      },
+      extra: params,
     );
   }
 }

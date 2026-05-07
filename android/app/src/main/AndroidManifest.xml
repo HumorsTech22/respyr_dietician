@@ -2,38 +2,25 @@
     xmlns:tools="http://schemas.android.com/tools"
     package="com.humorstech.dietitian">
 
-    <!-- ============== Manifest-level permissions & features ============== -->
-
-    <!-- Media/storage -->
     <uses-permission android:name="android.permission.CAMERA" />
-    <!-- For Android ≤ 12L only; set maxSdkVersion so it’s ignored on 13+ -->
-
-    <!-- Only if you truly need All files access (special approval in Settings) -->
-
-    <uses-permission android:name="android.permission.INTERNET"/>
-
-    <!-- Notifications (Android 13+) -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <!-- Bluetooth (legacy for ≤ Android 11) -->
     <uses-permission
         android:name="android.permission.BLUETOOTH"
         android:maxSdkVersion="30" />
     <uses-permission
         android:name="android.permission.BLUETOOTH_ADMIN"
         android:maxSdkVersion="30" />
-    <!-- Needed for BLE scans on ≤ Android 11; not needed on 12+ with SCAN -->
     <uses-permission
         android:name="android.permission.ACCESS_FINE_LOCATION"
         android:maxSdkVersion="30" />
 
-    <!-- Bluetooth (Android 12+) -->
     <uses-permission
         android:name="android.permission.BLUETOOTH_SCAN"
         android:usesPermissionFlags="neverForLocation" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
 
-    <!-- USB host capability (mark not strictly required) -->
     <uses-feature
         android:name="android.hardware.usb.host"
         android:required="false" />
@@ -41,8 +28,6 @@
         android:name="android.hardware.bluetooth_le"
         android:required="true" />
 
-
-    <!-- Optional: intents your app can query -->
     <queries>
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT" />
@@ -50,13 +35,12 @@
         </intent>
     </queries>
 
-    <!-- =========================== Application =========================== -->
-
     <application
         android:name="${applicationName}"
         android:label="Respyr Metabolism"
         android:icon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="true"
+        android:allowBackup="false"
         android:enableOnBackInvokedCallback="true">
 
         <activity
@@ -72,7 +56,6 @@
             android:theme="@style/LaunchTheme"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"
-
             android:windowSoftInputMode="adjustResize">
 
             <meta-data

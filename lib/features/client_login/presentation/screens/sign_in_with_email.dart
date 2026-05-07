@@ -30,6 +30,26 @@ class _SignInWithEmailState extends State<SignInWithEmail> {
     super.dispose();
   }
 
+  Future<void> _openOtpScreen(
+      BuildContext context,
+      SignInState state,
+      ) async {
+    await Navigator.push(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (_, __, ___) => EmailOtp(
+          enteredEmail: state.email,
+          initialOtp: state.otp!,
+        ),
+        transitionDuration: Duration.zero,
+      ),
+    );
+
+    if (!mounted) return;
+
+    context.read<SignInBloc>().add(ResetSignInState());
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
@@ -38,27 +58,17 @@ class _SignInWithEmailState extends State<SignInWithEmail> {
         listenWhen: (prev, curr) =>
         prev.isSuccess != curr.isSuccess ||
             prev.errorText != curr.errorText,
-        listener: (context, state) {
-          if (state.isSuccess) {
+        listener: (context, state) async {
+          if (state.isSuccess && state.otp != null) {
             FloatingMessage.show(
               context,
               message: "OTP sent to ${state.email}",
               type: FloatingMessageType.success,
             );
 
-            Navigator.push(
-              context,
-              PageRouteBuilder(
-                pageBuilder: (_, __, ___) => EmailOtp(
-                  enteredEmail: state.email,
-                  initialOtp: state.otp!,
-                ),
-                transitionDuration: Duration.zero,
-              ),
-            );
+            await _openOtpScreen(context, state);
           }
 
-          // ✅ FIX: show ALL error messages (not only "Connection")
           if (state.errorText != null) {
             FloatingMessage.show(
               context,
@@ -69,6 +79,13 @@ class _SignInWithEmailState extends State<SignInWithEmail> {
         },
         child: BlocBuilder<SignInBloc, SignInState>(
           builder: (context, state) {
+            if (emailController.text != state.email) {
+              emailController.value = emailController.value.copyWith(
+                text: state.email,
+                selection: TextSelection.collapsed(offset: state.email.length),
+              );
+            }
+
             return Scaffold(
               resizeToAvoidBottomInset: true,
               backgroundColor: Colors.white,
@@ -101,8 +118,6 @@ class _SignInWithEmailState extends State<SignInWithEmail> {
                             ),
                           ),
                           SizedBox(height: rh(context: context, px: 25)),
-
-                          // Input Container
                           Container(
                             padding: EdgeInsets.symmetric(
                               horizontal: rh(context: context, px: 10),
@@ -142,15 +157,16 @@ class _SignInWithEmailState extends State<SignInWithEmail> {
                                       border: InputBorder.none,
                                       counterText: "",
                                     ),
-                                    onChanged: (val) => context
-                                        .read<SignInBloc>()
-                                        .add(EmailChanged(val)),
+                                    onChanged: (val) {
+                                      context.read<SignInBloc>().add(
+                                        EmailChanged(val),
+                                      );
+                                    },
                                   ),
                                 ),
                               ],
                             ),
                           ),
-
                           if (state.errorText != null)
                             Text(
                               state.errorText!,
@@ -159,8 +175,6 @@ class _SignInWithEmailState extends State<SignInWithEmail> {
                                 fontSize: rh(context: context, px: 12),
                               ),
                             ),
-
-                          // Domain Chips (still hidden)
                           if (state.filteredDomains.isNotEmpty)
                             Visibility(
                               visible: false,
@@ -175,8 +189,7 @@ class _SignInWithEmailState extends State<SignInWithEmail> {
                                     children: state.filteredDomains
                                         .map(
                                           (domain) => Padding(
-                                        padding:
-                                        const EdgeInsets.only(right: 10),
+                                        padding: const EdgeInsets.only(right: 10),
                                         child: ActionChip(
                                           label: Text(domain),
                                           onPressed: () => context
@@ -192,8 +205,6 @@ class _SignInWithEmailState extends State<SignInWithEmail> {
                             ),
                         ],
                       ),
-
-                      // Loading spinner at the center when OTP is being sent
                       if (state.isOtpSending)
                         const Center(
                           child: CircularProgressIndicator(),
@@ -211,9 +222,12 @@ class _SignInWithEmailState extends State<SignInWithEmail> {
                       onBack: () => Navigator.pop(context),
                       onNext: state.isOtpSending
                           ? null
-                          : () => context
-                          .read<SignInBloc>()
-                          .add(ValidateAndSendOtp()),
+                          : () {
+                        FocusScope.of(context).unfocus();
+                        context.read<SignInBloc>().add(
+                          ValidateAndSendOtp(),
+                        );
+                      },
                     ),
                   ],
                 ),

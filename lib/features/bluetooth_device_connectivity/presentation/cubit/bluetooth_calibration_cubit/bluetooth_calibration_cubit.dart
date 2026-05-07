@@ -15,21 +15,20 @@ class BluetoothCalibrationCubit extends Cubit<BluetoothCalibrationState> {
   StreamSubscription<bool>? _connSub;
   StreamSubscription<String>? _dataSub;
 
-  Timer? _globalWaitTimer;        // 100s inhale-timeout timer (background)
-  Timer? _uiCountdownTimer;       // what UI shows
-  Timer? _deviceSyncWindowTimer;  // 3s window after '{' to wait for number
-
+  Timer? _globalWaitTimer;
+  Timer? _uiCountdownTimer;
+  Timer? _deviceSyncWindowTimer;
   Timer? _inhaleTimeoutTimer;
-
   Timer? _ackRetryTimer;
-  static const Duration _ackWait = Duration(seconds: 10);
 
+  static const Duration _ackWait = Duration(seconds: 10);
   static const int _globalMaxSeconds = 100;
-  static const Duration _deviceSyncWindow = Duration(seconds: 3);
+
+  // ✅ CHANGED: wait 5 seconds after '{'
+  static const Duration _deviceSyncWindow = Duration(seconds: 5);
 
   bool _calibrationAckReceived = false;
   bool _handshakeLoopRunning = false;
-
   bool _disposed = false;
   bool _isRunningCalibration = false;
 
@@ -38,7 +37,6 @@ class BluetoothCalibrationCubit extends Cubit<BluetoothCalibrationState> {
   bool _usingDeviceCountdown = false;
   int _uiRemaining = _globalMaxSeconds;
 
-  // ✅ NEW: only accept numeric countdown inside this window
   bool _awaitingCountdownNumber = false;
 
   BluetoothCalibrationCubit(this.repo, this._audioHelper)
@@ -48,13 +46,13 @@ class BluetoothCalibrationCubit extends Cubit<BluetoothCalibrationState> {
 
   void _log(String msg) {
     if (kDebugMode) {
-      // ignore: avoid_print
       print("🟪 CALIB_CUBIT | $msg");
     }
   }
 
   void init() {
     _log("init()");
+
     _connSub = repo.connectionStatusStream().listen(handleBluetoothConnection);
     _dataSub = repo.receivedDataStream().listen(onBluetoothDataReceived);
 
@@ -68,6 +66,7 @@ class BluetoothCalibrationCubit extends Cubit<BluetoothCalibrationState> {
     if (_disposed) return;
 
     _log("handleBluetoothConnection => connected=$connected");
+
     emit(state.copyWith(isBluetoothConnected: connected));
 
     if (connected) {
@@ -92,13 +91,13 @@ class BluetoothCalibrationCubit extends Cubit<BluetoothCalibrationState> {
     // ✅ ACK from device
     if (!_calibrationAckReceived && normalized == "{") {
       _log("ACK '{' received");
+
       _calibrationAckReceived = true;
       _stopHandshakeLoop();
 
-      // ✅ After '{', open 3s window to accept countdown number
+      // ✅ wait 5 sec for device countdown number
       _startDeviceSyncWindow();
 
-      // Start calibration sequence
       if (!_isRunningCalibration) {
         _isRunningCalibration = true;
         _log("start calibration sequence in 1s");
@@ -107,38 +106,40 @@ class BluetoothCalibrationCubit extends Cubit<BluetoothCalibrationState> {
       return;
     }
 
-    // ✅ Only accept number if we are within 3s window AFTER '{'
+    // ✅ only accept number inside 5s window after '{'
     final numMatch = RegExp(r'^\d+$').firstMatch(normalized);
     if (numMatch != null) {
       if (!_awaitingCountdownNumber) {
-        _log("NUM '$normalized' ignored (not in 3s window)");
+        _log("NUM '$normalized' ignored (not in 5s window)");
         return;
       }
 
       final v = int.tryParse(normalized);
       if (v != null) {
         _log("DEVICE_COUNTDOWN_NUMBER accepted => $v");
-        _awaitingCountdownNumber = false;
 
+        _awaitingCountdownNumber = false;
         _usingDeviceCountdown = true;
         _uiRemaining = v;
 
+        _deviceSyncWindowTimer?.cancel();
+        _deviceSyncWindowTimer = null;
+
+        // ✅ only now start showing time
         emit(state.copyWith(
           remainingSeconds: _uiRemaining,
           isTimeStarted: true,
           isTimeOver: false,
           startCalibrationTime: true,
         ));
-
-        _deviceSyncWindowTimer?.cancel();
-        _deviceSyncWindowTimer = null;
       }
       return;
     }
 
-    // ✅ Inhale navigation
+    // ✅ inhale navigation
     if (normalized.contains("inhale") && !state.navigateToInhaleScreen) {
-      _log("INHALE received -> navigate");
+      _log(
+          "INHALE received -> hardware ready, waiting for video sequence to finish");
 
       _inhaleTimeoutTimer?.cancel();
       _audioHelper.stopAudio();
@@ -151,8 +152,9 @@ class BluetoothCalibrationCubit extends Cubit<BluetoothCalibrationState> {
       await BreathingConfigService.fetchBreathingSettings();
       if (_disposed) return;
 
+      // 🚨 MODIFIED: Do not navigate yet. Tell the UI the hardware is ready.
       emit(state.copyWith(
-        navigateToInhaleScreen: true,
+        calibrationHardwareReady: true,
         waitForInhaleCmd: false,
         showPleaseWaitMessage: false,
         breathingSettings: settings,
@@ -178,6 +180,8 @@ class BluetoothCalibrationCubit extends Cubit<BluetoothCalibrationState> {
       isTimeStarted: true,
       remainingSeconds: _uiRemaining,
       isTimeOver: false,
+      // ✅ keep false until device countdown comes or 5s window expires
+      startCalibrationTime: false,
     ));
 
     _globalWaitTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -191,6 +195,7 @@ class BluetoothCalibrationCubit extends Cubit<BluetoothCalibrationState> {
       if (_globalRemaining <= 0) {
         timer.cancel();
         _log("GLOBAL timer over -> timeout");
+
         emit(state.copyWith(
           remainingSeconds: 0,
           isTimeOver: true,
@@ -206,6 +211,11 @@ class BluetoothCalibrationCubit extends Cubit<BluetoothCalibrationState> {
     _uiCountdownTimer = Timer.periodic(const Duration(seconds: 1), (t) {
       if (_disposed || state.navigateToInhaleScreen) {
         t.cancel();
+        return;
+      }
+
+      // ✅ until startCalibrationTime=true, keep only "Please wait..."
+      if (!state.startCalibrationTime) {
         return;
       }
 
@@ -226,30 +236,37 @@ class BluetoothCalibrationCubit extends Cubit<BluetoothCalibrationState> {
       }
 
       if (_uiRemaining % 5 == 0) {
-        _log("screen remaining => ${state.remainingSeconds}");
+        _log("screen remaining => $_uiRemaining");
       }
     });
   }
 
+  // ✅ UPDATED LOGIC
+  // After '{', wait 5 sec.
+  // If device sends number in that time -> show that number
+  // Else -> show default/global timer
   void _startDeviceSyncWindow() {
     _deviceSyncWindowTimer?.cancel();
 
-    // ✅ Mark that UI can start showing time text now
-    emit(state.copyWith(startCalibrationTime: true));
-
-    // ✅ Open window only for 3 seconds
+    // ✅ keep UI in plain "Please wait..."
     _awaitingCountdownNumber = true;
 
     _deviceSyncWindowTimer = Timer(_deviceSyncWindow, () {
       if (_disposed || state.navigateToInhaleScreen) return;
 
-      // close window
       _awaitingCountdownNumber = false;
 
-      // If no number arrived, stay with global remaining
       if (!_usingDeviceCountdown) {
-        _log("no device number in 3s -> keep global remaining on UI");
-        emit(state.copyWith(remainingSeconds: _globalRemaining));
+        _log("no device number in 5s -> show default timer");
+
+        _uiRemaining = _globalRemaining;
+
+        emit(state.copyWith(
+          startCalibrationTime: true,
+          remainingSeconds: _uiRemaining,
+          isTimeStarted: true,
+          isTimeOver: false,
+        ));
       }
     });
   }
@@ -304,16 +321,22 @@ class BluetoothCalibrationCubit extends Cubit<BluetoothCalibrationState> {
     if (_disposed || !state.isBluetoothConnected) return;
 
     _log("_startCalibrationSequence()");
+
     emit(state.copyWith(allSignalSent: false));
 
     for (int i = 1; i <= 5; i++) {
-      if (_disposed || !state.isBluetoothConnected || state.navigateToInhaleScreen) return;
+      if (_disposed ||
+          !state.isBluetoothConnected ||
+          state.navigateToInhaleScreen) return;
 
       final wait = Duration(seconds: i == 1 ? 20 : 10);
       _log("step $i -> wait ${wait.inSeconds} seconds");
+
       await Future.delayed(wait);
 
-      if (_disposed || !state.isBluetoothConnected || state.navigateToInhaleScreen) return;
+      if (_disposed ||
+          !state.isBluetoothConnected ||
+          state.navigateToInhaleScreen) return;
 
       if (i == 3) _audioHelper.playActivatingSensors();
       if (i == 4) _audioHelper.playStartBreathTest();
@@ -359,6 +382,14 @@ class BluetoothCalibrationCubit extends Cubit<BluetoothCalibrationState> {
     }
   }
 
+  // 🚨 NEW METHOD: Triggered by the UI Screen ONLY after cali3 finishes playing!
+  void triggerInhaleNavigation() {
+    if (_disposed) return;
+    _log(
+        "UI Video Sequence complete -> Triggering Navigation to Inhale Screen!");
+    emit(state.copyWith(navigateToInhaleScreen: true));
+  }
+
   void _cancelStreamsOnly() {
     _inhaleTimeoutTimer?.cancel();
     _stopHandshakeLoop();
@@ -378,7 +409,6 @@ class BluetoothCalibrationCubit extends Cubit<BluetoothCalibrationState> {
 
     _calibrationAckReceived = false;
     _isRunningCalibration = false;
-
     _awaitingCountdownNumber = false;
 
     _usingDeviceCountdown = false;
@@ -395,6 +425,7 @@ class BluetoothCalibrationCubit extends Cubit<BluetoothCalibrationState> {
       remainingSeconds: _globalMaxSeconds,
       navigateToInhaleScreen: false,
       startCalibrationTime: false,
+      calibrationHardwareReady: false, // 🚨 Added here
     ));
   }
 

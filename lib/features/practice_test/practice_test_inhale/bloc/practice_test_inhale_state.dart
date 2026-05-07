@@ -35,6 +35,9 @@ class PracticeTestInhaleState extends Equatable {
 
   final bool navigateBack;
 
+  // 🚨 NEW: Compatibility Timer Flag
+  final bool showSkipButton;
+
   const PracticeTestInhaleState({
     this.isConnected = false,
     this.receivedData = "",
@@ -60,6 +63,7 @@ class PracticeTestInhaleState extends Equatable {
     this.inhaleNeedStartsAtEpochMs = 0,
     this.inhaleNeedEndsAtEpochMs = 0,
     this.navigateBack = false,
+    this.showSkipButton = false, // 🚨 NEW
   });
 
   PracticeTestInhaleState copyWith({
@@ -87,6 +91,7 @@ class PracticeTestInhaleState extends Equatable {
     int? inhaleNeedStartsAtEpochMs,
     int? inhaleNeedEndsAtEpochMs,
     bool? navigateBack,
+    bool? showSkipButton, // 🚨 NEW
   }) {
     return PracticeTestInhaleState(
       isConnected: isConnected ?? this.isConnected,
@@ -94,8 +99,10 @@ class PracticeTestInhaleState extends Equatable {
       error: error,
       startCounter: startCounter ?? this.startCounter,
       startCounterMillis: startCounterMillis ?? this.startCounterMillis,
-      startCounterTotalMillis: startCounterTotalMillis ?? this.startCounterTotalMillis,
-      startCounterEndsAtEpochMs: startCounterEndsAtEpochMs ?? this.startCounterEndsAtEpochMs,
+      startCounterTotalMillis:
+          startCounterTotalMillis ?? this.startCounterTotalMillis,
+      startCounterEndsAtEpochMs:
+          startCounterEndsAtEpochMs ?? this.startCounterEndsAtEpochMs,
       startCounterStarted: startCounterStarted ?? this.startCounterStarted,
       startCounterFinished: startCounterFinished ?? this.startCounterFinished,
       baseValueReceived: baseValueReceived ?? this.baseValueReceived,
@@ -109,38 +116,43 @@ class PracticeTestInhaleState extends Equatable {
       inhaleFailReason: inhaleFailReason ?? this.inhaleFailReason,
       inBandSeconds: inBandSeconds ?? this.inBandSeconds,
       inhaleNeedRunning: inhaleNeedRunning ?? this.inhaleNeedRunning,
-      inhaleNeedTotalMillis: inhaleNeedTotalMillis ?? this.inhaleNeedTotalMillis,
-      inhaleNeedStartsAtEpochMs: inhaleNeedStartsAtEpochMs ?? this.inhaleNeedStartsAtEpochMs,
-      inhaleNeedEndsAtEpochMs: inhaleNeedEndsAtEpochMs ?? this.inhaleNeedEndsAtEpochMs,
+      inhaleNeedTotalMillis:
+          inhaleNeedTotalMillis ?? this.inhaleNeedTotalMillis,
+      inhaleNeedStartsAtEpochMs:
+          inhaleNeedStartsAtEpochMs ?? this.inhaleNeedStartsAtEpochMs,
+      inhaleNeedEndsAtEpochMs:
+          inhaleNeedEndsAtEpochMs ?? this.inhaleNeedEndsAtEpochMs,
       navigateBack: navigateBack ?? this.navigateBack,
+      showSkipButton: showSkipButton ?? this.showSkipButton, // 🚨 NEW
     );
   }
 
   @override
   List<Object?> get props => [
-    isConnected,
-    receivedData,
-    error,
-    startCounter,
-    startCounterMillis,
-    startCounterTotalMillis,
-    startCounterEndsAtEpochMs,
-    startCounterStarted,
-    startCounterFinished,
-    baseValueReceived,
-    blowExhaleBaseValue,
-    progress,
-    progressSigned,
-    inhaleStarted,
-    inhaleFinished,
-    inhaleSuccess,
-    inhaleFailed,
-    inhaleFailReason,
-    inBandSeconds,
-    inhaleNeedRunning,
-    inhaleNeedTotalMillis,
-    inhaleNeedStartsAtEpochMs,
-    inhaleNeedEndsAtEpochMs,
-    navigateBack,
-  ];
+        isConnected,
+        receivedData,
+        error,
+        startCounter,
+        startCounterMillis,
+        startCounterTotalMillis,
+        startCounterEndsAtEpochMs,
+        startCounterStarted,
+        startCounterFinished,
+        baseValueReceived,
+        blowExhaleBaseValue,
+        progress,
+        progressSigned,
+        inhaleStarted,
+        inhaleFinished,
+        inhaleSuccess,
+        inhaleFailed,
+        inhaleFailReason,
+        inBandSeconds,
+        inhaleNeedRunning,
+        inhaleNeedTotalMillis,
+        inhaleNeedStartsAtEpochMs,
+        inhaleNeedEndsAtEpochMs,
+        navigateBack,
+        showSkipButton, // 🚨 NEW
+      ];
 }

@@ -11,6 +11,7 @@ class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
   final BluetoothRepository repo;
 
   Timer? _readyTimeoutTimer;
+  Timer? _readyDebounceTimer; // 🚨 Added for the Stabilization Window
 
   StreamSubscription? _connSub;
   StreamSubscription? _dataSub;
@@ -58,7 +59,7 @@ class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
       emit(s);
       _log(
         "EMIT => status=${s.status}, scan=${s.isScanning}, conn=${s.isConnected}, "
-            "connecting=${s.isConnecting}, id=${s.connectingDeviceId}, ready=${s.deviceReady}",
+        "connecting=${s.isConnecting}, id=${s.connectingDeviceId}, ready=${s.deviceReady}",
       );
     }
   }
@@ -254,7 +255,8 @@ class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
     });
   }
 
-  Future<void> _startScanFlow({Duration timeout = const Duration(seconds: 15)}) async {
+  Future<void> _startScanFlow(
+      {Duration timeout = const Duration(seconds: 15)}) async {
     if (_startingScan) return;
     if (state.isConnected || state.isConnecting) return;
 
@@ -327,11 +329,19 @@ class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
   void _handleReadyPacket() {
     if (_handshakeCompleted) return;
 
-    _handshakeCompleted = true;
-    _handshakeInProgress = false;
-    _readyTimeoutTimer?.cancel();
+    // 🚨 THE FIX: Do not emit 'deviceReady: true' instantly!
+    // Wait 1 second to ensure no error packets are trailing behind.
+    _readyDebounceTimer?.cancel();
+    _readyDebounceTimer = Timer(const Duration(milliseconds: 1000), () {
+      if (!isClosed && !state.isDeviceError) {
+        _handshakeCompleted = true;
+        _handshakeInProgress = false;
+        _readyTimeoutTimer?.cancel();
 
-    safeEmit(state.copyWith(deviceReady: true));
+        // ONLY NOW do we turn the Start button blue
+        safeEmit(state.copyWith(deviceReady: true));
+      }
+    });
   }
 
   void _pruneAndEmit() {
@@ -356,7 +366,7 @@ class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
     _scanSub?.cancel();
 
     _scanSub = repo.scan(timeout: timeout).listen(
-          (devices) {
+      (devices) {
         final now = DateTime.now();
 
         for (final d in devices) {
@@ -523,6 +533,23 @@ class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
   }
 
   void onBleData(String cleaned) {
+    // 🚨 FAST CATCH: Look for the word ERROR in the incoming chunk OR the raw buffer
+    // This catches fragments like "{ERROR:0" instantly before they even merge!
+    if (cleaned.contains("ERROR") || _frameBuffer.rawString.contains("ERROR")) {
+      _log("⚠️ FAST CATCH: Battery error detected! Blocking Start button.");
+
+      _readyDebounceTimer?.cancel(); // Stop the Start button from turning blue
+
+      safeEmit(state.copyWith(
+        isDeviceError: true,
+        textError: "LOW_BATTERY",
+        deviceReady: false,
+      ));
+
+      _frameBuffer.clear();
+      return;
+    }
+
     if (cleaned.contains("%")) {
       _handleReadyPacket();
       cleaned = cleaned.replaceAll("%", "").trim();
@@ -534,7 +561,6 @@ class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
       _handleFullFrame(frame);
     }
   }
-
 
   void _handleFullFrame(String frame) {
     final f = frame.trim();
@@ -560,8 +586,6 @@ class BluetoothConnectionCubit extends Cubit<BluetoothConnectionState> {
     }
   }
 
-
-
   @override
   Future<void> close() async {
     _readyTimeoutTimer?.cancel();
@@ -586,6 +610,9 @@ class _SeenDevice {
 
 class _BleFrameBuffer {
   final StringBuffer _sb = StringBuffer();
+
+  // 🚨 THIS IS THE MISSING GETTER YOU NEED
+  String get rawString => _sb.toString();
 
   List<String> add(String chunk) {
     if (chunk.isEmpty) return const [];

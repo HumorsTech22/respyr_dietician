@@ -62,6 +62,8 @@ class DeviceList extends StatelessWidget {
 
             final bool disableTap = state.isConnecting || state.isConnected;
 
+
+
             return InkWell(
               onTap: disableTap
                   ? null

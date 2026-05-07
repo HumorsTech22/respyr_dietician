@@ -1,81 +1,97 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:respyr_dietitian/client-dashboard/data/model/client_profile_model.dart';
 import 'package:respyr_dietitian/core/size/get_height.dart';
 
 class ProfileCard extends StatelessWidget {
-  final bool isProfileAvailable;
-  const ProfileCard({super.key, required this.isProfileAvailable});
+  final ClientProfileModel clientProfileModel;
+  final VoidCallback onTap;
+
+  const ProfileCard({
+    super.key,
+    required this.clientProfileModel,
+    required this.onTap,
+  });
+
+  String _capitalizeWords(String text) {
+    return text
+        .trim()
+        .split(RegExp(r'\s+'))
+        .map((word) =>
+    word.isNotEmpty
+        ? word[0].toUpperCase() + word.substring(1).toLowerCase()
+        : '')
+        .join(' ');
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: ShapeDecoration(
-        color: isProfileAvailable
-            ? const Color(0xFFF0F5FC)
-            : const Color(0xFFD9D9D9),
-        shape: RoundedRectangleBorder(
-          borderRadius:
-          BorderRadius.circular(rh(context: context, px: 15)),
-        ),
-      ),
-      child: isProfileAvailable
-          ? Column(
-        children: [
-          Expanded(
-            child: SvgPicture.asset(
-              "assets/images/icons/def1.svg",
+    final r = rh(context: context, px: 15);
+
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(r),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(r),
+        onTap: onTap,
+        child: Container(
+          decoration: ShapeDecoration(
+            color: const Color(0xFFF0F5FC),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(r),
             ),
           ),
-          Container(
-            width: double.infinity,
-            decoration: ShapeDecoration(
-              color: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(
-                      rh(context: context, px: 15)),
-                  bottomRight: Radius.circular(
-                      rh(context: context, px: 15)),
+          child: Column(
+            children: [
+              Expanded(
+                child: SvgPicture.asset(
+                  "assets/images/icons/def1.svg",
                 ),
               ),
-            ),
-            padding: EdgeInsets.symmetric(
-              horizontal: rh(context: context, px: 14),
-              vertical: rh(context: context, px: 12),
-            ),
-            child: Column(
-              crossAxisAlignment:
-              CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Sparsh",
-                  style: GoogleFonts.poppins(
-                    color: const Color(0xFF535359),
-                    fontSize:
-                    rh(context: context, px: 10),
-                    fontWeight: FontWeight.w400,
-                    letterSpacing:
-                    rh(context: context, px: -0.20),
+              Container(
+                width: double.infinity,
+                decoration: ShapeDecoration(
+                  color: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.only(
+                      bottomLeft: Radius.circular(r),
+                      bottomRight: Radius.circular(r),
+                    ),
                   ),
                 ),
-                Text(
-                  "27 years, Male",
-                  style: GoogleFonts.poppins(
-                    color: const Color(0xFF535359),
-                    fontSize:
-                    rh(context: context, px: 10),
-                    fontWeight: FontWeight.w400,
-                    letterSpacing:
-                    rh(context: context, px: -0.20),
-                  ),
+                padding: EdgeInsets.symmetric(
+                  horizontal: rh(context: context, px: 14),
+                  vertical: rh(context: context, px: 12),
                 ),
-              ],
-            ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _capitalizeWords(clientProfileModel.profileName),
+                      style: GoogleFonts.poppins(
+                        color: const Color(0xFF535359),
+                        fontSize: rh(context: context, px: 10),
+                        fontWeight: FontWeight.w400,
+                        letterSpacing: rh(context: context, px: -0.20),
+                      ),
+                    ),
+                    Text(
+                      "${clientProfileModel.age} years, ${clientProfileModel.gender}",
+                      style: GoogleFonts.poppins(
+                        color: const Color(0xFF535359),
+                        fontSize: rh(context: context, px: 10),
+                        fontWeight: FontWeight.w400,
+                        letterSpacing: rh(context: context, px: -0.20),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
-      )
-          : const SizedBox.shrink(),
+        ),
+      ),
     );
   }
 }

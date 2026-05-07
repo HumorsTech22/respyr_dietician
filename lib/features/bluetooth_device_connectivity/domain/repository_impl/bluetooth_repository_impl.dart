@@ -15,6 +15,8 @@ class BluetoothRepositoryImpl implements BluetoothRepository {
   @override
   bool get isConnected => _ds.isConnected;
 
+  String get connectedDeviceName => _ds.connectedDeviceName;
+
   @override
   Stream<bool> connectionStatusStream() => _ds.connectionStream;
 

@@ -53,9 +53,12 @@ class _WeightScreenState extends State<WeightScreen> {
         cubit.updateWeightFromLbs(weightValue); // convert lbs → kg
       }
 
-      context.push(AppRoutes.profileWelcomeScreen, extra: widget.stepCompleted + 1);
+
+      context.push(AppRoutes.foodType, extra: widget.stepCompleted + 1);
     }
   }
+
+
 
   bool _validateInput(ProfileState state) {
     final input = weightController.text.trim();

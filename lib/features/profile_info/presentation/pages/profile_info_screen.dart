@@ -12,6 +12,7 @@ import 'package:path/path.dart' as path;
 import 'package:respyr_dietitian/common/widgets/exist_confirmation.dart';
 
 import 'package:respyr_dietitian/common/widgets/text_input_decoration.dart';
+import 'package:respyr_dietitian/features/country/presentation/widgets/country_sheet.dart';
 import 'package:respyr_dietitian/features/profile_info/presentation/cubit/profile_cubit.dart';
 import 'package:respyr_dietitian/features/profile_info/presentation/cubit/profile_state.dart';
 import 'package:respyr_dietitian/features/profile_info/presentation/widgets/profile_bottom_navigation.dart';
@@ -350,17 +351,26 @@ class _ProfileInfoScreenState extends State<ProfileInfoScreen> {
                                     ),
                                   ),
                                   const SizedBox(height: 16),
+
                                   TextFormField(
                                     controller: locationController,
+                                    readOnly: true,
                                     keyboardType: TextInputType.text,
                                     cursorColor: Colors.blue,
-                                    autovalidateMode:
-                                    AutovalidateMode.onUserInteraction,
-                                    textCapitalization:
-                                    TextCapitalization.words,
-                                    onChanged: (value) => context
-                                        .read<ProfileCubit>()
-                                        .updateLocation(value.trim()),
+                                    autovalidateMode: AutovalidateMode.onUserInteraction,
+                                    onTap: () async {
+                                      FocusScope.of(context).unfocus();
+
+                                      final selectedCountry = await CountrySheet.show(context: context);
+
+                                      if (selectedCountry != null) {
+                                        locationController.text = selectedCountry.countryCode;
+
+                                        context.read<ProfileCubit>().updateLocation(
+                                          selectedCountry.countryCode,
+                                        );
+                                      }
+                                    },
                                     validator: (value) {
                                       value = value?.trim();
                                       if (value == null || value.isEmpty) {
@@ -369,9 +379,13 @@ class _ProfileInfoScreenState extends State<ProfileInfoScreen> {
                                       return null;
                                     },
                                     decoration: buildInputDecoration(
-                                      hintText: "Enter Location",
-                                      prefixIcon:
-                                      "assets/images/common/profile_location_icon.svg",
+                                      hintText: "Select country",
+                                      prefixIcon: "assets/images/common/profile_location_icon.svg",
+                                    ).copyWith(
+                                      suffixIcon: const Icon(
+                                        Icons.keyboard_arrow_down_rounded,
+                                        color: Color(0xFF535359),
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -387,33 +401,35 @@ class _ProfileInfoScreenState extends State<ProfileInfoScreen> {
             ),
 
             // Bottom navigation
-            bottomNavigationBar: ProfileBottomNavigation(
-              onNext: () {
-                if (formKey.currentState!.validate()) {
-                  final cubit = context.read<ProfileCubit>();
-                  cubit.updateName(nameController.text.trim());
-                  cubit.updateEmail(emailController.text.trim());
-                  cubit.updateLocation(locationController.text.trim());
-                  cubit.updateProfileImagePath(profileImagePath ?? "assets/images/icon/default2.png" );
-
-                  context.push(
-                    AppRoutes.genderScreen,
-                    extra: widget.stepCompleted + 1,
+            bottomNavigationBar: SafeArea(
+              child: ProfileBottomNavigation(
+                onNext: () {
+                  if (formKey.currentState!.validate()) {
+                    final cubit = context.read<ProfileCubit>();
+                    cubit.updateName(nameController.text.trim());
+                    cubit.updateEmail(emailController.text.trim());
+                    cubit.updateLocation(locationController.text.trim());
+                    cubit.updateProfileImagePath(profileImagePath ?? "assets/images/icon/default2.png" );
+              
+                    context.push(
+                      AppRoutes.genderScreen,
+                      extra: widget.stepCompleted + 1,
+                    );
+                  }
+                },
+                onBack: () async{
+              
+                   await ExitConfirmation().show(
+                    context,
+                    yes: () {
+                      context.go(AppRoutes.signInOptions);
+                    },
+                    no: () {
+                      Navigator.of(context).pop(false); // return false
+                    },
                   );
-                }
-              },
-              onBack: () async{
-
-                 await ExitConfirmation().show(
-                  context,
-                  yes: () {
-                    context.go(AppRoutes.signInOptions);
-                  },
-                  no: () {
-                    Navigator.of(context).pop(false); // return false
-                  },
-                );
-              },
+                },
+              ),
             ),
           ),
         );

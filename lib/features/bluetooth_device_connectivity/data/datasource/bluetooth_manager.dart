@@ -48,9 +48,13 @@ class UuidBluetoothManager {
 
   bool _isConnected = false;
 
-  // ✅ optional: prevent double-connect calls
+  // ✅ prevent double-connect calls
   bool _connecting = false;
 
+  // ✅ (optional) allow future reconnect logic if you add later
+  bool autoReconnectEnabled = true;
+
+  // ====== UUIDs ======
   final Guid serviceUuid = Guid("6e400001-b5a3-f393-e0a9-e50e24dcca9e");
   final Guid notifyCharacteristicUuid =
   Guid("49535343-1e4d-4bd9-ba61-23c647249616");
@@ -75,9 +79,13 @@ class UuidBluetoothManager {
     _teardown();
   }
 
+  // ===================== SCAN =====================
+
+  /// flutter_blue_plus ^2.2.1 compatible scan
   Future<void> startScan({
     Duration timeout = const Duration(seconds: 8),
     void Function(List<ScanResult>)? onResults,
+    String nameContains = "respyr",
   }) async {
     final adapterState = await FlutterBluePlus.adapterState.first;
     if (adapterState != BluetoothAdapterState.on) {
@@ -90,27 +98,23 @@ class UuidBluetoothManager {
 
     await stopScan();
 
-    try {
-      await FlutterBluePlus.startScan(timeout: timeout);
-    } catch (e) {
-      if (kDebugMode) {
-        // ignore: avoid_print
-        print("⚠️ startScan error: $e");
-      }
-      return;
-    }
-
+    // listen scan results BEFORE startScan (safer)
     await _scanSub?.cancel();
     _scanSub = FlutterBluePlus.scanResults.listen((results) {
       final filtered = results.where((r) {
-        final name = (r.device.platformName).toLowerCase();
-        final matchesName = name.contains("respyr");
+        // iOS: device.platformName may be empty, use advertisementData.advName too
+        final devName = (r.device.platformName).toLowerCase();
+        final advName = (r.advertisementData.advName).toLowerCase();
+        final matchesName =
+            devName.contains(nameContains) || advName.contains(nameContains);
 
-        // serviceUuids may be Guid or String depending on plugin versions
+        // In ^2.2.1, serviceUuids is List<Guid>
         final advUuids = r.advertisementData.serviceUuids
             .map((e) => e.toString().toLowerCase())
             .toList();
-        final matchesService = advUuids.contains(serviceUuid.toString().toLowerCase());
+
+        final matchesService =
+        advUuids.contains(serviceUuid.toString().toLowerCase());
 
         return matchesName || matchesService;
       }).toList();
@@ -124,6 +128,16 @@ class UuidBluetoothManager {
         print("scanResults error: $e");
       }
     });
+
+    try {
+      await FlutterBluePlus.startScan(timeout: timeout);
+    } catch (e) {
+      if (kDebugMode) {
+        // ignore: avoid_print
+        print("⚠️ startScan error: $e");
+      }
+      return;
+    }
   }
 
   Future<void> stopScan() async {
@@ -137,7 +151,14 @@ class UuidBluetoothManager {
     } catch (_) {}
   }
 
-  Future<void> connect(BluetoothDevice device, {Function? onConnected}) async {
+  // ===================== CONNECT =====================
+
+  /// Connect directly by device instance
+  Future<void> connect(
+      BluetoothDevice device, {
+        VoidCallback? onConnected,
+        Duration readyTimeout = const Duration(seconds: 12),
+      }) async {
     if (_connecting) {
       if (kDebugMode) {
         // ignore: avoid_print
@@ -149,9 +170,12 @@ class UuidBluetoothManager {
     _connecting = true;
     _emitLink(BleLinkStatus.connecting);
 
+    final readyCompleter = Completer<void>();
+
     try {
       await stopScan();
 
+      // disconnect previous
       if (_device != null && _device!.remoteId != device.remoteId) {
         try {
           await _device?.disconnect();
@@ -159,29 +183,17 @@ class UuidBluetoothManager {
       }
 
       _device = device;
+      _notifyChar = null;
+      _writeChar = null;
 
       if (kDebugMode) {
         // ignore: avoid_print
         print("🔌 Connecting to ${device.remoteId.str}...");
       }
 
-      try {
-        await device.connect(autoConnect: false);
-      } catch (e) {
-        final msg = e.toString().toLowerCase();
-        if (!msg.contains("already connected")) {
-          if (kDebugMode) {
-            // ignore: avoid_print
-            print("⚠️ connect() threw: $e");
-          }
-          // treat as failed connect
-          _emitLink(BleLinkStatus.disconnected);
-        }
-      }
-
       await _connSub?.cancel();
       _connSub = device.connectionState.listen((s) async {
-        final connected = s == BluetoothConnectionState.connected;
+        final connected = (s == BluetoothConnectionState.connected);
         _isConnected = connected;
 
         if (!_connCtrl.isClosed) _connCtrl.add(connected);
@@ -208,26 +220,55 @@ class UuidBluetoothManager {
             await _discoverAndSubscribe();
 
             if (!_readyCtrl.isClosed) _readyCtrl.add(true);
-            if (onConnected != null) onConnected();
+
+            onConnected?.call();
+
+            if (!readyCompleter.isCompleted) {
+              readyCompleter.complete();
+            }
           } catch (e, st) {
             if (kDebugMode) {
               // ignore: avoid_print
               print("❌ Discover/subscribe failed: $e\n$st");
             }
+            if (!readyCompleter.isCompleted) {
+              readyCompleter.completeError(e);
+            }
             _emitLink(BleLinkStatus.disconnected);
             _teardown();
           }
         } else {
-          // disconnected event (this covers LINK_SUPERVISION_TIMEOUT too)
+          // disconnected (includes supervision timeout)
           _emitLink(BleLinkStatus.disconnected);
           _teardown();
         }
+      });
+
+      try {
+        await device.connect(license: License.free, autoConnect: false);
+      } catch (e) {
+        final msg = e.toString().toLowerCase();
+        // ignore harmless "already connected"
+        if (!msg.contains("already connected")) {
+          if (kDebugMode) {
+            // ignore: avoid_print
+            print("⚠️ device.connect() threw: $e");
+          }
+          _emitLink(BleLinkStatus.disconnected);
+          _teardown();
+          rethrow;
+        }
+      }
+
+      await readyCompleter.future.timeout(readyTimeout, onTimeout: () {
+        throw TimeoutException("BLE connect timeout");
       });
     } finally {
       _connecting = false;
     }
   }
 
+  /// Connect by remoteId.str
   Future<void> connectById(
       String id, {
         Duration scanTimeout = const Duration(seconds: 10),
@@ -247,16 +288,6 @@ class UuidBluetoothManager {
 
     await stopScan();
 
-    try {
-      await FlutterBluePlus.startScan(timeout: scanTimeout);
-    } catch (e) {
-      if (kDebugMode) {
-        // ignore: avoid_print
-        print("⚠️ startScan(connectById) error: $e");
-      }
-      return;
-    }
-
     sub = FlutterBluePlus.scanResults.listen((results) async {
       for (final r in results) {
         if (r.device.remoteId.str == id) {
@@ -274,6 +305,7 @@ class UuidBluetoothManager {
     });
 
     try {
+      await FlutterBluePlus.startScan(timeout: scanTimeout);
       await found.future;
     } finally {
       try {
@@ -284,16 +316,21 @@ class UuidBluetoothManager {
     }
   }
 
+  // ===================== DISCOVER + NOTIFY =====================
+
   Future<void> _discoverAndSubscribe() async {
-    if (_device == null) throw Exception('No device');
+    final d = _device;
+    if (d == null) throw Exception('No device');
 
     if (kDebugMode) {
       // ignore: avoid_print
       print("🔍 Discovering services...");
     }
 
+    // small delay helps on iOS sometimes
     await Future.delayed(const Duration(milliseconds: 250));
-    final services = await _device!.discoverServices();
+
+    final services = await d.discoverServices();
 
     BluetoothCharacteristic? notifyChar;
     BluetoothCharacteristic? writeChar;
@@ -314,6 +351,9 @@ class UuidBluetoothManager {
     _notifyChar = notifyChar;
     _writeChar = writeChar;
 
+    await _notifySub?.cancel();
+
+    // enable notifications
     try {
       await _notifyChar!.setNotifyValue(true);
     } catch (_) {
@@ -321,14 +361,16 @@ class UuidBluetoothManager {
       await _notifyChar!.setNotifyValue(true);
     }
 
-    await _notifySub?.cancel();
+    // ^2.2.1 uses onValueReceived
     _notifySub = _notifyChar!.onValueReceived.listen((value) {
       if (value.isEmpty) return;
       final s = String.fromCharCodes(value);
+
       if (kDebugMode) {
         // ignore: avoid_print
         print('📨 Notification: $s');
       }
+
       if (!_dataCtrl.isClosed) _dataCtrl.add(s);
     }, onError: (e) {
       if (kDebugMode) {
@@ -343,6 +385,11 @@ class UuidBluetoothManager {
     }
   }
 
+  // ===================== WRITE =====================
+
+  /// ✅ Updated for iOS reliability:
+  /// - If iOS and characteristic supports "write", prefer withResponse (withoutResponse=false)
+  /// - Else fallback to withoutResponse only when "writeWithoutResponse" is available
   Future<void> write(String data, {int maxRetries = 3}) async {
     if (_device == null || !_isConnected) {
       if (kDebugMode) {
@@ -359,16 +406,27 @@ class UuidBluetoothManager {
       return;
     }
 
-    final canWriteWithResponse = _writeChar!.properties.write;
-    final withoutResponse = !canWriteWithResponse;
     final bytes = data.codeUnits;
 
+    final supportsWrite = _writeChar!.properties.write;
+    final supportsWriteWoResp = _writeChar!.properties.writeWithoutResponse;
+
+    // iOS: prefer withResponse whenever possible
+    bool withoutResponse;
+    if (Platform.isIOS) {
+      withoutResponse = !supportsWrite; // if no write, we must use withoutResponse
+    } else {
+      // Android: use withoutResponse if available and write is not available
+      withoutResponse = !supportsWrite && supportsWriteWoResp;
+    }
+
+    // sanity: if neither exists, this will fail but we log properly
     for (int attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         await _writeChar!.write(bytes, withoutResponse: withoutResponse);
         if (kDebugMode) {
           // ignore: avoid_print
-          print("✅ Write success");
+          print("✅ Write success: '$data' (withoutResponse=$withoutResponse)");
         }
         return;
       } catch (e) {
@@ -381,6 +439,8 @@ class UuidBluetoothManager {
       }
     }
   }
+
+  // ===================== DISCONNECT / TEARDOWN =====================
 
   Future<void> disconnect() async {
     _emitLink(BleLinkStatus.disconnected);
@@ -446,6 +506,7 @@ class UuidBluetoothManager {
       final connected = await FlutterBluePlus.connectedDevices;
       for (final d in connected) {
         try {
+          // await d.clearGattCache();
           await d.disconnect();
         } catch (_) {}
       }
@@ -497,7 +558,6 @@ class UuidBluetoothManager {
     if (!_connCtrl.isClosed) _connCtrl.close();
     if (!_dataCtrl.isClosed) _dataCtrl.close();
     if (!_readyCtrl.isClosed) _readyCtrl.close();
-
     if (!_linkCtrl.isClosed) _linkCtrl.close();
   }
 }

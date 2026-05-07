@@ -1,9 +1,10 @@
 import 'package:equatable/equatable.dart';
+import 'package:respyr_dietitian/features/profile_info/data/model/country_model.dart';
 import 'package:respyr_dietitian/features/profile_info/domain/usecases/height_unit.dart';
 import 'package:respyr_dietitian/features/profile_info/domain/usecases/weight_unit.dart';
 
 class ProfileState extends Equatable {
-  final String? profileImagePath; // <-- file path only
+  final String? profileImagePath;
   final String name;
   final String email;
   final String location;
@@ -22,6 +23,8 @@ class ProfileState extends Equatable {
   final String phoneNo;
   final bool? isLoading;
   final String? errorMessage;
+  final String? dateOfBirth;
+  final CountryModel? country;
 
   const ProfileState({
     this.profileImagePath,
@@ -43,6 +46,8 @@ class ProfileState extends Equatable {
     this.phoneNo = '',
     this.isLoading,
     this.errorMessage,
+    this.dateOfBirth='',
+    this.country,
   });
 
   ProfileState copyWith({
@@ -65,6 +70,8 @@ class ProfileState extends Equatable {
     String? phoneNo,
     bool? isLoading,
     String? errorMessage,
+    String? dateOfBirth,
+    CountryModel? country,
   }) {
     return ProfileState(
       profileImagePath: profileImagePath ?? this.profileImagePath,
@@ -86,6 +93,8 @@ class ProfileState extends Equatable {
       phoneNo: phoneNo ?? this.phoneNo,
       isLoading: isLoading ?? this.isLoading,
       errorMessage: errorMessage ?? this.errorMessage,
+      dateOfBirth: dateOfBirth ?? this.dateOfBirth,
+      country: country ?? this.country,
     );
   }
 
@@ -110,9 +119,11 @@ class ProfileState extends Equatable {
     phoneNo,
     isLoading,
     errorMessage,
+    dateOfBirth,
+    country,
   ];
 
   @override
   String toString() =>
-      'ProfileState(profileImagePath: $profileImagePath, name: $name, email: $email, location: $location, gender: $gender, age: $age, height: $height, weight: $weight, heightUnit: $heightUnit, weightUnit: $weightUnit, dietitianId: $dietitianId, errorMessage: $errorMessage)';
+      'ProfileState(profileImagePath: $profileImagePath, name: $name, email: $email, location: $location, gender: $gender, age: $age, dateOfBirth: $dateOfBirth,height: $height, weight: $weight, heightUnit: $heightUnit, weightUnit: $weightUnit, dietitianId: $dietitianId, errorMessage: $errorMessage)';
 }

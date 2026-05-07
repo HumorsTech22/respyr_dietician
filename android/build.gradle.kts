@@ -1,5 +1,4 @@
 import org.gradle.api.tasks.Delete
-import org.gradle.api.file.Directory
 
 buildscript {
     repositories {
@@ -7,29 +6,20 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        // Add this line for Google Sign-In to work!
-        classpath("com.google.gms:google-services:4.4.0")
+        // Keeps Google Services working for Firebase/Auth
+        classpath("com.google.gms:google-services:4.4.2")
     }
 }
 
-allprojects {
-    repositories {
-        google()
-        mavenCentral()
-    }
-}
-
-// Your custom build directory logic (Keep if you need the build folder moved)
-val newBuildDir: Directory = rootProject.layout.buildDirectory
-    .dir("../../build")
-    .get()
+// Your custom build directory logic
+val newBuildDir = rootProject.layout.buildDirectory.dir("../../build").get()
 rootProject.layout.buildDirectory.value(newBuildDir)
 
 subprojects {
-    val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
+    val newSubprojectBuildDir = newBuildDir.dir(project.name)
     project.layout.buildDirectory.value(newSubprojectBuildDir)
 
-    // Crucial: This ensures plugins are registered properly
+    // Crucial: This ensures plugins are registered properly in Flutter
     project.evaluationDependsOn(":app")
 }
 

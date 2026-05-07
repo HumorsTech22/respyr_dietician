@@ -22,7 +22,6 @@ class OtpBloc extends Bloc<OtpEvent, OtpState> {
   void _onStartTimer(StartTimer event, Emitter<OtpState> emit) {
     _timer?.cancel();
 
-    // ✅ start timer fresh, also reset resend flags
     emit(state.copyWith(
       secondsRemaining: _duration,
       canResend: false,
@@ -34,7 +33,6 @@ class OtpBloc extends Bloc<OtpEvent, OtpState> {
   }
 
   void _onTimerTicked(TimerTicked event, Emitter<OtpState> emit) {
-    // ✅ If already success, stop timer & do nothing (prevents extra emits)
     if (state.isSuccess) {
       _timer?.cancel();
       return;
@@ -42,14 +40,18 @@ class OtpBloc extends Bloc<OtpEvent, OtpState> {
 
     if (event.seconds <= 0) {
       _timer?.cancel();
-      emit(state.copyWith(secondsRemaining: 0, canResend: true));
+      emit(state.copyWith(
+        secondsRemaining: 0,
+        canResend: true,
+      ));
     } else {
-      emit(state.copyWith(secondsRemaining: event.seconds));
+      emit(state.copyWith(
+        secondsRemaining: event.seconds,
+      ));
     }
   }
 
   void _onOtpInputChanged(OtpInputChanged event, Emitter<OtpState> emit) {
-    // ✅ Just update entered OTP; clear error
     emit(state.copyWith(
       enteredOtp: int.tryParse(event.code),
       errorText: null,
@@ -65,7 +67,6 @@ class OtpBloc extends Bloc<OtpEvent, OtpState> {
     emit(state.copyWith(
       isResending: true,
       errorText: null,
-      // ✅ reset success + profile on resend
       isSuccess: false,
       profile: null,
     ));
@@ -75,16 +76,19 @@ class OtpBloc extends Bloc<OtpEvent, OtpState> {
       final result = await sendOtpToEmail(event.email, newOtpStr);
 
       if (result['success'] == true) {
-        final finalOtp = int.tryParse(result['otp']?.toString() ?? '') ?? int.parse(newOtpStr);
+        final finalOtp =
+            int.tryParse(result['otp']?.toString() ?? '') ?? int.parse(newOtpStr);
 
         emit(state.copyWith(
           receivedOtp: finalOtp,
           isResending: false,
-          enteredOtp: null, // optional: clear entered OTP
+          enteredOtp: null,
           errorText: null,
+          isSuccess: false,
+          profile: null,
         ));
 
-        add(StartTimer()); // Restart countdown
+        add(StartTimer());
       } else {
         emit(state.copyWith(
           isResending: false,
@@ -103,38 +107,60 @@ class OtpBloc extends Bloc<OtpEvent, OtpState> {
       VerifyOtpRequested event,
       Emitter<OtpState> emit,
       ) async {
-    // ✅ If already success, don't verify again (prevents repeated navigation)
     if (state.isSuccess) return;
-
     if (state.isVerifying) return;
 
     if (state.enteredOtp == null) {
-      emit(state.copyWith(errorText: "Please enter the OTP"));
+      emit(state.copyWith(
+        errorText: "Please enter the OTP",
+      ));
       return;
     }
 
     if (state.enteredOtp != state.receivedOtp) {
-      emit(state.copyWith(errorText: "Invalid OTP entered"));
+      emit(state.copyWith(
+        errorText: "Invalid OTP entered",
+      ));
       return;
     }
 
-    emit(state.copyWith(isVerifying: true, errorText: null));
+    emit(state.copyWith(
+      isVerifying: true,
+      errorText: null,
+    ));
 
     try {
       final profile = await checkClientProfile(userEmail: event.email);
 
-      // ✅ stop timer once verified
       _timer?.cancel();
 
       emit(state.copyWith(
         isVerifying: false,
-        isSuccess: true, // ✅ becomes true only once
+        isSuccess: true,
         profile: profile,
+        errorText: null,
       ));
     } catch (e) {
+      final msg = e.toString().replaceFirst("Exception: ", "").trim().toLowerCase();
+
+      // ✅ NEW USER FLOW
+      if (msg.contains("profile not found")) {
+        _timer?.cancel();
+
+        emit(state.copyWith(
+          isVerifying: false,
+          isSuccess: true,
+          profile: null,
+          errorText: null,
+        ));
+        return;
+      }
+
+      // ✅ NETWORK / SERVER / OTHER ERROR
       emit(state.copyWith(
         isVerifying: false,
-        errorText: e.toString(),
+        isSuccess: false,
+        errorText: e.toString().replaceFirst("Exception: ", ""),
       ));
     }
   }

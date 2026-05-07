@@ -90,6 +90,7 @@ class CreateProfileCubit extends Cubit<CreateProfileState> {
     required String password,
     required String profileImagePath,
     required bool imageIsAvailable,
+    required String dateOfBirth,
   }) async {
     final swTotal = Stopwatch()..start();
     emit(CreateProfileLoading());
@@ -101,7 +102,7 @@ class CreateProfileCubit extends Cubit<CreateProfileState> {
         imageIsAvailable: imageIsAvailable,
       );
 
-      final uri = Uri.parse(UrlManager().urlCreateClientProfile);
+      final uri = Uri.parse(UrlManager().createClientProfileV21);
       final request = http.MultipartRequest('POST', uri)
         ..fields['dietitian_id'] = dietitianId
         ..fields['phone_no'] = "NA"
@@ -115,6 +116,7 @@ class CreateProfileCubit extends Cubit<CreateProfileState> {
         ..fields['location'] = location
         ..fields['password'] = password
         ..headers['Accept'] = 'application/json'
+        ..fields['dob'] = dateOfBirth
         ..files.add(await http.MultipartFile.fromPath('profile_image', imageFile.path));
 
       final streamed = await request.send().timeout(const Duration(seconds: 30));

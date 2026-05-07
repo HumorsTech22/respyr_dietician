@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:respyr_dietitian/common/features_allow/data/model/features_allow_model.dart';
+import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/params/exhale_screen_params.dart';
+import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/params/inhale_screen_params.dart';
+import 'package:video_player/video_player.dart'; // 🚨 REQUIRED FOR SEAMLESS BACKGROUND
 
 import '../../../../client-dashboard/data/model/client_profile_model.dart';
 import '../../../../client-dashboard/data/model/diet_plan_strategy_model.dart';
@@ -18,56 +22,33 @@ import '../cubit/bluetooth_inhale_cubit_new/bluetooth_inhale_new_state.dart';
 import '../widgets/hold_breach_failed.dart';
 import '../widgets/inhale_failed.dart';
 import '../widgets/new_inhale_screen.dart';
-import '../widgets/new_start_test_counter_screen.dart' hide rh;
+
+class SharedVideoHandOff {
+  static VideoPlayerController? controller;
+}
 
 class BluetoothInhaleScreenNew extends StatelessWidget {
-  final ClientProfileModel clientProfileModel;
-  final DietPlanStrategyModel dietPlanStrategyModel;
-  final double minRange;
-  final double maxRange;
-  final BreathingSettings breathingSettings;
-
-  const BluetoothInhaleScreenNew({
-    super.key,
-    required this.clientProfileModel,
-    required this.dietPlanStrategyModel,
-    required this.minRange,
-    required this.maxRange,
-    required this.breathingSettings,
-  });
+  final InhaleScreenParams inhaleScreenParams;
+  const BluetoothInhaleScreenNew({super.key, required this.inhaleScreenParams,});
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => BluetoothInhaleCubitNew(
         context.read<BluetoothRepository>(),
-        breathingSettings,
+        inhaleScreenParams.breathingSettings,
       ),
-      child: _InhaleViewScaffold(
-        clientProfileModel: clientProfileModel,
-        dietPlanStrategyModel: dietPlanStrategyModel,
-        minRange: minRange,
-        maxRange: maxRange,
-        breathingSettings: breathingSettings,
-      ),
+      child: _InhaleViewScaffold(inhaleScreenParams: inhaleScreenParams,),
     );
   }
 }
 
 class _InhaleViewScaffold extends StatefulWidget {
-  final ClientProfileModel clientProfileModel;
-  final DietPlanStrategyModel dietPlanStrategyModel;
-  final double minRange;
-  final double maxRange;
-  final BreathingSettings breathingSettings;
 
-  const _InhaleViewScaffold({
-    required this.clientProfileModel,
-    required this.dietPlanStrategyModel,
-    required this.minRange,
-    required this.maxRange,
-    required this.breathingSettings,
-  });
+  final InhaleScreenParams inhaleScreenParams;
+
+
+  const _InhaleViewScaffold({required this.inhaleScreenParams});
 
   @override
   State<_InhaleViewScaffold> createState() => _InhaleViewScaffoldState();
@@ -101,7 +82,8 @@ class _InhaleViewScaffoldState extends State<_InhaleViewScaffold> {
                 context: context,
                 onBackClicked: () => _onCancel(context: context, state: state),
               ),
-              body: SafeArea(child: _buildScreen(context, state)),
+              body:
+              SafeArea(bottom: false, child: _buildScreen(context, state)),
             ),
           );
         },
@@ -126,14 +108,16 @@ class _InhaleViewScaffoldState extends State<_InhaleViewScaffold> {
     );
   }
 
-  Widget _buildScreen(BuildContext context, BluetoothInhaleCubitNewState state) {
+  Widget _buildScreen(
+      BuildContext context, BluetoothInhaleCubitNewState state) {
     if (state.inhaleFailed) {
       final isHoldBreach = state.holdBreathViolation.trim().isNotEmpty;
 
       if (isHoldBreach) {
         return HoldBreachFailed(
           text: state.holdBreathViolation.trim(),
-          onStartAgain: () => context.read<BluetoothInhaleCubitNew>().cancelTest(),
+          onStartAgain: () =>
+              context.read<BluetoothInhaleCubitNew>().cancelTest(),
         );
       }
 
@@ -143,18 +127,21 @@ class _InhaleViewScaffoldState extends State<_InhaleViewScaffold> {
 
       return InhaleFailed(
         text: msg,
-        onStartAgain: () => context.read<BluetoothInhaleCubitNew>().cancelTest(),
+        onStartAgain: () =>
+            context.read<BluetoothInhaleCubitNew>().cancelTest(),
       );
     }
 
+
     if (state.startCounterStarted && !state.startCounterFinished) {
-      return NewStartTestCounterScreen(state: state);
+      return _SeamlessInhaleCountdown(state: state);
     }
 
-    if (state.startCounterFinished || (state.holdStarted && !state.holdFinished)) {
+    if (state.startCounterFinished ||
+        (state.holdStarted && !state.holdFinished)) {
       return NewInhaleScreen(
         state: state,
-        breathingSettings: widget.breathingSettings,
+        breathingSettings: widget.inhaleScreenParams.breathingSettings,
       );
     }
 
@@ -180,7 +167,8 @@ class _InhaleViewScaffoldState extends State<_InhaleViewScaffold> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () => context.read<BluetoothInhaleCubitNew>().cancelTest(),
+              onPressed: () =>
+                  context.read<BluetoothInhaleCubitNew>().cancelTest(),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF308BF9),
                 padding: EdgeInsets.symmetric(
@@ -206,14 +194,15 @@ class _InhaleViewScaffoldState extends State<_InhaleViewScaffold> {
     );
   }
 
-  void _handleStateLogic(BuildContext context, BluetoothInhaleCubitNewState state) async {
+  void _handleStateLogic(
+      BuildContext context, BluetoothInhaleCubitNewState state) async {
     if (!mounted) return;
     if (_navigated) return;
 
     if (state.navigateToDashboard) {
       _navigated = true;
       _closeDisconnectDialogIfOpen(context);
-      context.go(AppRoutes.clientDashboard, extra: widget.clientProfileModel);
+      context.go(AppRoutes.clientDashboard, extra: widget.inhaleScreenParams.clientProfileModel);
       return;
     }
 
@@ -229,16 +218,22 @@ class _InhaleViewScaffoldState extends State<_InhaleViewScaffold> {
     if (state.holdFinished) {
       _navigated = true;
       _closeDisconnectDialogIfOpen(context);
+
+
+      final params = ExhaleScreenParams(
+          clientProfileModel: widget.inhaleScreenParams.clientProfileModel,
+          baseValue: state.blowExhaleBaseValue.toStringAsFixed(2),
+          dietPlanStrategyModel: widget.inhaleScreenParams.dietPlanStrategyModel,
+          minRange: widget.inhaleScreenParams.minRange,
+          maxRange: widget.inhaleScreenParams.maxRange,
+          breathingSettings: widget.inhaleScreenParams.breathingSettings,
+          featuresAllowData: widget.inhaleScreenParams.featuresAllowData,
+          userHabitsModel: widget.inhaleScreenParams.userHabitsModel
+      );
+
       context.go(
         AppRoutes.bluetoothExhaleScreen,
-        extra: {
-          "clientProfileModel": widget.clientProfileModel,
-          "dietPlanStrategyModel": widget.dietPlanStrategyModel,
-          "baseValue": state.blowExhaleBaseValue.toStringAsFixed(2),
-          "min_range": widget.minRange,
-          "max_range": widget.maxRange,
-          "breathSettings": widget.breathingSettings,
-        },
+        extra: params,
       );
     }
   }
@@ -279,5 +274,131 @@ class _InhaleViewScaffoldState extends State<_InhaleViewScaffold> {
     final nav = Navigator.of(context, rootNavigator: true);
     if (nav.canPop()) nav.pop();
     _disconnectDialogShown = false;
+  }
+}
+
+class _SeamlessInhaleCountdown extends StatefulWidget {
+  final BluetoothInhaleCubitNewState state;
+
+  const _SeamlessInhaleCountdown({required this.state});
+
+  @override
+  State<_SeamlessInhaleCountdown> createState() =>
+      _SeamlessInhaleCountdownState();
+}
+
+class _SeamlessInhaleCountdownState extends State<_SeamlessInhaleCountdown> {
+  late VideoPlayerController _c3;
+  bool _initialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // 🚨 MAGIC: If the Calibration screen handed off the video, use it!
+    if (SharedVideoHandOff.controller != null) {
+      _c3 = SharedVideoHandOff.controller!;
+      _initialized = true;
+    } else {
+      // Normal fallback if app reloads on this screen
+      _c3 = VideoPlayerController.asset(
+        'assets/images/calibration/cali3.mp4',
+        videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true), // 🚨 ADDED
+      );
+      _c3.initialize().then((_) {
+        if (!mounted) return;
+        _c3.setVolume(0.0); // 🚨 ADDED
+        _c3.seekTo(_c3.value.duration).then((_) {
+          setState(() {
+            _initialized = true;
+          });
+        });
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    // Clean up the handoff after use so it's ready for the next test
+    SharedVideoHandOff.controller = null;
+
+    // 🚨 ANTI-STUTTER FIX: Save a reference to the video controller
+    final videoToKill = _c3;
+
+    // Delay the hardware cleanup by 500ms!
+    // This allows the route transition animation to finish beautifully
+    // before we block the main thread to destroy the media codec.
+    Future.delayed(const Duration(milliseconds: 500), () {
+      videoToKill.dispose();
+    });
+
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_initialized) {
+      // Very brief fallback while video loads into memory
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      children: [
+        SizedBox(height: rh(context: context, px: 20)),
+        SizedBox(
+          height: rh(context: context, px: 40),
+          width: double.infinity,
+          child: RichText(
+            key: ValueKey("countdown_${widget.state.startCounter}"),
+            textAlign: TextAlign.center,
+            text: TextSpan(
+              text: "Starting in...",
+              style: GoogleFonts.poppins(
+                color: const Color(0xFF252525),
+                fontSize: rh(context: context, px: 25),
+                fontWeight: FontWeight.w600,
+                height: 1.10,
+                letterSpacing: rh(context: context, px: -1),
+              ),
+              children: [
+                TextSpan(
+                  text:
+                  "${widget.state.startCounter}", // 🚨 Driven completely by the Inhale Cubit timer
+                  style: GoogleFonts.poppins(
+                    color: const Color(0xFF308BF9),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const Spacer(),
+        Expanded(
+          flex: 8,
+          child: ClipRect(
+            child: Stack(
+              alignment: Alignment.bottomCenter,
+              children: [
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: FittedBox(
+                      fit: BoxFit.fitWidth,
+                      alignment: Alignment.bottomCenter,
+                      child: SizedBox(
+                        width: _c3.value.size.width,
+                        height: _c3.value.size.height,
+                        child: VideoPlayer(_c3),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }

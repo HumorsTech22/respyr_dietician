@@ -19,17 +19,19 @@ class SignInState {
     String? email,
     List<String>? filteredDomains,
     String? errorText,
+    bool clearErrorText = false,
     bool? isOtpSending,
     bool? isSuccess,
     int? otp,
+    bool clearOtp = false,
   }) {
     return SignInState(
       email: email ?? this.email,
       filteredDomains: filteredDomains ?? this.filteredDomains,
-      errorText: errorText, // Allow setting to null
+      errorText: clearErrorText ? null : (errorText ?? this.errorText),
       isOtpSending: isOtpSending ?? this.isOtpSending,
       isSuccess: isSuccess ?? this.isSuccess,
-      otp: otp ?? this.otp,
+      otp: clearOtp ? null : (otp ?? this.otp),
     );
   }
 }

@@ -7,6 +7,7 @@ import 'package:respyr_dietitian/common/dialogs/cancel_Test_dialog.dart';
 import 'package:respyr_dietitian/common/dialogs/disconnection_dialog.dart';
 import 'package:respyr_dietitian/common/dialogs/exhale_timeout_dialog.dart';
 import 'package:respyr_dietitian/common/dialogs/improper_exhale_dialog.dart';
+import 'package:respyr_dietitian/common/features_allow/data/model/features_allow_model.dart';
 import 'package:respyr_dietitian/common/widgets/audio_helper.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/params/generating_result_params.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/domain/processor/bluetooth_blow_processor.dart';
@@ -23,13 +24,14 @@ class BluetoothExhaleScreen extends StatelessWidget {
   final DietPlanStrategyModel dietPlanStrategyModel;
   final double minRange;
   final double maxRange;
+  final FeaturesAllowData featuresAllowData;
 
   const BluetoothExhaleScreen({
     super.key,
     required this.baseValue,
     required this.clientProfileModel,
     required this.dietPlanStrategyModel,
-    required this.minRange, required this.maxRange,
+    required this.minRange, required this.maxRange, required this.featuresAllowData,
   });
 
   Future<bool> showCancelTestDialogBox(BuildContext context) async {
@@ -94,25 +96,25 @@ class BluetoothExhaleScreen extends StatelessWidget {
                 ...processor.blowValuesList,
               ];
 
-              final params = GeneratingResultParams(
-                maxPressure: maxPR,
-                bestPressure: bestPR,
-                blowDuration: duration,
-                blowValuesList: allValues,
-                clientProfileModel: clientProfileModel,
-                dietPlanStrategyModel: dietPlanStrategyModel,
-                minRange: minRange,
-                maxRange: maxRange,
-              );
+              // final params = GeneratingResultParams(
+              //   maxPressure: maxPR,
+              //   bestPressure: bestPR,
+              //   blowDuration: duration,
+              //   blowValuesList: allValues,
+              //   clientProfileModel: clientProfileModel,
+              //   dietPlanStrategyModel: dietPlanStrategyModel,
+              //   minRange: minRange,
+              //   maxRange: maxRange, featuresAllowData: featuresAllowData,
+              // );
 
               context.read<BluetoothExhaleCubit>().stop();
               if (!context.mounted) return;
               if (ModalRoute.of(context)?.isCurrent != true) return;
-
-              context.pushReplacement(
-                AppRoutes.bluetoothGeneratingResultScreen,
-                extra: params,
-              );
+              //
+              // context.pushReplacement(
+              //   AppRoutes.bluetoothGeneratingResultScreen,
+              //   extra: params,
+              // );
 
               return;
             }

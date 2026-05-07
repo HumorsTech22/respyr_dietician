@@ -13,6 +13,7 @@ import 'package:respyr_dietitian/features/bluetooth_device_connectivity/presenta
 import 'package:respyr_dietitian/features/practice_test/practice_test_home/bloc/practice_flow_bloc.dart';
 import 'package:respyr_dietitian/features/practice_test/practice_test_home/domain/enums/practice_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:respyr_dietitian/routes/app_routes.dart';
 
 class PracticeTestBluetoothDeviceConnectivity extends StatelessWidget {
   final ClientProfileModel clientProfileModel;
@@ -25,8 +26,10 @@ class PracticeTestBluetoothDeviceConnectivity extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (ctx) => BluetoothConnectionCubit(ctx.read<BluetoothRepository>())..init(),
-      child: _BluetoothDeviceConnectivityView(clientProfileModel: clientProfileModel),
+      create: (ctx) =>
+          BluetoothConnectionCubit(ctx.read<BluetoothRepository>())..init(),
+      child: _BluetoothDeviceConnectivityView(
+          clientProfileModel: clientProfileModel),
     );
   }
 }
@@ -100,9 +103,10 @@ class _BluetoothDeviceConnectivityViewState
           ),
           backgroundColor: Colors.white,
           body: SafeArea(
-            child: BlocListener<BluetoothConnectionCubit, BluetoothConnectionState>(
+            child: BlocListener<BluetoothConnectionCubit,
+                BluetoothConnectionState>(
               listenWhen: (prev, curr) =>
-              prev.isDeviceError != curr.isDeviceError ||
+                  prev.isDeviceError != curr.isDeviceError ||
                   prev.textError != curr.textError,
               listener: (context, state) async {
                 if (state.isDeviceError && state.textError == "LOW_BATTERY") {
@@ -122,7 +126,8 @@ class _BluetoothDeviceConnectivityViewState
                   );
                 }
               },
-              child: BlocBuilder<BluetoothConnectionCubit, BluetoothConnectionState>(
+              child: BlocBuilder<BluetoothConnectionCubit,
+                  BluetoothConnectionState>(
                 builder: (context, state) {
                   if (adapterState != fbp.BluetoothAdapterState.on) {
                     return _bluetoothOffUI();
@@ -149,8 +154,8 @@ class _BluetoothDeviceConnectivityViewState
           final buttonText = (!state.isConnected && state.isScanning)
               ? "Start"
               : (state.isConnected && !isReady)
-              ? "Checking device..."
-              : "Start";
+                  ? "Checking device..."
+                  : "Start";
 
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -159,17 +164,19 @@ class _BluetoothDeviceConnectivityViewState
               child: ElevatedButton(
                 onPressed: canStart
                     ? () {
-                  context.read<PracticeFlowBloc>().add(
-                    PracticeFlowMarkCompleted(PracticeTestSteps.connect),
-                  );
-                  context.pop();
-                }
+                        context.read<PracticeFlowBloc>().add(
+                              PracticeFlowMarkCompleted(
+                                  PracticeTestSteps.connect),
+                            );
+                        context.pop();
+                      }
                     : null,
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   elevation: 0,
-                  backgroundColor:
-                  canStart ? const Color(0xFF308BF9) : const Color(0xFFD9D9D9),
+                  backgroundColor: canStart
+                      ? const Color(0xFF308BF9)
+                      : const Color(0xFFD9D9D9),
                 ),
                 child: Text(
                   buttonText,
@@ -216,7 +223,10 @@ class _BluetoothDeviceConnectivityViewState
   }
 
   void _navigateToDashboard(BuildContext context) {
-    // if needed:
-    // context.go(AppRoutes.clientDashboard, extra: widget.clientProfileModel);
+    // This ensures we go straight back to the dashboard and pass the required data
+    context.go(
+      AppRoutes.clientDashboard,
+      extra: widget.clientProfileModel,
+    );
   }
 }

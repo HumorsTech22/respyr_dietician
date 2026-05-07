@@ -2,22 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:respyr_dietitian/client-dashboard/data/model/client_profile_model.dart';
+import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/model/respyr_unified_response.dart';
 
 import '../../../../core/size/get_height.dart';
-import '../../../bluetooth_device_connectivity/data/model/test_result_data_model_v2.dart';
 import '../cubit/dietitian_result_state.dart';
 import 'result_overview_card.dart';
 
 class ResultOverViewScreen extends StatelessWidget {
   final DietitianResultState state;
   final ClientProfileModel clientProfileModel;
-  final TestResultResponse result;
+  final RespyrUnifiedResponse respyrUnifiedResponse;
 
   const ResultOverViewScreen({
     super.key,
     required this.state,
     required this.clientProfileModel,
-    required this.result,
+    required this.respyrUnifiedResponse,
   });
 
   Color getZoneColor(String zone) {
@@ -35,7 +35,9 @@ class ResultOverViewScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
+    final String screenTitle = respyrUnifiedResponse.primaryTrend.screenTitle;
+    final double score = respyrUnifiedResponse.primaryTrend.score;
+    final String zone = respyrUnifiedResponse.primaryTrend.zone;
 
     return SliverToBoxAdapter(
       child: Column(
@@ -72,7 +74,7 @@ class ResultOverViewScreen extends StatelessWidget {
                       Expanded(
                         flex: 2,
                         child: Text(
-                          "Fat-Use\nPattern Trend",
+                          screenTitle.replaceAll(' ', '\n').replaceFirst('\nTrend', ' Trend'),
                           style: GoogleFonts.poppins(
                             color: const Color(0xFF252525),
                             fontSize: rh(context: context, px: 20),
@@ -88,7 +90,7 @@ class ResultOverViewScreen extends StatelessWidget {
                         child: Column(
                           children: [
                             Text(
-                              "${result.respyrResponse.fatUsePatternTrend.score.toStringAsFixed(0)}%",
+                              "${score.toStringAsFixed(0)}%",
                               style: GoogleFonts.poppins(
                                 color: const Color(0xFF252525),
                                 fontSize: rh(context: context, px: 34),
@@ -98,11 +100,9 @@ class ResultOverViewScreen extends StatelessWidget {
                               ),
                             ),
                             Text(
-                              result.respyrResponse.fatUsePatternTrend.zone,
+                              zone,
                               style: GoogleFonts.poppins(
-                                color: getZoneColor(
-                                  result.respyrResponse.fatUsePatternTrend.zone,
-                                ),
+                                color: getZoneColor(zone),
                                 fontSize: rh(context: context, px: 12),
                                 fontWeight: FontWeight.w700,
                                 height: 1.10,
@@ -150,19 +150,19 @@ class ResultOverViewScreen extends StatelessWidget {
                       ResultOverviewCard(
                         metabolismType: 'Fat',
                         state: state,
-                        result: result,
+                        respyrUnifiedResponse: respyrUnifiedResponse,
                       ),
                       SizedBox(height: rh(context: context, px: 25)),
                       ResultOverviewCard(
                         metabolismType: 'Gut',
                         state: state,
-                        result: result,
+                        respyrUnifiedResponse: respyrUnifiedResponse,
                       ),
                       SizedBox(height: rh(context: context, px: 25)),
                       ResultOverviewCard(
                         metabolismType: 'Liver',
                         state: state,
-                        result: result,
+                        respyrUnifiedResponse: respyrUnifiedResponse,
                       ),
                     ],
                   ),

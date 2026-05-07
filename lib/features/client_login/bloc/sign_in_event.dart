@@ -13,3 +13,7 @@ class DomainSelected extends SignInEvent {
 class ValidateAndSendOtp extends SignInEvent {
   ValidateAndSendOtp();
 }
+
+class ResetSignInState extends SignInEvent {
+  ResetSignInState();
+}

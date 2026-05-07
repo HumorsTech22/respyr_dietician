@@ -7,15 +7,15 @@ import 'package:respyr_dietitian/features/practice_test/practice_test_inhale/blo
 
 import '../../../../bluetooth_device_connectivity/presentation/widgets/breathing_graph.dart';
 
-
-
 class PracticeTestInhaleProgressScreen extends StatefulWidget {
   final PracticeTestInhaleState state;
   final BreathingSettings breathingSettings;
-  PracticeTestInhaleProgressScreen({super.key, required this.state, required this.breathingSettings});
+  const PracticeTestInhaleProgressScreen(
+      {super.key, required this.state, required this.breathingSettings});
 
   @override
-  State<PracticeTestInhaleProgressScreen> createState() => _NewInhaleScreenState();
+  State<PracticeTestInhaleProgressScreen> createState() =>
+      _NewInhaleScreenState();
 }
 
 class _NewInhaleScreenState extends State<PracticeTestInhaleProgressScreen> {
@@ -45,7 +45,8 @@ class _NewInhaleScreenState extends State<PracticeTestInhaleProgressScreen> {
   @override
   Widget build(BuildContext context) {
     final state = widget.state;
-    final int totalHoldTime = (widget.breathingSettings.hold.timeMs / 1000).toInt();
+    final int totalHoldTime =
+        (widget.breathingSettings.hold.timeMs / 1000).toInt();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -77,15 +78,15 @@ class _NewInhaleScreenState extends State<PracticeTestInhaleProgressScreen> {
                   ? rh(context: ctx, px: 300)
                   : constraints.maxHeight;
 
-
-
               return Center(
                 child: RepaintBoundary(
                   child: BreathingTargetGraph(
                     reading: _reading,
                     height: safeH,
-                    targetMin: widget.breathingSettings.inhale.minBand.toDouble(),
-                    targetMax: widget.breathingSettings.inhale.maxBand.toDouble(),
+                    targetMin:
+                        widget.breathingSettings.inhale.minBand.toDouble(),
+                    targetMax:
+                        widget.breathingSettings.inhale.maxBand.toDouble(),
                     hold: false,
                     holdCounter: 0,
                   ),
@@ -95,15 +96,14 @@ class _NewInhaleScreenState extends State<PracticeTestInhaleProgressScreen> {
           ),
         ),
         SizedBox(height: rh(context: context, px: 127)),
-
       ],
     );
   }
 
   Widget _buildMainTitle(
-      BuildContext context,
-  PracticeTestInhaleState  state,
-      ) {
+    BuildContext context,
+    PracticeTestInhaleState state,
+  ) {
     final baseStyle = GoogleFonts.poppins(
       color: const Color(0xFF252525),
       fontSize: rh(context: context, px: 25),
@@ -112,12 +112,11 @@ class _NewInhaleScreenState extends State<PracticeTestInhaleProgressScreen> {
       letterSpacing: -1,
     );
 
-
     // 2. Inhale Progress Logic
     if (state.inhaleNeedRunning) {
-      final remainingMs = (state.inhaleNeedTotalMillis -
-          (state.inBandSeconds * 1000).round())
-          .clamp(0, state.inhaleNeedTotalMillis);
+      final remainingMs =
+          (state.inhaleNeedTotalMillis - (state.inBandSeconds * 1000).round())
+              .clamp(0, state.inhaleNeedTotalMillis);
 
       final remainingSec = (remainingMs / 1000).ceil();
 
@@ -145,9 +144,7 @@ class _NewInhaleScreenState extends State<PracticeTestInhaleProgressScreen> {
     );
   }
 
-  String _buildSubTitle(PracticeTestInhaleState  state) {
-
-
+  String _buildSubTitle(PracticeTestInhaleState state) {
     if (state.inhaleNeedRunning) {
       return "Inhale until timer ends";
     }

@@ -174,6 +174,14 @@ class UuidBluetoothManager {
     } catch (_) {}
   }
 
+  String get connectedDeviceName {
+    final d = _device;
+    if (d == null) return "";
+
+    final name = d.platformName;
+    return name.isNotEmpty ? name : d.remoteId.str;
+  }
+
   Future<void> connectById(String id) async {
     _log("connectById($id)");
 
@@ -309,7 +317,7 @@ class UuidBluetoothManager {
     });
 
     try {
-      await device.connect(autoConnect: false);
+      await device.connect(autoConnect: false, license: License.free, );
     } catch (e) {
       final msg = e.toString().toLowerCase();
       if (!msg.contains("already connected")) {

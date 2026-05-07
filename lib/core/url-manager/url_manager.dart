@@ -14,6 +14,12 @@ class UrlManager {
   late final String urlGetCompleteTestHistory;
   late final String urlUserCheckProfile;
 
+
+  final String createClientProfileV21 = "https://humorstech.com/dietitian/api/app/create_client_v21.php";
+
+  final String addUserHabits = "https://humorstech.com/dietitian/api/app/add_habits.php";
+
+
   UrlManager() {
     urlSaveFcmToken = "${mainPath1}api/insert_fcm_token.php";
     urlGetTestLogStatus = "${mainPath1}api/get_test_log_status.php";

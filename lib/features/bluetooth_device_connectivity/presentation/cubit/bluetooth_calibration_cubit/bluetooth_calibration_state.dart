@@ -23,6 +23,9 @@ class BluetoothCalibrationState extends Equatable {
   final bool isReconnecting;
   final String? linkMessage;
 
+  // 🚨 NEW (for hardware readiness without forcing navigation)
+  final bool calibrationHardwareReady;
+
   const BluetoothCalibrationState({
     this.textError,
     this.hasInternet = false,
@@ -43,6 +46,9 @@ class BluetoothCalibrationState extends Equatable {
     // ✅ NEW
     this.isReconnecting = false,
     this.linkMessage,
+
+    // 🚨 NEW
+    this.calibrationHardwareReady = false,
   });
 
   factory BluetoothCalibrationState.initial() {
@@ -72,17 +78,22 @@ class BluetoothCalibrationState extends Equatable {
     bool? isReconnecting,
     String? linkMessage,
     bool clearLinkMessage = false,
+
+    // 🚨 NEW
+    bool? calibrationHardwareReady,
   }) {
     return BluetoothCalibrationState(
       textError: textError ?? this.textError,
       hasInternet: hasInternet ?? this.hasInternet,
       isBluetoothConnected: isBluetoothConnected ?? this.isBluetoothConnected,
       isDialogShown: isDialogShown ?? this.isDialogShown,
-      navigateToInhaleScreen: navigateToInhaleScreen ?? this.navigateToInhaleScreen,
+      navigateToInhaleScreen:
+      navigateToInhaleScreen ?? this.navigateToInhaleScreen,
       isMuted: isMuted ?? this.isMuted,
       completedSteps: completedSteps ?? this.completedSteps,
       waitForInhaleCmd: waitForInhaleCmd ?? this.waitForInhaleCmd,
-      showPleaseWaitMessage: showPleaseWaitMessage ?? this.showPleaseWaitMessage,
+      showPleaseWaitMessage:
+      showPleaseWaitMessage ?? this.showPleaseWaitMessage,
       allSignalSent: allSignalSent ?? this.allSignalSent,
       isTimeStarted: isTimeStarted ?? this.isTimeStarted,
       remainingSeconds: remainingSeconds ?? this.remainingSeconds,
@@ -93,6 +104,10 @@ class BluetoothCalibrationState extends Equatable {
       // ✅ NEW
       isReconnecting: isReconnecting ?? this.isReconnecting,
       linkMessage: clearLinkMessage ? null : (linkMessage ?? this.linkMessage),
+
+      // 🚨 NEW
+      calibrationHardwareReady:
+      calibrationHardwareReady ?? this.calibrationHardwareReady,
     );
   }
 
@@ -117,5 +132,8 @@ class BluetoothCalibrationState extends Equatable {
     // ✅ NEW
     isReconnecting,
     linkMessage,
+
+    // 🚨 NEW
+    calibrationHardwareReady,
   ];
 }

@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:respyr_dietitian/features/bluetooth_device_connectivity/data/model/breath_setting_model.dart';
@@ -10,7 +9,12 @@ import 'breathing_graph.dart';
 class NewInhaleScreen extends StatefulWidget {
   final BluetoothInhaleCubitNewState state;
   final BreathingSettings breathingSettings;
-   NewInhaleScreen({super.key, required this.state, required this.breathingSettings});
+
+  const NewInhaleScreen({
+    super.key,
+    required this.state,
+    required this.breathingSettings,
+  });
 
   @override
   State<NewInhaleScreen> createState() => _NewInhaleScreenState();
@@ -29,7 +33,8 @@ class _NewInhaleScreenState extends State<NewInhaleScreen> {
   void didUpdateWidget(covariant NewInhaleScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    if (oldWidget.state.progress != widget.state.progress) {
+    if (oldWidget.state.progress != widget.state.progress ||
+        oldWidget.state.progressSigned != widget.state.progressSigned) {
       _reading.value = widget.state.progress;
     }
   }
@@ -43,8 +48,13 @@ class _NewInhaleScreenState extends State<NewInhaleScreen> {
   @override
   Widget build(BuildContext context) {
     final state = widget.state;
-    final int totalHoldTime = (widget.breathingSettings.hold.timeMs / 1000).toInt();
-    final holdRemaining = (totalHoldTime - state.holdSeconds).ceil().clamp(0, totalHoldTime);
+
+    final int totalHoldTime =
+    (widget.breathingSettings.hold.timeMs / 1000).round().clamp(0, 9999);
+
+    final int holdRemaining = (totalHoldTime - state.holdSeconds.round())
+        .clamp(0, totalHoldTime);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -76,16 +86,18 @@ class _NewInhaleScreenState extends State<NewInhaleScreen> {
                   ? rh(context: ctx, px: 300)
                   : constraints.maxHeight;
 
-              final bool holdFlag =
-              (state.holdSeconds == 1) ? false : state.holdStarted;
+              // ✅ no hack here
+              final bool holdFlag = state.holdStarted;
 
               return Center(
                 child: RepaintBoundary(
                   child: BreathingTargetGraph(
                     reading: _reading,
                     height: safeH,
-                    targetMin: widget.breathingSettings.inhale.minBand.toDouble(),
-                    targetMax: widget.breathingSettings.inhale.maxBand.toDouble(),
+                    targetMin:
+                    widget.breathingSettings.inhale.minBand.toDouble(),
+                    targetMax:
+                    widget.breathingSettings.inhale.maxBand.toDouble(),
                     hold: holdFlag,
                     holdCounter: holdRemaining,
                   ),
@@ -95,7 +107,6 @@ class _NewInhaleScreenState extends State<NewInhaleScreen> {
           ),
         ),
         SizedBox(height: rh(context: context, px: 127)),
-
       ],
     );
   }
@@ -113,7 +124,7 @@ class _NewInhaleScreenState extends State<NewInhaleScreen> {
       letterSpacing: -1,
     );
 
-    // 1. Hold Phase Logic
+    // 1) Hold Phase
     if (state.holdStarted) {
       if (holdRemaining > 3) {
         return Text(
@@ -121,16 +132,15 @@ class _NewInhaleScreenState extends State<NewInhaleScreen> {
           textAlign: TextAlign.center,
           style: baseStyle,
         );
-      } else {
-        return Text(
-          "Start exhaling in..",
-          textAlign: TextAlign.center,
-          style: baseStyle,
-        );
       }
+      return Text(
+        "Start exhaling in..",
+        textAlign: TextAlign.center,
+        style: baseStyle,
+      );
     }
 
-    // 2. Inhale Progress Logic
+    // 2) Inhale band timer
     if (state.inhaleNeedRunning) {
       final remainingMs = (state.inhaleNeedTotalMillis -
           (state.inBandSeconds * 1000).round())
@@ -154,7 +164,9 @@ class _NewInhaleScreenState extends State<NewInhaleScreen> {
       );
     }
 
-    // 3. Default Start Logic
+
+
+    // 3) Default
     return Text(
       "Inhale to move\nthe ball into range",
       textAlign: TextAlign.center,
